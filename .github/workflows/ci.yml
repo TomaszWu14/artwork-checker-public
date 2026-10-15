@@ -3,7 +3,7 @@ name: CI
 # Bramka jakości na każdy push do main i każdy PR (ADR-0002):
 #   lint → składnia + testy → SAST (Bandit, Semgrep) → SCA (pip-audit) → sekrety (gitleaks) → konfiguracja (Trivy)
 # Blokują: compileall, pytest, Bandit (≥ średnie), pip-audit, gitleaks.
-# Doradcze (continue-on-error, z terminem w ADR-0002 / RYZYKA.md W-03): ruff (do US-002),
+# Doradcze (continue-on-error na KROKU — job zielony z ostrzeżeniem; termin w ADR-0002 / RYZYKA.md W-03): ruff (do US-002),
 # Semgrep (do pierwszego triage), Trivy misconfig (do US-012 — kontener non-root).
 # Skan obrazu Docker (ciężki, ~8 min) jest w security.yml (ręcznie / co miesiąc).
 
@@ -28,7 +28,6 @@ jobs:
   lint:
     name: Lint (ruff) — doradczy do US-002
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -37,8 +36,10 @@ jobs:
       - name: Instalacja ruff
         run: pip install "ruff>=0.6,<1.0"
       - name: ruff check (reguły F, E9, W6 z pyproject.toml)
+        continue-on-error: true   # doradczy do US-002 — wynik widoczny jako ostrzeżenie, nie czerwony check
         run: ruff check . --output-format github
       - name: ruff format --check
+        continue-on-error: true   # doradczy do US-002
         run: ruff format --check .
 
   tests:
@@ -92,12 +93,12 @@ jobs:
     name: SAST — Semgrep (doradczy do triage)
     runs-on: ubuntu-latest
     needs: [tests]
-    continue-on-error: true
     container:
       image: semgrep/semgrep
     steps:
       - uses: actions/checkout@v4
       - name: Skan regułami OWASP / Flask / Python
+        continue-on-error: true   # doradczy do pierwszego triage (W-03) — ostrzeżenie, nie czerwony check
         run: >
           semgrep scan --config p/python --config p/flask --config p/owasp-top-ten
           --exclude static/design --exclude tests --error --sarif --output semgrep.sarif
@@ -160,7 +161,6 @@ jobs:
     name: Konfiguracja i zależności — Trivy (doradczy do US-012)
     runs-on: ubuntu-latest
     needs: [secrets-gitleaks]
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - name: Instalacja Trivy
@@ -169,6 +169,7 @@ jobs:
             | sh -s -- -b "$HOME/.local/bin"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Skan plików (vuln, secret, misconfig — Dockerfile)
+        continue-on-error: true   # doradczy do US-012 (kontener non-root) — ostrzeżenie, nie czerwony check
         run: trivy fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --exit-code 1 --format table .
       - name: Raport JSON
         if: always()
