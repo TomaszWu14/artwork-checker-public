@@ -1,0 +1,18 @@
+# gitleaks — konfiguracja repo (rozszerza domyślne reguły).
+# [SEC] Allowlista obejmuje WYŁĄCZNIE syntetyczne dane testowe i placeholdery szablonów env.
+# Każdy wpis ma uzasadnienie; przegląd: docs/bezpieczenstwo/RYZYKA.md (W-02).
+title = "artwork-checker"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Syntetyczne poświadczenia testowe (tests/conftest.py, tests/test_integration*.py) i placeholdery .env.example"
+regexTarget = "match"
+regexes = [
+  '''itpass-(admin|manager|user)-123''',          # hasła kont it_* w testach integracyjnych
+  '''test-csrf-token-deadbeef''',                 # stały token CSRF w fixture
+  '''test-(integration|boot)-secret''',           # SECRET_KEY w środowisku testowym
+  '''YOUR_[A-Z0-9_]+_HERE''',                     # placeholdery .env.example / .env.staging.example
+  '''WKLEJ_TOKEN_Z_STRONY_LIBRARY''',             # placeholder w library_sync.py
+]
