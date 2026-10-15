@@ -110,3 +110,20 @@ Wkrótce (YouTube) — porównanie pary artworków, lista kontrolna i podgląd 3
 ```bash
 python -m pytest tests/ -q      # zależności jak w CI — patrz „Uruchomienie (szybki start)”
 ```
+
+## Proces i dokumentacja
+
+Repozytorium jest prowadzone jak przez zespół **analityk ([BA]) + developer ([DEV]) + bezpieczeństwo ([SEC])**
+z Product Ownerem podejmującym decyzje — zasady w [`CONTRIBUTING.md`](CONTRIBUTING.md), zgłaszanie podatności
+w [`SECURITY.md`](SECURITY.md), historia zmian w [`CHANGELOG.md`](CHANGELOG.md).
+
+| Obszar | Dokumenty |
+|---|---|
+| Audyt stanu (3 perspektywy, top 10 ryzyk) | [`docs/AUDYT.md`](docs/AUDYT.md) |
+| Analiza [BA] | [wizja](docs/analiza/WIZJA.md) · [interesariusze](docs/analiza/INTERESARIUSZE.md) · [procesy AS-IS/TO-BE](docs/analiza/PROCESY.md) · [wymagania](docs/analiza/WYMAGANIA.md) · [backlog](docs/analiza/HISTORYJKI.md) · [słownik](docs/analiza/SLOWNIK.md) · [założenia i pytania do PO](docs/analiza/ZALOZENIA.md) · [macierz śledzenia](docs/analiza/SLEDZENIE.md) |
+| Architektura [DEV] | [C4](docs/architektura/ARCHITEKTURA.md) · [model danych](docs/architektura/MODEL_DANYCH.md) · [API (297 tras)](docs/architektura/API.md) · [ADR](docs/architektura/adr/) |
+| Bezpieczeństwo [SEC] | [klasyfikacja danych](docs/bezpieczenstwo/KLASYFIKACJA_DANYCH.md) · [model zagrożeń STRIDE](docs/bezpieczenstwo/THREAT_MODEL.md) · [rejestr ryzyk](docs/bezpieczenstwo/RYZYKA.md) · [RODO](docs/bezpieczenstwo/RODO.md) · [ASVS L2](docs/bezpieczenstwo/CHECKLISTA_ASVS.md) |
+| Testy i operacje | [strategia testów](docs/testy/STRATEGIA_TESTOW.md) · [runbook](docs/operacje/RUNBOOK.md) |
+
+CI na każdym PR: lint → testy → SAST (Bandit, Semgrep) → SCA (pip-audit) → sekrety (gitleaks) → konfiguracja (Trivy);
+co miesiąc dodatkowo pełne skany w `security.yml`.
