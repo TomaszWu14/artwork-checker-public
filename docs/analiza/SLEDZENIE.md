@@ -43,5 +43,5 @@
 | NFR-008 — lint blokujący w CI (0 błędów ruff) | US-002 | `ruff check .` w `ci.yml` (krok blokujący) + `pytest` | #22 | ✅ |
 | SEC-003 / R-09 — placeholdery `.env` odrzucane w produkcji | US-018 | `test_us018_env_placeholders.py` | #18 | ✅ |
 | SEC-009 kontener non-root + HEALTHCHECK, Trivy misconfig blokujący | US-012 | `ci.yml` → job Trivy (DS-0002) | #25 | ✅ |
-| SEC-008 lock obrazu ML (hashe, torch CPU, bez CUDA, instalowalność, regeneracja w CI) | US-021 | `ml-lock.yml` | chore/US-021 | 🔧 |
+| SEC-008 lock obrazu ML (hashe, torch CPU, bez CUDA, instalowalność, regeneracja w CI) | US-021 | `ml-lock.yml`, `ml-base-image.yml` (build + test importów na PR i `main`) | #38 | ✅ |
 | SEC-008 zależności (lock z hashami, pip-audit na locku, Dependabot) | US-011 | `ci.yml` → job pip-audit (`--require-hashes`) | #26 | ✅ |
