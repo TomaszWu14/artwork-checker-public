@@ -10,9 +10,9 @@
 #
 # Obraz bazowy można nadpisać build-argiem (np. konkretny tag/SHA zamiast latest):
 #   docker build -f Dockerfile.slim \
-#     --build-arg ML_BASE_IMAGE=ghcr.io/tomaszwu14/doccompare-ml-base:<sha> .
+#     --build-arg ML_BASE_IMAGE=ghcr.io/tomaszwu14/artwork-ml-base:<sha> .
 # ─────────────────────────────────────────────────────────────────────────────
-ARG ML_BASE_IMAGE=ghcr.io/tomaszwu14/doccompare-ml-base:latest
+ARG ML_BASE_IMAGE=ghcr.io/tomaszwu14/artwork-ml-base:latest
 FROM ${ML_BASE_IMAGE}
 
 WORKDIR /app

@@ -21,7 +21,7 @@ camelot, rapidfuzz, sklearn) — cały ciężar to artwork CV + opcjonalny neura
 | `Dockerfile` | **Obecny, monolityczny** — wciąż używany przez Coolify. Nie ruszamy go, dopóki nie wykonasz cut-overu (krok 4). |
 | `Dockerfile.base` | Ciężki obraz bazowy: system + pakiety z `requirements-ml.lock` (wersje + hashe, torch CPU; US-021). Bez kodu aplikacji. |
 | `Dockerfile.slim` | Cienki obraz aplikacji: `FROM` obrazu bazowego + `COPY . .`. To na niego przełączasz Coolify. |
-| `.github/workflows/ml-base-image.yml` | Buduje `Dockerfile.base` i wypycha do GHCR (`ghcr.io/tomaszwu14/doccompare-ml-base`). |
+| `.github/workflows/ml-base-image.yml` | Buduje `Dockerfile.base` i wypycha do GHCR (`ghcr.io/tomaszwu14/artwork-ml-base`). |
 
 ## Jak to wdrożyć (kolejność ma znaczenie!)
 
@@ -30,15 +30,17 @@ camelot, rapidfuzz, sklearn) — cały ciężar to artwork CV + opcjonalny neura
 > `FROM ghcr.io/...` (brak obrazu).
 
 ### 1. Opublikuj obraz bazowy
-- Wejdź w **Actions → „Buduj obraz bazowy ML" → Run workflow** (gałąź `main`).
+- Wejdź w **Actions → „Buduj obraz bazowy ML" → Run workflow** (gałąź `main`), zaznacz **`publish`**.
 - Workflow zbuduje `Dockerfile.base` (~8-10 min) i wypchnie tagi `:latest` oraz `:<sha>`
-  do `ghcr.io/tomaszwu14/doccompare-ml-base`.
-- (Po zmergowaniu tego PR-a workflow odpali się też automatycznie, bo `Dockerfile.base`
-  pojawia się na `main`.)
+  do `ghcr.io/tomaszwu14/artwork-ml-base`.
+- Pakiet `artwork-ml-base` należy do tego repozytorium (tworzy go pierwsza publikacja), więc `GITHUB_TOKEN`
+  ma do niego zapis bez ręcznej konfiguracji. Nie publikuj do `doccompare-ml-base` — to pakiet starej
+  aplikacji (repo `artwork`); to repo nie ma do niego dostępu (`denied: permission_denied`, run 38920436139),
+  a nadpisanie jego `:latest` zmieniłoby zależności starej aplikacji (decyzja PO 2026-10-16).
 
 ### 2. Udostępnij pakiet dla Coolify (jednorazowo)
 Najprościej — **ustaw pakiet jako publiczny**:
-- GitHub → profil/organizacja → **Packages** → `doccompare-ml-base` →
+- GitHub → profil/organizacja → **Packages** → `artwork-ml-base` →
   **Package settings** → **Change visibility → Public**.
 
 Alternatywnie (jeśli ma zostać prywatny) — dodaj w Coolify **Registry credentials**
@@ -48,7 +50,7 @@ zakresem `read:packages`).
 ### 3. Zweryfikuj, że da się pobrać
 Na hoście Coolify:
 ```bash
-docker pull ghcr.io/tomaszwu14/doccompare-ml-base:latest   # musi przejść
+docker pull ghcr.io/tomaszwu14/artwork-ml-base:latest   # musi przejść
 ```
 
 ### 4. Przełącz Coolify na cienki obraz
@@ -69,12 +71,12 @@ Dlatego po każdej zmianie `requirements.txt`:
    obraz instaluje pakiety wyłącznie z locka (`pip install --require-hashes`),
 1. w PR workflow „Buduj obraz bazowy ML" sam zbuduje obraz i sprawdzi importy (torch CPU, transformers,
    OpenCV, PyMuPDF…) **bez publikacji**; po merge do `main` uruchom go ręcznie z zaznaczonym `publish`
-   (obraz współdzielony ze starą apką — publikacja zawsze świadoma) — wypchnie nowy `:latest`,
+   (publikacja zawsze świadoma) — wypchnie nowy `:latest`,
 2. dopiero potem deployuj aplikację (pobierze świeży obraz bazowy).
 
 Aby uniknąć „dryfu" (kod oczekuje pakietu, którego baza jeszcze nie ma), w razie
 wątpliwości przypnij w Coolify konkretny tag SHA bazy (build-arg
-`ML_BASE_IMAGE=ghcr.io/tomaszwu14/doccompare-ml-base:<sha>`) i podbijaj go świadomie.
+`ML_BASE_IMAGE=ghcr.io/tomaszwu14/artwork-ml-base:<sha>`) i podbijaj go świadomie.
 
 ## Rollback
 
