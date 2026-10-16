@@ -931,6 +931,24 @@ def build_report_from_comparison(result) -> ArtworkReport:
         if not approval_confidence:
             total = critical_count + important_count + ok_count
             approval_confidence = max(30, min(95, int((ok_count / max(total, 1)) * 100))) if total > 0 else 50
+        # US-007 (SEC-004): AI jest doradcze — jego rekomendacja nie może złagodzić wyniku
+        # deterministycznego (np. po prompt injection w treści artworku dostawcy).
+        _ai_rec = str(approval_recommendation or "").upper()
+        if _ai_rec and critical_count > 0 and _ai_rec != "NEEDS_REVISION":
+            approval_recommendation = "NEEDS_REVISION"
+            approval_reason = (f"Wykryto {critical_count} krytycznych różnic (analiza deterministyczna) — "
+                               f"rekomendacja AI „{_ai_rec}” nie może ich znieść.")
+            approval_confidence = max(30, 80 - critical_count * 10)
+        elif _ai_rec == "APPROVED" and important_count > 0:
+            approval_recommendation = "APPROVED_WITH_NOTES"
+            approval_reason = (f"Wykryto {important_count} uwag (analiza deterministyczna) — "
+                               "przejrzyj przed zatwierdzeniem.")
+        if ai_report.get("injection_warning"):
+            approval_recommendation = "NEEDS_REVISION"
+            approval_reason = str(ai_report["injection_warning"])
+            approval_confidence = min(approval_confidence or 50, 50)
+    if approval_recommendation:
+        pass
     elif critical_count == 0 and important_count == 0:
         approval_recommendation = "APPROVED"
         approval_reason         = "Brak wykrytych krytycznych i ważnych różnic."
