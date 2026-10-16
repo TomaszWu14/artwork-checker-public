@@ -1641,10 +1641,14 @@ def forgot_password():
                     "UPDATE password_reset_tokens SET used=1 WHERE user_id=? AND used=0",
                     (user["id"],)
                 )
+                # Expiry computed in Python (UTC text) and bound as a parameter — the
+                # same representation reset_password() compares against (US-003).
+                from datetime import datetime as _dt_r, timedelta as _td_r, timezone as _tz_r
+                _expires_at = (_dt_r.now(_tz_r.utc) + _td_r(hours=RESET_TOKEN_TTL_HOURS)
+                               ).strftime("%Y-%m-%d %H:%M:%S")
                 db.execute(
-                    "INSERT INTO password_reset_tokens(user_id,token,expires_at) "
-                    f"VALUES(?,?,datetime('now','+{int(RESET_TOKEN_TTL_HOURS)} hours'))",
-                    (user["id"], _hash_reset_token(token))
+                    "INSERT INTO password_reset_tokens(user_id,token,expires_at) VALUES(?,?,?)",
+                    (user["id"], _hash_reset_token(token), _expires_at)
                 )
                 db.commit()
                 _log_audit("password_reset_request", user["username"], "Token wygenerowany")
