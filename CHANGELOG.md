@@ -29,6 +29,8 @@ Wersja aplikacji: `constants.APP_VERSION`.
   `_ensure_shipment`/`_save_doc_to_shipment` w `_save_comparison` (pozostałość modułu transportu).
 
 ### Security
+- US-011: `requirements-prod.lock` — zamrożone wersje z hashami SHA-256 (Python 3.11, Linux); `render.yaml` instaluje
+  z `--require-hashes`, a pip-audit w CI audytuje dokładnie te wersje (wcześniej najnowsze z zakresów `>=`) (R-08).
 - US-018: wartości-atrapy z szablonów `.env` (`YOUR_*_HERE`, `changeme`, znane słabe klucze) są traktowane jak brak
   sekretu — produkcja odmawia startu przy takim `SECRET_KEY`/`DATABASE_URL`; `.env.example` i `.env.staging.example`
   bez wartości (R-09).

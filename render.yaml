@@ -4,7 +4,8 @@ services:
     runtime: python
     plan: starter         # upgrade to standard for more RAM (PDF processing)
     region: frankfurt     # EU — blisko ACME PL
-    buildCommand: pip install -r requirements-prod.txt && python migrate_db.py
+    # US-011: instalacja z lockfile z hashami (powtarzalny build, ochrona przed podmianą paczek)
+    buildCommand: pip install --require-hashes -r requirements-prod.lock && python migrate_db.py
     # Worker count / threads / timeout controlled by gunicorn.conf.py (via env vars WEB_CONCURRENCY, THREADS_PER_WORKER, GUNICORN_TIMEOUT)
     # SQLite option: set WEB_CONCURRENCY=1 + persistent disk (see 'disk' below)
     # PostgreSQL option: set DATABASE_URL, remove disk block, keep WEB_CONCURRENCY=2

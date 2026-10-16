@@ -69,6 +69,9 @@ Funkcja jest skończona, gdy:
 | trivy | `trivy fs --scanners vuln,secret,misconfig .` | doradczo (do US-012) |
 | pre-commit | `pip install pre-commit && pre-commit install` | — |
 
+Zależności produkcyjne: po zmianie `requirements-prod.txt` (także z PR Dependabota) zregeneruj `requirements-prod.lock`
+poleceniem z nagłówka pliku i dołącz go do tego samego PR.
+
 Instalacja środowiska testowego: `pip install -r dev-requirements.txt flask werkzeug "rapidfuzz>=3.0,<4.0"`.
 
 ## Zasady ogólne

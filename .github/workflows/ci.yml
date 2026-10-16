@@ -122,8 +122,8 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Instalacja pip-audit
         run: pip install pip-audit
-      - name: Audyt zależności produkcyjnych (po US-011 na lockfile)
-        run: pip-audit -r requirements-prod.txt --progress-spinner off -f json -o pip-audit.json
+      - name: Audyt zależności produkcyjnych (lockfile z hashami, US-011)
+        run: pip-audit -r requirements-prod.lock --require-hashes --disable-pip --progress-spinner off -f json -o pip-audit.json
       - name: Podsumowanie
         if: always()
         run: |
