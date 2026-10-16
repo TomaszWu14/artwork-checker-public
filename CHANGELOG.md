@@ -22,6 +22,8 @@ Wersja aplikacji: `constants.APP_VERSION`.
 - `.gitleaks.toml` z udokumentowaną allowlistą danych testowych; pre-commit z gitleaks i hookami porządkowymi.
 
 ### Changed
+- Dokumentacja po Sprincie 3: statusy US-017/019/022 ✅ (#30, #31, #33), US-021 ⛔ (sieć środowiska); R-13 zamknięte;
+  wyjątek W-04 (narzędzia budowania Tailwind 3) w rejestrze ryzyk.
 - Zależności (zbiorczo z PR Dependabota #6, #7, #9–#16): akcje CI `actions/checkout@v7`, `actions/setup-python@v7`,
   `actions/upload-artifact@v7`, `gitleaks/gitleaks-action@v3`, `docker/setup-buildx-action@v4` we wszystkich workflow;
   dolne granice `camelot-py>=2.0.0`, `pdf2image>=1.17.0`, `reportlab>=5.0.1`, `scikit-learn>=1.9.1`, `shapely>=2.2.0`,
