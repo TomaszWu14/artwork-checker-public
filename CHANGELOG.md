@@ -22,6 +22,8 @@ Wersja aplikacji: `constants.APP_VERSION`.
 - `.gitleaks.toml` z udokumentowaną allowlistą danych testowych; pre-commit z gitleaks i hookami porządkowymi.
 
 ### Changed
+- Dokumentacja: US-021 ✅ (#38); R-08 obniżone — obraz ML z locka zbudowany i przetestowany na `main`,
+  zamknięcie po publikacji do GHCR.
 - Decyzje PO (2026-10-16): Dependabot #5 (Python 3.14) i #8 (`transformers` 5) zamknięte — zmiana Pythona osobną
   historyjką, `transformers` 5 razem z US-021; US-024 (Alpine CSP, zdjęcie `unsafe-eval`) odłożone.
 - `artwork.html`: usunięty martwy kod (736 linii) — stary panel uploadu i porównania pojedynczej pary
