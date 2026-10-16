@@ -67,8 +67,9 @@ Dlatego po każdej zmianie `requirements.txt`:
 
 0. w PR workflow „Lock obrazu ML" sam zregeneruje i zacommituje `requirements-ml.lock` (US-021) —
    obraz instaluje pakiety wyłącznie z locka (`pip install --require-hashes`),
-1. zmerguj zmianę `requirements.txt` do `main` i uruchom ręcznie workflow „Buduj obraz bazowy ML"
-   (automatyczny build jest wyłączony — obraz współdzielony) — wypchnie nowy `:latest`,
+1. w PR workflow „Buduj obraz bazowy ML" sam zbuduje obraz i sprawdzi importy (torch CPU, transformers,
+   OpenCV, PyMuPDF…) **bez publikacji**; po merge do `main` uruchom go ręcznie z zaznaczonym `publish`
+   (obraz współdzielony ze starą apką — publikacja zawsze świadoma) — wypchnie nowy `:latest`,
 2. dopiero potem deployuj aplikację (pobierze świeży obraz bazowy).
 
 Aby uniknąć „dryfu" (kod oczekuje pakietu, którego baza jeszcze nie ma), w razie

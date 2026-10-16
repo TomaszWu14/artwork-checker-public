@@ -12,8 +12,14 @@ name: Buduj obraz bazowy ML
 # (albo dać Coolify dane logowania do GHCR) — szczegóły: docs/OBRAZ_BAZOWY_ML.md
 
 on:
-  # Tylko ręcznie w repo `artwork` — auto-build wyłączony, bo obraz
-  # ghcr.io/<owner>/doccompare-ml-base jest współdzielony ze starą apką.
+  # Publikacja tylko ręcznie (publish=true) — obraz ghcr.io/<owner>/doccompare-ml-base
+  # jest współdzielony ze starą apką. PR zmieniający obraz lub lock → build + test
+  # importów BEZ publikacji (US-021; inputs.publish poza workflow_dispatch jest puste).
+  pull_request:
+    paths:
+      - Dockerfile.base
+      - requirements-ml.lock
+      - .github/workflows/ml-base-image.yml
   workflow_dispatch:
     inputs:
       publish:
