@@ -31,7 +31,7 @@ jobs:
     name: Lint (ruff check blokuje; format doradczy)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -71,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [tests]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -97,7 +97,7 @@ jobs:
     container:
       image: semgrep/semgrep
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Skan regułami OWASP / Flask / Python
         continue-on-error: true   # doradczy do pierwszego triage (W-03) — ostrzeżenie, nie czerwony check
         run: >
@@ -116,7 +116,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [tests]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -150,7 +150,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [sast-bandit, sast-semgrep, sca-pip-audit]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0   # pełna historia — skan także starych commitów
       - name: "gitleaks (konfiguracja i allowlista w .gitleaks.toml)"
@@ -163,7 +163,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [secrets-gitleaks]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Instalacja Trivy
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
