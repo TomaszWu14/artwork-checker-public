@@ -85,7 +85,7 @@ omijała ochrony.
 - Given 199 użyć `innerHTML`, When przegląd, Then każde użycie z danymi użytkownika przechodzi przez jeden
   helper `esc()` z `base.html` (lista w PR). Ryzyko: R-05 (SEC-005).
 
-### US-009 · Should · 📋 · Zarządzanie kontami przez administratora
+### US-009 · Should · 🔧 (PR otwarty) · Zarządzanie kontami przez administratora
 Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w aplikacji, aby nie edytować bazy.
 - Given admin, When tworzę konto, Then użytkownik dostaje link do ustawienia hasła (bez hasła w e-mailu), a w
   audit log jest `user_create`.

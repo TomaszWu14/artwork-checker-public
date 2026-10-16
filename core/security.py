@@ -60,9 +60,15 @@ def check_session_active() -> bool:
     try:
         db = get_db()
         row = db.execute(
-            "SELECT COALESCE(is_active,1) FROM users WHERE id=?", (uid,)
+            "SELECT COALESCE(is_active,1), role FROM users WHERE id=?", (uid,)
         ).fetchone()
-        return row is not None and row[0] == 1
+        if row is None or row[0] != 1:
+            return False
+        # US-009: zmiana roli przez admina działa od następnego żądania (bez ponownego
+        # logowania) — rola w sesji jest odświeżana z bazy przy każdej kontroli.
+        if row[1] and session.get("role") != row[1]:
+            session["role"] = row[1]
+        return True
     except _DB_OUTAGE_ERRORS as _e:
         # Transient DB outage — fail-open to avoid locking out all users.
         logger.warning("check_session_active: DB outage, failing open: %s", _e)

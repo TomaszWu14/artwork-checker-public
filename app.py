@@ -186,10 +186,15 @@ from blueprints.incoterms import bp as _incoterms_bp, ensure_incoterms_table as 
 from blueprints.translation_dict import bp as _translation_dict_bp
 from blueprints.transit_countries import bp as _transit_bp, list_countries as _list_transit_countries
 from blueprints.palviz import bp as _palviz_bp
+from blueprints.users import bp as _users_bp
 app.register_blueprint(_incoterms_bp)
 app.register_blueprint(_translation_dict_bp)
 app.register_blueprint(_transit_bp)
 app.register_blueprint(_palviz_bp)
+app.register_blueprint(_users_bp)
+# US-009: blueprint kont wysyła link ustawienia hasła tym samym kanałem co reset (Resend);
+# lambda rozwiązuje nazwę w chwili wywołania (testy mogą podmienić _send_reset_email).
+app.config["SEND_PASSWORD_LINK"] = lambda to, user, url: _send_reset_email(to, user, url)
 
 
 @app.teardown_appcontext
@@ -1724,11 +1729,7 @@ def _send_critical_alert(username: str, to_email: str, cid: int,
     threading.Thread(target=_do_send, daemon=True).start()
 
 
-def _hash_reset_token(token: str) -> str:
-    """SHA-256 of a password-reset token. Only the hash is stored (US-003, SEC-002):
-    a database dump or backup must not allow taking over an account."""
-    import hashlib as _hl
-    return _hl.sha256(str(token or "").encode("utf-8")).hexdigest()
+from core.accounts import hash_reset_token as _hash_reset_token  # noqa: E402  (US-003/US-009)
 
 
 @app.route("/forgot-password", methods=["GET", "POST"])

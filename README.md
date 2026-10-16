@@ -48,7 +48,7 @@ python app.py                          # http://localhost:5000
 **Konto:** przy pierwszym starcie aplikacja zakłada tylko konto `admin` z **losowym hasłem** —
 wypisuje je w konsoli i zapisuje do pliku `INITIAL_ADMIN_PASSWORD.txt` w katalogu projektu
 (plik jest w `.gitignore`). Zaloguj się, zmień hasło i usuń ten plik. Kolejne konta zakłada
-administrator w aplikacji.
+administrator w panelu **Admin → Konta** (link do ustawienia hasła, role, dezaktywacja).
 
 Opcjonalnie: Tesseract (OCR) i Ghostscript poprawiają jakość parsowania PDF.
 

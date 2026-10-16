@@ -6,6 +6,10 @@ Wersja aplikacji: `constants.APP_VERSION`.
 ## [Unreleased]
 
 ### Added
+- US-009: zakładka „Konta” w panelu admina i API `/api/admin/users` — tworzenie konta z linkiem do ustawienia hasła
+  (24 h, hasło nigdy w e-mailu; bez skonfigurowanego e-maila link dostaje admin), zmiana roli i działu, dezaktywacja
+  (unieważnia otwarte linki), ponowny link; audyt `user_create`/`user_update`/`user_invite`; ochrona własnego konta
+  i ostatniego aktywnego administratora. Zmiana roli działa od następnego żądania (rola odświeżana z bazy w sesji).
 - Proces zespołowy BA/DEV/SEC: `CONTRIBUTING.md` (role, kroki 1–7, Definition of Ready/Done), `SECURITY.md`,
   szablony issue (user story, bug, security) i PR z checklistami, `CODEOWNERS`, Dependabot.
 - Audyt repozytorium z trzech perspektyw: `docs/AUDYT.md` (top 10 ryzyk, dług techniczny, luki wymagań).
