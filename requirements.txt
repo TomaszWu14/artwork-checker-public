@@ -112,7 +112,7 @@ redis>=5.0                    # Klient Redis (sterownik kolejki)
 
 # ── Artwork 3D (modele opakowań GLB z dieline) ──────────
 trimesh>=4.0                  # Budowa siatki 3D i eksport GLB (artwork_3d.py)
-shapely>=2.0                  # Geometryczne wykrywanie paneli dielinu (fallback 3D, artwork_3d.py)
+shapely>=2.2.0                  # Geometryczne wykrywanie paneli dielinu (fallback 3D, artwork_3d.py)
 # OPCJONALNE, ciężkie: pyvista ciągnie VTK (setki MB) sprzeczne z odchudzaniem (#8).
 # Kod degraduje gracefully — render_glb_preview łapie ImportError i zwraca False
 # (GLB powstaje, brak tylko statycznego PNG podglądu). Doinstaluj ręcznie jeśli
