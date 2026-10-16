@@ -100,37 +100,15 @@ Odpowiadaj WYŁĄCZNIE w tym JSON (bez markdown):
 # ── Klucz API ────────────────────────────────────────────────────────────────
 
 # FIX 12: Module-level cache for API key (TTL = 300 s)
-_api_key_cache = [None, 0.0]  # [key, timestamp]
-_API_KEY_CACHE_TTL = 300
 
 
 def _get_api_key() -> str:
-    # Fast path: env var (never stale)
-    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-    if key:
-        return key
-    # Check TTL cache before hitting DB
-    now = time.time()
-    if _api_key_cache[0] and (now - _api_key_cache[1]) < _API_KEY_CACHE_TTL:
-        return _api_key_cache[0]
-    try:
-        db = get_db()
-        try:
-            row = db.execute(
-                "SELECT value FROM settings WHERE category='ai' AND key='anthropic_api_key'"
-            ).fetchone()
-            if row and row[0]:
-                key = row[0].strip()
-                if key:
-                    os.environ["ANTHROPIC_API_KEY"] = key
-                    _api_key_cache[0] = key
-                    _api_key_cache[1] = time.time()
-                    return key
-        finally:
-            db.close()
-    except Exception:
-        pass
-    return ""
+    """Anthropic API key from the environment only (US-004, SEC-003).
+
+    Older versions also read the key from the ``settings`` table and copied it into
+    ``os.environ`` at request time; that path is gone — secrets are not stored in
+    the database and the process environment is never mutated from a request."""
+    return os.environ.get("ANTHROPIC_API_KEY", "").strip()
 
 
 def is_api_key_set() -> dict:

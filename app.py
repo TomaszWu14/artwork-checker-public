@@ -1236,21 +1236,30 @@ try:
 except Exception as _e:
     logger.critical("init_db() failed at startup — DB schema may be incomplete: %s", _e)
 
-# Załaduj ANTHROPIC_API_KEY z bazy danych jeśli nie ma w środowisku
-if not os.environ.get("ANTHROPIC_API_KEY", "").strip():
+def _purge_legacy_api_key_setting() -> bool:
+    """Remove the Anthropic API key that older versions stored in the ``settings``
+    table (US-004, SEC-003): secrets live only in the environment now. Returns True
+    when a row was deleted. Logged at CRITICAL so operators notice the change."""
     try:
         _db = get_db()
         try:
-            _row = _db.execute(
-                "SELECT value FROM settings WHERE category='ai' AND key='anthropic_api_key'"
-            ).fetchone()
+            _cur = _db.execute(
+                "DELETE FROM settings WHERE category='ai' AND key='anthropic_api_key'")
+            _removed = bool(getattr(_cur, "rowcount", 0))
+            _db.commit()
         finally:
             _db.close()
-        if _row and _row[0]:
-            os.environ["ANTHROPIC_API_KEY"] = _row[0]
-            logger.info("ANTHROPIC_API_KEY loaded from database settings")
     except Exception as _e:
-        logger.warning(f"Could not load API key from DB: {_e}")
+        logger.warning("Could not purge legacy API key setting: %s", _e)
+        return False
+    if _removed:
+        logger.critical(
+            "Removed the Anthropic API key stored in the database (legacy settings row). "
+            "Configure ANTHROPIC_API_KEY in the environment — see docs/operacje/RUNBOOK.md.")
+    return _removed
+
+
+_purge_legacy_api_key_setting()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -6677,21 +6686,12 @@ def ai_status():
 @csrf_protect
 def ai_config():
     if request.method == "POST":
-        data = request.get_json(force=True, silent=True) or {}
-        api_key = str(data.get("api_key") or "").strip()
-        if not api_key or not api_key.startswith("sk-ant-") or len(api_key) > 500:
-            return jsonify({"error": "Nieprawidłowy klucz"}), 400
-        db = get_db()
-        try:
-            db.execute(
-                "INSERT INTO settings(category,key,value) VALUES(?,?,?) "
-                "ON CONFLICT(category,key) DO UPDATE SET value=EXCLUDED.value",
-                ("ai", "anthropic_api_key", api_key))
-            db.commit()
-        finally:
-            db.close()
-        os.environ["ANTHROPIC_API_KEY"] = api_key
-        return jsonify({"ok": True})
+        # US-004 (SEC-003): secrets are never stored in the database nor injected into
+        # the process environment from a request. The key is read from the environment.
+        _log_audit("ai_config_rejected", session.get("username"),
+                   "Próba zapisu klucza API przez UI — konfiguracja tylko przez env")
+        return jsonify({"error": "Klucz API jest konfigurowany wyłącznie w zmiennej środowiskowej "
+                                 "ANTHROPIC_API_KEY (patrz docs/operacje/RUNBOOK.md)."}), 410
     key_env = bool(os.environ.get("ANTHROPIC_API_KEY", "").strip())
     return jsonify({"api_key_set": key_env, "source": "env" if key_env else "none",
                     "model": "claude-sonnet-4-20250514"})

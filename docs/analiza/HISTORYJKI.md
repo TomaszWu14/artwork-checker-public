@@ -41,7 +41,7 @@ Jako SEC chcę, aby odczyt bazy nie pozwalał przejąć konta przez token resetu
 - Given `/admin`, When renderuję stronę, Then widok nie dostaje wartości tokenów (tylko liczbę aktywnych).
 - Testy: `tests/test_password_reset.py` (hash, wygaśnięcie, jednorazowość). Ryzyko: R-04 (SEC-002).
 
-### US-004 · Must · 📋 · Klucz Anthropic API tylko z konfiguracji środowiska
+### US-004 · Must · 🔧 (PR otwarty) · Klucz Anthropic API tylko z konfiguracji środowiska
 Jako SEC chcę, aby sekrety nie były przechowywane jawnie w bazie ani ustawiane z poziomu requestu.
 - Given `/api/ai/config` POST, When admin wysyła klucz, Then endpoint zwraca 410 z komunikatem „ustaw
   `ANTHROPIC_API_KEY` w środowisku" (albo: klucz szyfrowany kluczem z env — decyzja PO, Z-06).
