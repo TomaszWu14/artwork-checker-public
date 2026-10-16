@@ -97,7 +97,7 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
   jest używany w Dockerfile i CI; `pip-audit` działa na locku.
 - Dependabot (pip, actions, docker) co tydzień. Ryzyko: R-08 (SEC-008).
 
-### US-012 · Should · 📋 · Kontener bez roota, HEALTHCHECK, skan obrazu
+### US-012 · Should · 🔧 (PR otwarty) · Kontener bez roota, HEALTHCHECK, skan obrazu
 - Given `Dockerfile`, When buduję, Then proces działa jako `USER app`, katalogi `/data`, `uploads`, `logs`
   zapisywalne; `HEALTHCHECK` na `/health`; Trivy image bez CRITICAL. Ryzyko: R-08.
 

@@ -116,5 +116,11 @@ COPY --from=builder /opt/venv /opt/venv
 # Musi być w etapie RUNTIME — cv2 wymaga libGL.so.1, którego builder nie ma.
 RUN python -c "import psycopg2, flask, torch, cv2, fitz, rapidfuzz; print('deps OK')"
 
+# US-012: użytkownik bez roota także w warstwie bazowej (Dockerfile.slim przełącza się
+# na root tylko na czas COPY/mkdir i wraca do USER app).
+RUN groupadd --system --gid 10001 app \
+ && useradd --system --uid 10001 --gid app --home-dir /app --no-create-home --shell /usr/sbin/nologin app
+USER app
+
 # Brak `COPY . .` / `CMD` — to jest tylko warstwa zależności.
 # Kod aplikacji i polecenie startowe dokłada Dockerfile.slim.

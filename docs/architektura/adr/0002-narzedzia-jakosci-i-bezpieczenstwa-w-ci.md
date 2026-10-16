@@ -20,7 +20,7 @@ osobistym (darmowe minuty Actions, gitleaks bez licencji organizacyjnej).
 | `semgrep` (`p/python`, `p/flask`, `p/owasp-top-ten`) | SAST wzorcowy, OWASP | doradczy do pierwszego triage, potem blokujący dla ERROR | reguły zewnętrzne — najpierw ocena szumu |
 | `pip-audit -r requirements-prod.txt` | SCA (CVE w zależnościach) | **blokujący** | 0 CVE dziś; po US-011 działa na locku |
 | `gitleaks` | sekrety w kodzie i historii | **blokujący** | `.gitleaks.toml` allowlistuje tylko syntetyczne dane testowe (opisane) |
-| `trivy fs` (vuln, secret, misconfig) | konfiguracja Dockerfile, pliki | doradczy (misconfig Dockerfile „root user" otwarte → US-012) | po US-012 blokujący HIGH/CRITICAL |
+| `trivy fs` (vuln, secret, misconfig) | konfiguracja Dockerfile, pliki | **blokujący** HIGH/CRITICAL od US-012 (DS-0002 naprawione) | kontener non-root |
 | `trivy image` | obraz Docker | ręcznie / miesięcznie (`security.yml`) | obraz ML ~ kilka GB, build ~8 min — koszt minut (Z-05) |
 | Dependabot (pip, actions, docker) | aktualizacje | tygodniowo, PR-y | wymaga lockfile dla pełnej wartości (US-011) |
 | pre-commit (ruff, gitleaks, hooks) | lokalnie przed commitem | opcjonalny dla dewelopera | CONTRIBUTING.md |

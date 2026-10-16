@@ -70,7 +70,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY . .
 
+# US-012: proces aplikacji działa jako użytkownik bez uprawnień roota (uid 10001).
+# Kod (/app) zostaje własnością roota (tylko do odczytu dla aplikacji); zapisywalne
+# są wyłącznie katalogi danych. Zamontowany wolumen /data musi być zapisywalny
+# dla uid 10001 (patrz docs/operacje/RUNBOOK.md).
+RUN (getent group app >/dev/null || groupadd --system --gid 10001 app) \
+ && (id -u app >/dev/null 2>&1 || useradd --system --uid 10001 --gid app \
+        --home-dir /app --no-create-home --shell /usr/sbin/nologin app) \
+ && mkdir -p /app/instance /app/uploads /app/logs /app/library /app/backups /data \
+ && chown -R app:app /app/instance /app/uploads /app/logs /app/library /app/backups /data
+USER app
+
 EXPOSE 5000
+
+# US-012: sonda zdrowia bez curl (usuniętego z obrazu) — /health zwraca 200 lub 503.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
+  CMD python -c "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=4).status == 200 else 1)"
+
 
 # Migration runs at container start so it targets the runtime DB path
 # (which may be on a persistent mounted volume, not available at build time).
