@@ -107,8 +107,9 @@ def test_login_non_ascii_csrf_rejected_cleanly(client):
 
 # ── Wylogowanie ───────────────────────────────────────────────────────────────
 def test_logout_clears_session(admin_client):
+    from tests.conftest import logout
     assert admin_client.get("/artwork").status_code == 200
-    resp = admin_client.get("/logout")
+    resp = logout(admin_client)   # US-017: POST + CSRF
     assert resp.status_code == 302
     # Po wylogowaniu chroniona strona znów przekierowuje na login.
     assert admin_client.get("/artwork").status_code == 302

@@ -368,7 +368,7 @@
 | `/set-language/<lang>` | GET | zalogowany | — | `app.py:1492` |
 | `/forgot-password` | GET,POST | publiczny | tak | `app.py:1599` |
 | `/reset-password` | GET,POST | publiczny | tak | `app.py:1658` |
-| `/logout` | GET | publiczny | — | `app.py:1720` |
+| `/logout` | GET (potwierdzenie) / POST (CSRF, wylogowanie — US-017) | publiczny | — | `app.py:1720` |
 | `/profile` | GET | zalogowany | — | `app.py:2724` |
 | `/api/profile/update` | POST | zalogowany | tak | `app.py:2752` |
 | `/api/profile/change-password` | POST | zalogowany | tak | `app.py:2785` |
