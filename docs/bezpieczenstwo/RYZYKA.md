@@ -7,13 +7,13 @@
 | ID | Ryzyko | Wpływ | Prawd. | Ocena | Decyzja | Historyjka | Właściciel | Przegląd |
 |---|---|---|---|---|---|---|---|---|
 | R-01 | Przejęcie konta przez brute-force (limit tylko per IP — rotacja IP go omija; brak blokady konta; słaba polityka haseł) | 3 | 2 | 6 🟠 | **zamknięte** (Sprint 1, 2026-10-16) | US-005 | DEV | 2026-11-15 |
-| R-02 | Fałszywy werdykt AI przez prompt injection w PDF dostawcy → wadliwe opakowanie w druku | 3 | 2 | 6 🟠 | mitygować | US-007 | DEV | 2026-11-15 |
+| R-02 | Fałszywy werdykt AI przez prompt injection w PDF dostawcy → wadliwe opakowanie w druku | 3 | 2 | 6 🟠 | **zamknięte** (Sprint 2, #24; szczątkowe: AI tylko doradcze, werdykt deterministyczny) | US-007 | DEV | 2026-11-15 |
 | R-03 | Wyciek klucza Anthropic z bazy/backupu (jawny zapis z UI) | 2 | 2 | 4 🟡 | **zamknięte** (Sprint 1, 2026-10-16) | US-004 | DEV | 2026-11-15 |
 | R-04 | Przejęcie konta przez jawny token resetu z bazy (24 h) | 3 | 1 | 3 🟡 | **zamknięte** (Sprint 1, 2026-10-16) | US-003 | DEV | 2026-11-15 |
-| R-05 | XSS wykonywalny przez CSP `unsafe-inline`/`unsafe-eval` + `innerHTML` | 2 | 2 | 4 🟡 | mitygować | US-008 | DEV | 2026-12-15 |
-| R-06 | Zapis plików w dowolnym katalogu serwera przez managera (`save-copy` bez `ARTWORK_COPY_ROOTS`) | 2 | 2 | 4 🟡 | mitygować (PR US-006 otwarty) | US-006 | DEV | 2026-11-30 |
+| R-05 | XSS wykonywalny przez CSP `unsafe-inline`/`unsafe-eval` + `innerHTML` | 2 | 2 | 4 🟡 | mitygować (etap 1 #28; dalej US-022/US-023) | US-008 | DEV | 2026-12-15 |
+| R-06 | Zapis plików w dowolnym katalogu serwera przez managera (`save-copy` bez `ARTWORK_COPY_ROOTS`) | 2 | 2 | 4 🟡 | **zamknięte** (Sprint 2, #23) | US-006 | DEV | 2026-11-30 |
 | R-07 | Konta zarządzane ręcznie w bazie — brak audytu i polityki haseł | 2 | 2 | 4 🟡 | mitygować | US-009 | DEV | 2026-12-15 |
-| R-08 | Podatność w zależności niewykryta (zakresy bez locka, skan miesięczny), kontener jako root | 2 | 2 | 4 🟡 | mitygować (CI z PR #4 + US-011/012) | US-011, US-012 | DEV | 2026-11-30 |
+| R-08 | Podatność w zależności niewykryta (zakresy bez locka, skan miesięczny), kontener jako root | 2 | 2 | 4 🟡 | obniżone (#25 non-root, #26 lock z hashami); otwarte do US-021 i weryfikacji obrazu | US-011, US-012 | DEV | 2026-11-30 |
 | R-09 | Placeholder `SECRET_KEY` z `.env.example` w produkcji | 3 | 1 | 3 🟡 | **zamknięte** (Sprint 1, 2026-10-16) | US-018 | DEV | 2026-11-15 |
 | R-10 | RODO: brak retencji audit logu, brak procedur praw osób, nieszyfrowane kopie, DPA z procesorami niepotwierdzone | 2 | 2 | 4 🟡 | mitygować | US-014 + Z-04 | PO | 2026-12-15 |
 | R-11 | Błąd 500 przez niezdefiniowane nazwy (F821) w trasie managera | 2 | 3 | 6 🟠 (dostępność) | **zamknięte** (Sprint 1, 2026-10-16) | US-001 | DEV | 2026-11-01 |
