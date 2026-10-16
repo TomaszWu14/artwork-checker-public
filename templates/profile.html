@@ -210,7 +210,7 @@
         <div class="form-group">
           <label for="fNew">Nowe hasło</label>
           <div class="pw-wrap">
-            <input type="password" id="fNew" placeholder="min. 8 znaków + cyfra" oninput="updateStrength(this.value)" autocomplete="new-password">
+            <input type="password" id="fNew" placeholder="min. 12 znaków, litera i cyfra" oninput="updateStrength(this.value)" autocomplete="new-password">
             <button type="button" class="pw-toggle" aria-label="Pokaż/ukryj nowe hasło" onclick="togglePw('fNew',this)">👁</button>
           </div>
           <div class="pw-strength" id="strengthBars">
@@ -336,8 +336,8 @@ async function changePassword() {
     showMsg('pwdMsg', 'Nowe hasła nie są identyczne', false);
     return;
   }
-  if (newPwd.length < 8) {
-    showMsg('pwdMsg', 'Nowe hasło musi mieć co najmniej 8 znaków', false);
+  if (newPwd.length < 12) {
+    showMsg('pwdMsg', 'Nowe hasło musi mieć co najmniej 12 znaków', false);
     return;
   }
   const res = await fetch('/api/profile/change-password', {

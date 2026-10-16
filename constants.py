@@ -98,6 +98,10 @@ APP_VERSION = "1.0.0-artwork"
 # Rate limiting — logowanie
 RATE_LIMIT_LOGIN_MAX    = 5     # max prób na okno
 RATE_LIMIT_LOGIN_WINDOW = 900   # 15 minut (sekundy)
+RATE_LIMIT_LOGIN_ACCOUNT_MAX = 10  # nieudane próby na KONTO w oknie → blokada 429 (US-005, SEC-001)
+
+# Polityka haseł (US-005): minimalna długość; litera + cyfra; lista popularnych haseł w app.py
+PASSWORD_MIN_LENGTH = 12
 
 # Reset hasła — ważność linku (US-003: 1 h, wcześniej 24 h)
 RESET_TOKEN_TTL_HOURS = 1
