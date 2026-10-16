@@ -2508,17 +2508,9 @@ def _save_comparison(uid, doc_type, file_a_name, file_b_name, result_dict,
                     )
             except Exception:
                 pass
-        # Auto-create shipment record when PO is detected
-        if po_number:
-            try:
-                _ensure_shipment(po_number, supplier_code, cid, uid)
-            except Exception:
-                pass
-            # Auto-save uploaded files to shipment document folder
-            if path_a and os.path.exists(path_a):
-                _save_doc_to_shipment(po_number, path_a, file_a_name, doc_type, uid)
-            if path_b and os.path.exists(path_b):
-                _save_doc_to_shipment(po_number, path_b, file_b_name, doc_type, uid)
+        # Shipment auto-creation (_ensure_shipment / _save_doc_to_shipment) was removed
+        # with the transport module in the Artwork fork (US-001); po_number is kept
+        # only as a stored attribute of the comparison row.
         # Notifications
         try:
             _fa = (file_a_name or "")[:200]
@@ -11227,6 +11219,45 @@ def api_artwork_master_file_view():
     import io as _io
     return send_file(_io.BytesIO(data), mimetype=ctype or "application/pdf",
                      as_attachment=False, download_name=os.path.basename(rel_path))
+
+
+def _resolve_artwork_master_path(db, rel_path: str, filename: str = "") -> str | None:
+    """Return the on-disk path of a master already present on the server, or None.
+
+    Used by ``/api/artwork/master-files/from-path`` (US-001). Candidates, in order:
+      1. ``library_files.file_path`` recorded by the sync agent for ``rel_path``;
+      2. ``<LIBRARY_FOLDER>/<rel_path>``;
+      3. ``<LIBRARY_FOLDER>/<dir of rel_path>/<filename>`` when ``filename`` differs.
+    Every candidate must resolve (realpath) inside ``LIBRARY_FOLDER`` — fail-closed
+    (SEC-006): traversal, absolute paths and records pointing elsewhere yield None.
+    """
+    rel = str(rel_path or "").replace("\\", "/").strip().strip("/")
+    if not rel or ".." in rel.split("/") or "\x00" in rel:
+        return None
+    lib_folder = os.path.realpath(app.config.get("LIBRARY_FOLDER", "library"))
+
+    def _inside_library(path: str) -> bool:
+        real = os.path.realpath(path)
+        return real == lib_folder or real.startswith(lib_folder + os.sep)
+
+    candidates: list = []
+    try:
+        row = db.execute(
+            "SELECT file_path FROM library_files WHERE rel_path=?", (rel,)
+        ).fetchone()
+        if row and (row["file_path"] or "").strip():
+            candidates.append(row["file_path"].strip())
+    except Exception as _e:
+        logger.debug("resolve master path: library_files lookup failed rel=%s: %s", rel, _e)
+    candidates.append(os.path.join(lib_folder, *rel.split("/")))
+    fname = os.path.basename(str(filename or "").replace("\\", "/").strip())
+    if fname and fname != rel.split("/")[-1]:
+        parent = rel.split("/")[:-1]
+        candidates.append(os.path.join(lib_folder, *parent, fname))
+    for cand in candidates:
+        if _inside_library(cand) and os.path.isfile(cand):
+            return os.path.realpath(cand)
+    return None
 
 
 @app.route("/api/artwork/master-files/from-path", methods=["POST"])

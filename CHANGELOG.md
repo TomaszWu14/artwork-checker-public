@@ -20,6 +20,11 @@ Wersja aplikacji: `constants.APP_VERSION`.
 ### Changed
 - README: sekcja „Proces i dokumentacja” z linkami do nowych dokumentów.
 
+### Fixed
+- US-001: `/api/artwork/master-files/from-path` wołało niezdefiniowany resolver (`NameError` → 500); dodano
+  `_resolve_artwork_master_path` ograniczony do `LIBRARY_FOLDER` (fail-closed) i usunięto martwą gałąź
+  `_ensure_shipment`/`_save_doc_to_shipment` w `_save_comparison` (pozostałość modułu transportu).
+
 ### Security
 - Zidentyfikowano i zaplanowano (bez zmian w kodzie w tym wydaniu): limity logowania w DB i blokada konta
   (US-005), hash tokenów resetu (US-003), sekrety tylko z env (US-004), ochrona promptów AI (US-007),

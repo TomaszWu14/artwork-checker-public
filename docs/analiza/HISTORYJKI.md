@@ -17,7 +17,7 @@ jakości, aby osoba z zewnątrz widziała dojrzały proces.
 
 ## Sprint 1 — pilne poprawki (Must)
 
-### US-001 · Must · 📋 · Usunięcie niezdefiniowanych nazw (ruff F821)
+### US-001 · Must · 🔧 (PR otwarty) · Usunięcie niezdefiniowanych nazw (ruff F821)
 Jako użytkownik-manager chcę, aby „pobierz master ze ścieżki serwera" działało, aby nie dostawać błędu 500.
 - Given manager i istniejący plik mastera w bibliotece, When POST `/api/artwork/master-files/from-path`,
   Then odpowiedź 200 i plik zapisany w `artwork_master_file` (dziś: `NameError`, `app.py:11247`).
