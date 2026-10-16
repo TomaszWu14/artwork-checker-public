@@ -659,7 +659,6 @@ def detect_doc_type(text: str) -> tuple[str, float]:
         return 'auto', 0.0
 
     scores = {}
-    text_lower = text.lower()
 
     for doc_type, patterns in DOC_SIGNATURES.items():
         score = 0

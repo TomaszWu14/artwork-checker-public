@@ -1734,7 +1734,6 @@ def _lightglue_match_locate(tmpl_gray, page_gray, ph: int, pw: int,
 def _get_paddleocr(script: str = "latin"):
     """Lazy PaddleOCR singleton per script family (latin | cyrillic)."""
     global _paddleocr_latin, _paddleocr_cyrillic
-    slot = "_paddleocr_latin" if script == "latin" else "_paddleocr_cyrillic"
     current = _paddleocr_latin if script == "latin" else _paddleocr_cyrillic
     if current is not None:
         return current or None
@@ -4835,7 +4834,6 @@ def _ocr_enhanced(img) -> str:
         # Call Tesseract directly on the binarized image — skipping _extract_text_ocr
         # avoids the RGB-conversion and contrast steps in _preprocess_for_ocr which
         # would undo the Sauvola binarization we just computed.
-        import pytesseract
         _t0 = time.time()
         _res = pytesseract.image_to_string(g, lang=_get_ocr_langs(), config="--psm 3",
                                            timeout=_TESSERACT_TIMEOUT) or ""

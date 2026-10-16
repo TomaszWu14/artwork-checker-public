@@ -1023,7 +1023,7 @@ def _build_comparison_sections(all_rows: list) -> tuple[list, list, list]:
     Grupuje wiersze field_report w 3 sekcje tabelaryczne (format Word).
     Zwraca (comparison_sections, matched_items, diff_items).
     """
-    SEC_ID   = ["ref", "ean", "gtin", "nazwa", "product", "steryl", "ce ", "jednorazow", "rewizja", "wersja", "kolor", "pantone", "cmyk", "specyfikacja"]
+    # Sekcja identyfikacji = wszystko, co nie trafi do SEC_MFR / SEC_CODE (dawna lista SEC_ID była nieużywana).
     SEC_MFR  = ["producent", "manufacturer", "eu rep", "dystrybutor", "importer", "g.w", "n.w"]
     SEC_CODE = ["lot", "exp", "data wa", "data prod", "gs1", "udi", "barcode", "kod kreskowy"]
 

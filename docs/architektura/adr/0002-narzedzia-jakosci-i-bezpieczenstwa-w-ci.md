@@ -12,7 +12,8 @@ osobistym (darmowe minuty Actions, gitleaks bez licencji organizacyjnej).
 
 | Narzędzie | Cel | Tryb | Uzasadnienie |
 |---|---|---|---|
-| `ruff check` + `ruff format --check` | lint/format (reguły F, E9, W6) | **doradczy** do zamknięcia US-002 (66 błędów), potem blokujący | nie blokować pracy na legacy, ale ustalić datę |
+| `ruff check` | lint (reguły F, E9, W6) | **blokujący** od US-002 (66 błędów usuniętych 2026-10-16) | realne błędy: niezdefiniowane nazwy, zduplikowane klucze, martwe zmienne |
+| `ruff format --check` | formatowanie | doradczy do decyzji PO o jednorazowym sformatowaniu 108 plików (US-020) | wielki diff bez wartości funkcjonalnej — osobna decyzja |
 | `python -m compileall` | składnia każdego modułu | blokujący | tani, łapie literówki poza testami |
 | `pytest` (+ `pytest-cov` raport) | testy czystej logiki + integracyjne (Flask test client) | blokujący; próg pokrycia po decyzji Z-05 | 4 s, bez pakietów ML |
 | `bandit -ll` | SAST Pythona (≥ średnie) | **blokujący** (dziś 0 ustaleń) | fałszywe alarmy oznaczać `# nosec Bxxx` z uzasadnieniem w linii |
@@ -30,6 +31,6 @@ Kolejność w pipeline: lint → testy → SAST → SCA → sekrety → skan kon
 
 ## Konsekwencje
 - (+) Każdy PR ma widoczny wynik 7 kontroli; fałszywe alarmy są oznaczane, nie wyciszane hurtowo.
-- (−) Dwa narzędzia doradcze (ruff, semgrep) do czasu triage — ryzyko „przyzwyczajenia się do żółtego";
-  termin: zamknięcie US-002 (lint) i pierwszy triage semgrep w Sprint 1.
+- (−) Narzędzia doradcze (ruff format, semgrep, trivy misconfig) do czasu decyzji/triage — ryzyko „przyzwyczajenia się
+  do żółtego"; ruff check jest już blokujący (US-002); termin triage semgrep: Sprint 2.
 - (−) pip-audit na zakresach `>=` ocenia najnowsze wersje, nie te z produkcji — do czasu locka (US-011).

@@ -15,4 +15,9 @@ regexes = [
   '''test-(integration|boot)-secret''',           # SECRET_KEY w środowisku testowym
   '''YOUR_[A-Z0-9_]+_HERE''',                     # placeholdery .env.example / .env.staging.example
   '''WKLEJ_TOKEN_Z_STRONY_LIBRARY''',             # placeholder w library_sync.py
+  '''Nowe-Haslo-US003-1234''',                       # syntetyczne hasło w tests/test_us003_reset_token_hash.py
+  '''Dobre-Haslo-2026-xyz''',                        # syntetyczne hasło w tests/test_us005_login_hardening.py
+  '''Zielona-Lampa-77''',                            # syntetyczne hasło (polityka haseł) w testach US-005
+  '''legacy-plaintext-token''',                      # atrapa tokenu w tests/test_us003_reset_token_hash.py
+  '''us005-reset-token-0123456789''',                # atrapa tokenu w tests/test_us005_login_hardening.py
 ]
