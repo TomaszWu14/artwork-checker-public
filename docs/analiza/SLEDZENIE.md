@@ -32,7 +32,7 @@
 | SEC-002 tokeny resetu | US-003 | `test_us003_reset_token_hash.py` | #19 | ✅ |
 | SEC-003 sekrety z env | US-004 | `test_us004_api_key_env_only.py` | #20 | ✅ |
 | SEC-001 limity logowania + blokada konta + polityka haseł | US-005 | `test_us005_login_hardening.py`, `test_integration_api.py::test_login_rate_limit_blocks_after_max_failures` | #21 | ✅ |
-| SEC-004 prompt hardening | US-007 | — | — | ❌ |
+| SEC-004 prompt hardening (reguła systemowa, bloki <document>, wykrywanie injection, AI nie łagodzi werdyktu) | US-007 | `test_us007_prompt_hardening.py` | security/US-007 | 🔧 |
 | SEC-005 CSP | US-008 | — | — | ❌ |
 | SEC-006 pliki fail-closed (kopia 3D tylko do ARTWORK_COPY_ROOTS, realpath) | US-006 | `test_artwork_3d_save_copy.py` | security/US-006 | 🔧 |
 | SEC-007 403 per rola | US-009 i każda nowa trasa | `test_palviz_auth.py`, `test_artwork_idor.py` (wybrane) | — | ⚠️ |
