@@ -26,7 +26,7 @@ rapidocr-onnxruntime>=1.3      # RapidOCR: modele Paddle w ONNX — samowystarcz
 # paddleocr>=2.7               # PaddleOCR: najwyższa dokładność na drukowanym tekście
 # easyocr>=1.7                 # Neural OCR: 80+ języków — cyrylica i trudne cropy
 # python-doctr[torch]>=0.9     # DocTR: głęboki OCR — tertiary fallback
-pdf2image>=1.16                # PDF → obrazy dla OCR
+pdf2image>=1.17.0                # PDF → obrazy dla OCR
 pillow>=10.0,<12.0             # Przetwarzanie obrazów
 opencv-python-headless>=4.8
 
