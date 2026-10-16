@@ -6,7 +6,7 @@
 | Wymaganie | Historyjka | Test(y) | PR | Status |
 |---|---|---|---|---|
 | FR-001 logowanie | — (istniejące) | `test_integration.py`, `test_integration_api.py`, `conftest.py::login` | — | ✅ |
-| FR-002 reset hasła | US-003 | — (do dodania: `test_password_reset.py`) | — | ⚠️ |
+| FR-002 reset hasła | US-003 | `test_us003_reset_token_hash.py` | security/US-003 | 🔧 |
 | FR-003 porównanie pary | — | `test_artwork_pdf.py`, `test_artwork_table_diff.py`, `test_text_layer.py` | — | ✅ (wąsko) |
 | FR-004 raport różnic | — | `test_artwork_ocr_model.py`, `test_business_logic.py` | — | ✅ |
 | FR-005 lista kontrolna | #2 (merged) | `test_checklist_ean_checksum.py` | #2 | ✅ |
@@ -30,7 +30,7 @@
 | NFR-004 SQLite/PostgreSQL | — | `test_escape_like.py`, `test_ensure_memo.py`, `test_app_boots.py` | — | ✅ (tylko SQLite w CI) |
 | NFR-008 bramki CI | US-000 | `.github/workflows/ci.yml` | ten PR | 🔧 |
 | SEC-001 limity logowania | US-005 | — | — | ❌ |
-| SEC-002 tokeny resetu | US-003 | — | — | ❌ |
+| SEC-002 tokeny resetu | US-003 | `test_us003_reset_token_hash.py` | security/US-003 | 🔧 |
 | SEC-003 sekrety z env | US-004 | — | — | ❌ |
 | SEC-004 prompt hardening | US-007 | — | — | ❌ |
 | SEC-005 CSP | US-008 | — | — | ❌ |

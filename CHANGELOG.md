@@ -32,6 +32,9 @@ Wersja aplikacji: `constants.APP_VERSION`.
 - US-018: wartości-atrapy z szablonów `.env` (`YOUR_*_HERE`, `changeme`, znane słabe klucze) są traktowane jak brak
   sekretu — produkcja odmawia startu przy takim `SECRET_KEY`/`DATABASE_URL`; `.env.example` i `.env.staging.example`
   bez wartości (R-09).
+- US-003: tokeny resetu hasła są przechowywane jako SHA-256 (link zawiera token jawny), ważność skrócona
+  z 24 h do 1 h (`constants.RESET_TOKEN_TTL_HOURS`), widok `/admin` dostaje tylko liczbę aktywnych linków.
+  Linki wygenerowane przed tą zmianą przestają działać (R-04).
 - Zidentyfikowano i zaplanowano (bez zmian w kodzie w tym wydaniu): limity logowania w DB i blokada konta
   (US-005), hash tokenów resetu (US-003), sekrety tylko z env (US-004), ochrona promptów AI (US-007),
   CSP bez `unsafe-eval` (US-008), `save-copy` fail-closed (US-006) — patrz `docs/bezpieczenstwo/RYZYKA.md`.
