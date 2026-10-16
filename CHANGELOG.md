@@ -18,6 +18,9 @@ Wersja aplikacji: `constants.APP_VERSION`.
 - `.gitleaks.toml` z udokumentowaną allowlistą danych testowych; pre-commit z gitleaks i hookami porządkowymi.
 
 ### Changed
+- US-002: `ruff check` przechodzi bez błędów (66 → 0: 17 zduplikowanych kluczy w słowniku tłumaczeń EN —
+  wartości identyczne, 28 nieużywanych zmiennych, 10 f-stringów bez pól, 7 podwójnych importów, 4 niezdefiniowane
+  nazwy z US-001) i **blokuje CI**; `ruff format --check` pozostaje doradczy (US-020).
 - README: sekcja „Proces i dokumentacja” z linkami do nowych dokumentów.
 
 ### Fixed

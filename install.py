@@ -63,7 +63,7 @@ def backup_app():
     src = os.path.join(HERE, "app.py")
     dst = os.path.join(HERE, "app.py.bak")
     shutil.copy2(src, dst)
-    print(f"  ✅  Backup: app.py → app.py.bak")
+    print("  ✅  Backup: app.py → app.py.bak")
 
 
 def inject_endpoints():
@@ -149,16 +149,16 @@ def create_templates():
     """Tworzy folder templates/ i kopiuje artwork.html."""
     tmpl_dir = os.path.join(HERE, "templates")
     os.makedirs(tmpl_dir, exist_ok=True)
-    print(f"  ✅  Folder templates/ gotowy")
+    print("  ✅  Folder templates/ gotowy")
 
     src = os.path.join(HERE, ARTWORK_TEMPLATE_SRC)
     dst = os.path.join(HERE, ARTWORK_TEMPLATE_DST)
 
     if os.path.exists(dst):
-        print(f"  ⏭   templates/artwork.html już istnieje — pomijam")
+        print("  ⏭   templates/artwork.html już istnieje — pomijam")
     else:
         shutil.copy2(src, dst)
-        print(f"  ✅  templates/artwork.html skopiowany")
+        print("  ✅  templates/artwork.html skopiowany")
 
 
 def run_migrate():

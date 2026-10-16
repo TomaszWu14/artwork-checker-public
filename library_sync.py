@@ -205,7 +205,7 @@ def run_sync(full: bool = False, dry_run: bool = False):
         print("       Sprawdź czy dysk Z: jest zamontowany.")
         sys.exit(1)
 
-    print(f"DocCompare Library Sync (tryb: miniatury + metadane, bez przesyłania PDF)")
+    print("DocCompare Library Sync (tryb: miniatury + metadane, bez przesyłania PDF)")
     print(f"Root  : {LIBRARY_ROOT}")
     print(f"Server: {SERVER_URL}")
     print(f"Tryb  : {'PEŁNA' if full else 'inkrementalna'}{' (dry-run)' if dry_run else ''}")

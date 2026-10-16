@@ -25,7 +25,7 @@ Jako użytkownik-manager chcę, aby „pobierz master ze ścieżki serwera" dzia
   (`app.py:2514–2521`) — gałąź usunięta, test regresji w `tests/`.
 - SEC: brak nowych tras; DEV: `ruff check` nie zgłasza F821. Ryzyko: R-11.
 
-### US-002 · Must · 📋 · Lint jako bramka CI
+### US-002 · Must · 🔧 (PR otwarty, po #17) · Lint jako bramka CI
 Jako DEV chcę, aby `ruff check` przechodził bez błędów i blokował PR, aby duplikaty kluczy i martwe zmienne nie
 wracały.
 - Given 66 błędów (F841, F601, F541, F811, F821), When PR z poprawkami, Then `ruff check .` = 0 błędów,
@@ -110,6 +110,7 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
 ### US-016 · Could · 📋 · Archiwizacja nieaktualnych dokumentów (`docs/architektura.md`, `DOKUMENTACJA_IT.md`, `PROCES_*`) do `docs/archiwum/`
 ### US-017 · Could · 📋 · `POST /logout` z CSRF; kontrola dezaktywacji konta w ręcznych sprawdzeniach sesji
 ### US-019 · Could · 📋 · Limit stron/DPI dla OCR (ochrona przed wyczerpaniem zasobów)
+### US-020 · Could · 📋 · Jednorazowe `ruff format` 108 plików i `ruff format --check` jako bramka (decyzja PO — duży diff)
 
 ## Won't (na teraz)
 - Przepisanie na FastAPI/Django, ORM — patrz ADR-0001.
