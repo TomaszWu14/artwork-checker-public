@@ -639,7 +639,7 @@ def extract_table_preview(pdf_path: str, doc_type: str = 'auto') -> dict:
                     'extraction_method': 'camelot',
                 })
                 result['detected_mappings'] = _auto_detect_column_roles(headers)
-    except Exception as e:
+    except Exception:
         pass
 
     # Fallback: pdfplumber

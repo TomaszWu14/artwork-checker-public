@@ -17,7 +17,7 @@ jakości, aby osoba z zewnątrz widziała dojrzały proces.
 
 ## Sprint 1 — pilne poprawki (Must)
 
-### US-001 · Must · 📋 · Usunięcie niezdefiniowanych nazw (ruff F821)
+### US-001 · Must · 🔧 (PR otwarty) · Usunięcie niezdefiniowanych nazw (ruff F821)
 Jako użytkownik-manager chcę, aby „pobierz master ze ścieżki serwera" działało, aby nie dostawać błędu 500.
 - Given manager i istniejący plik mastera w bibliotece, When POST `/api/artwork/master-files/from-path`,
   Then odpowiedź 200 i plik zapisany w `artwork_master_file` (dziś: `NameError`, `app.py:11247`).
@@ -25,7 +25,7 @@ Jako użytkownik-manager chcę, aby „pobierz master ze ścieżki serwera" dzia
   (`app.py:2514–2521`) — gałąź usunięta, test regresji w `tests/`.
 - SEC: brak nowych tras; DEV: `ruff check` nie zgłasza F821. Ryzyko: R-11.
 
-### US-002 · Must · 📋 · Lint jako bramka CI
+### US-002 · Must · 🔧 (PR otwarty, po #17) · Lint jako bramka CI
 Jako DEV chcę, aby `ruff check` przechodził bez błędów i blokował PR, aby duplikaty kluczy i martwe zmienne nie
 wracały.
 - Given 66 błędów (F841, F601, F541, F811, F821), When PR z poprawkami, Then `ruff check .` = 0 błędów,
@@ -34,14 +34,14 @@ wracały.
   (żadne dane użytkownika nie giną).
 - Powiązane: ADR-0002.
 
-### US-003 · Must · 📋 · Tokeny resetu hasła jako hash, ważność 1 h
+### US-003 · Must · 🔧 (PR otwarty) · Tokeny resetu hasła jako hash, ważność 1 h
 Jako SEC chcę, aby odczyt bazy nie pozwalał przejąć konta przez token resetu.
 - Given żądanie resetu, When token powstaje, Then w DB zapisany jest `sha256(token)`, a link zawiera token jawny.
 - Given token starszy niż 60 min, When otwieram link, Then widzę „link wygasł".
 - Given `/admin`, When renderuję stronę, Then widok nie dostaje wartości tokenów (tylko liczbę aktywnych).
 - Testy: `tests/test_password_reset.py` (hash, wygaśnięcie, jednorazowość). Ryzyko: R-04 (SEC-002).
 
-### US-004 · Must · 📋 · Klucz Anthropic API tylko z konfiguracji środowiska
+### US-004 · Must · 🔧 (PR otwarty) · Klucz Anthropic API tylko z konfiguracji środowiska
 Jako SEC chcę, aby sekrety nie były przechowywane jawnie w bazie ani ustawiane z poziomu requestu.
 - Given `/api/ai/config` POST, When admin wysyła klucz, Then endpoint zwraca 410 z komunikatem „ustaw
   `ANTHROPIC_API_KEY` w środowisku" (albo: klucz szyfrowany kluczem z env — decyzja PO, Z-06).
@@ -61,7 +61,7 @@ omijała ochrony.
   popularnych haseł (wbudowana lista ~80 wzorców; pełne 10k — T-07), When zmiana/reset hasła, Then odmowa
   z czytelnym komunikatem. Ryzyko: R-01 (SEC-001).
 
-### US-018 · Must · 📋 · Placeholdery `.env.example` traktowane jako niebezpieczne
+### US-018 · Must · 🔧 (PR otwarty) · Placeholdery `.env.example` traktowane jako niebezpieczne
 - Given `SECRET_KEY=YOUR_SECRET_KEY_HERE` i `DATABASE_URL` ustawione, When start, Then aplikacja odmawia startu.
 - `.env.example` ma puste wartości dla sekretów. Ryzyko: R-09.
 
@@ -113,6 +113,7 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
 ### US-016 · Could · 📋 · Archiwizacja nieaktualnych dokumentów (`docs/architektura.md`, `DOKUMENTACJA_IT.md`, `PROCES_*`) do `docs/archiwum/`
 ### US-017 · Could · 📋 · `POST /logout` z CSRF; kontrola dezaktywacji konta w ręcznych sprawdzeniach sesji
 ### US-019 · Could · 📋 · Limit stron/DPI dla OCR (ochrona przed wyczerpaniem zasobów)
+### US-020 · Could · 📋 · Jednorazowe `ruff format` 108 plików i `ruff format --check` jako bramka (decyzja PO — duży diff)
 
 ## Won't (na teraz)
 - Przepisanie na FastAPI/Django, ORM — patrz ADR-0001.

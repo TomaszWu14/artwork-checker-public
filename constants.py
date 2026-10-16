@@ -103,6 +103,9 @@ RATE_LIMIT_LOGIN_ACCOUNT_MAX = 10  # nieudane próby na KONTO w oknie → blokad
 # Polityka haseł (US-005): minimalna długość; litera + cyfra; lista popularnych haseł w app.py
 PASSWORD_MIN_LENGTH = 12
 
+# Reset hasła — ważność linku (US-003: 1 h, wcześniej 24 h)
+RESET_TOKEN_TTL_HOURS = 1
+
 # Rate limiting — reset hasła
 RATE_LIMIT_FORGOT_MAX    = 3
 RATE_LIMIT_FORGOT_WINDOW = 900  # 15 minut

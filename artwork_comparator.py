@@ -1734,7 +1734,6 @@ def _lightglue_match_locate(tmpl_gray, page_gray, ph: int, pw: int,
 def _get_paddleocr(script: str = "latin"):
     """Lazy PaddleOCR singleton per script family (latin | cyrillic)."""
     global _paddleocr_latin, _paddleocr_cyrillic
-    slot = "_paddleocr_latin" if script == "latin" else "_paddleocr_cyrillic"
     current = _paddleocr_latin if script == "latin" else _paddleocr_cyrillic
     if current is not None:
         return current or None
@@ -4835,7 +4834,6 @@ def _ocr_enhanced(img) -> str:
         # Call Tesseract directly on the binarized image — skipping _extract_text_ocr
         # avoids the RGB-conversion and contrast steps in _preprocess_for_ocr which
         # would undo the Sauvola binarization we just computed.
-        import pytesseract
         _t0 = time.time()
         _res = pytesseract.image_to_string(g, lang=_get_ocr_langs(), config="--psm 3",
                                            timeout=_TESSERACT_TIMEOUT) or ""
@@ -6549,27 +6547,9 @@ def extract_field_crops_for_preview(path_a: str, path_b: str,
 
 
 def _get_api_key_artwork() -> str:
-    """Czyta klucz API z env lub z bazy danych ustawień."""
-    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-    if key:
-        return key
-    try:
-        from db import get_db
-        db = get_db()
-        try:
-            row = db.execute(
-                "SELECT value FROM settings WHERE category='ai' AND key='anthropic_api_key'"
-            ).fetchone()
-        finally:
-            db.close()
-        if row and row[0]:
-            key = row[0].strip()
-            if key:
-                os.environ["ANTHROPIC_API_KEY"] = key
-                return key
-    except Exception:
-        pass
-    return ""
+    """Klucz Anthropic API wyłącznie ze środowiska (US-004, SEC-003) — bez odczytu
+    z bazy i bez modyfikacji os.environ."""
+    return os.environ.get("ANTHROPIC_API_KEY", "").strip()
 
 
 def _compare_size_tables_transformer(img_a, img_b) -> list:

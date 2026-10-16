@@ -32,4 +32,5 @@
 
 | Data | ID | Decyzja | Gdzie zapisano |
 |---|---|---|---|
-| — | — | (brak — oczekiwanie na odpowiedzi) | — |
+| 2026-10-16 | PR #4 | PO zaakceptował PR #4 (audyt + proces + CI) i start Sprintu 1 na założeniach roboczych; pytania Z-01…Z-07 pozostają do indywidualnego potwierdzenia | ten plik |
+| 2026-10-16 | Z-06 | Założenie robocze zastosowane w US-004: klucz Anthropic wyłącznie z env, zapis przez UI usunięty (do potwierdzenia przy odbiorze PR) | `docs/analiza/HISTORYJKI.md` US-004 |
