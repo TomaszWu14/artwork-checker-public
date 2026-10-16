@@ -22,6 +22,9 @@ Wersja aplikacji: `constants.APP_VERSION`.
 - `.gitleaks.toml` z udokumentowaną allowlistą danych testowych; pre-commit z gitleaks i hookami porządkowymi.
 
 ### Changed
+- `artwork.html`: usunięty martwy kod (736 linii) — stary panel uploadu i porównania pojedynczej pary
+  (`runCompare`, `renderAll` i 25 innych funkcji) oraz modal biblioteki masterów, którego nic nie otwierało. Odwoływał się
+  do 43 nieistniejących elementów; test pilnuje, by każde `getElementById` w szablonie wskazywało istniejący element.
 - Dokumentacja po Sprincie 3: statusy US-017/019/022 ✅ (#30, #31, #33), US-021 ⛔ (sieć środowiska); R-13 zamknięte;
   wyjątek W-04 (narzędzia budowania Tailwind 3) w rejestrze ryzyk.
 - Zależności (zbiorczo z PR Dependabota #6, #7, #9–#16): akcje CI `actions/checkout@v7`, `actions/setup-python@v7`,
