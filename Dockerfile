@@ -2,7 +2,7 @@
 # deploy 7-8 min). Szybszy wariant „Poziom 0" rozbija to na obraz bazowy z ML
 # (Dockerfile.base, publikowany do GHCR) + cienki obraz aplikacji (Dockerfile.slim,
 # deploy ~1 min). Jak przełączyć: docs/OBRAZ_BAZOWY_ML.md
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 WORKDIR /app
 
