@@ -18,9 +18,20 @@ Wersja aplikacji: `constants.APP_VERSION`.
 - `.gitleaks.toml` z udokumentowaną allowlistą danych testowych; pre-commit z gitleaks i hookami porządkowymi.
 
 ### Changed
+- US-002: `ruff check` przechodzi bez błędów (66 → 0: 17 zduplikowanych kluczy w słowniku tłumaczeń EN —
+  wartości identyczne, 28 nieużywanych zmiennych, 10 f-stringów bez pól, 7 podwójnych importów, 4 niezdefiniowane
+  nazwy z US-001) i **blokuje CI**; `ruff format --check` pozostaje doradczy (US-020).
 - README: sekcja „Proces i dokumentacja” z linkami do nowych dokumentów.
 
+### Fixed
+- US-001: `/api/artwork/master-files/from-path` wołało niezdefiniowany resolver (`NameError` → 500); dodano
+  `_resolve_artwork_master_path` ograniczony do `LIBRARY_FOLDER` (fail-closed) i usunięto martwą gałąź
+  `_ensure_shipment`/`_save_doc_to_shipment` w `_save_comparison` (pozostałość modułu transportu).
+
 ### Security
+- US-018: wartości-atrapy z szablonów `.env` (`YOUR_*_HERE`, `changeme`, znane słabe klucze) są traktowane jak brak
+  sekretu — produkcja odmawia startu przy takim `SECRET_KEY`/`DATABASE_URL`; `.env.example` i `.env.staging.example`
+  bez wartości (R-09).
 - US-003: tokeny resetu hasła są przechowywane jako SHA-256 (link zawiera token jawny), ważność skrócona
   z 24 h do 1 h (`constants.RESET_TOKEN_TTL_HOURS`), widok `/admin` dostaje tylko liczbę aktywnych linków.
   Linki wygenerowane przed tą zmianą przestają działać (R-04).

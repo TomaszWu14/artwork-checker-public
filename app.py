@@ -101,7 +101,29 @@ def _load_or_create_secret_key():
         return None
 
 
+# Wartości-atrapy z szablonów .env (YOUR_*_HERE) i znane słabe klucze są traktowane
+# jak BRAK sekretu (US-018, ryzyko R-09): dev dostaje losowy klucz z instance/,
+# produkcja (DATABASE_URL) odmawia startu — patrz _validate_startup_config().
+_PLACEHOLDER_SECRET_RE = re.compile(
+    r"^(?:YOUR_[A-Z0-9_]+_HERE|change[-_ ]?me|dev-secret|doccompare-local-secret-2024"
+    r"|secret|password)$",
+    re.IGNORECASE,
+)
+
+
+def _is_placeholder_secret(value) -> bool:
+    """True gdy sekret jest pusty albo jest oczywistą atrapą / znaną słabą wartością."""
+    v = str(value or "").strip()
+    return not v or bool(_PLACEHOLDER_SECRET_RE.match(v))
+
+
 _secret_key = os.environ.get("SECRET_KEY", "")
+if _secret_key and _is_placeholder_secret(_secret_key):
+    logger.critical(
+        "SECRET_KEY looks like a template placeholder (%r) — treating it as unset.",
+        _secret_key[:24],
+    )
+    _secret_key = ""
 if not _secret_key:
     _persisted = _load_or_create_secret_key()
     if _persisted:
@@ -263,12 +285,15 @@ def _validate_startup_config() -> None:
     errors: list[str] = []
     warnings: list[str] = []
 
-    _known_insecure = {"", "dev-secret", "doccompare-local-secret-2024"}
-    if not os.environ.get("SECRET_KEY") or os.environ.get("SECRET_KEY") in _known_insecure:
+    if _is_placeholder_secret(os.environ.get("SECRET_KEY")):
         if _db_url:
-            errors.append("SECRET_KEY must be set explicitly in production (DATABASE_URL is set)")
+            errors.append("SECRET_KEY must be set explicitly in production (DATABASE_URL is set) "
+                          "— empty values and template placeholders (YOUR_*_HERE) are rejected")
         else:
             warnings.append("SECRET_KEY not set — sessions are forgeable; set SECRET_KEY env var")
+    if _db_url and _PLACEHOLDER_SECRET_RE.match(_db_url.strip()):
+        errors.append("DATABASE_URL is a template placeholder from .env.example — set a real "
+                      "PostgreSQL URL or leave it empty to use SQLite")
 
     upload_folder = app.config.get("UPLOAD_FOLDER", "uploads")
     if _db_url and not str(upload_folder).startswith("/data"):
@@ -1110,7 +1135,7 @@ def _db_seed_defaults(db):
             pass
         print(f"\n{'='*60}")
         print(f"  NOWA INSTALACJA — hasło administratora: {_rand_pw}")
-        print(f"  Zaloguj się jako 'admin' i natychmiast zmień hasło!")
+        print("  Zaloguj się jako 'admin' i natychmiast zmień hasło!")
         print(f"{'='*60}\n")
         logger.warning("First-run: default users created with random passwords.")
     db.commit()
@@ -1372,7 +1397,7 @@ def health():
             details["db"] = "ok"
         finally:
             db.close()
-    except Exception as e:
+    except Exception:
         details["db"] = "error"
         overall = "degraded"
     # Disk space warning only (no exact free-space number)
@@ -2520,17 +2545,9 @@ def _save_comparison(uid, doc_type, file_a_name, file_b_name, result_dict,
                     )
             except Exception:
                 pass
-        # Auto-create shipment record when PO is detected
-        if po_number:
-            try:
-                _ensure_shipment(po_number, supplier_code, cid, uid)
-            except Exception:
-                pass
-            # Auto-save uploaded files to shipment document folder
-            if path_a and os.path.exists(path_a):
-                _save_doc_to_shipment(po_number, path_a, file_a_name, doc_type, uid)
-            if path_b and os.path.exists(path_b):
-                _save_doc_to_shipment(po_number, path_b, file_b_name, doc_type, uid)
+        # Shipment auto-creation (_ensure_shipment / _save_doc_to_shipment) was removed
+        # with the transport module in the Artwork fork (US-001); po_number is kept
+        # only as a stored attribute of the comparison row.
         # Notifications
         try:
             _fa = (file_a_name or "")[:200]
@@ -2539,13 +2556,13 @@ def _save_comparison(uid, doc_type, file_a_name, file_b_name, result_dict,
                 _notify_role("manager", "sad_pending",
                              f"🛃 Nowe SAD do zatwierdzenia — {(po_number or _fa)[:200]}",
                              f"Plik: {_fa} vs {_fb}",
-                             f"/sad")
+                             "/sad")
             elif status in ("error", "critical"):
                 diff = result_dict.get("diff_count", result_dict.get("total_errors", 0))
                 _create_notification(uid, "compare_error",
                                      f"❌ Rozbieżność w porównaniu — {diff} błędów",
                                      f"{doc_type}: {_fa} vs {_fb}",
-                                     f"/history")
+                                     "/history")
         except Exception:
             pass
         return cid
@@ -3636,7 +3653,7 @@ def api_suppliers_preview_table():
                         samples.append(str(row[ref_col])[:30])
                 result["ref_samples"] = samples
         return jsonify(result)
-    except Exception as e:
+    except Exception:
         tb = traceback.format_exc()
         app.logger.error("preview_table error: %s", tb)
         return jsonify({"error": "Błąd podglądu tabeli.", "table_found": False}), 500
@@ -4242,7 +4259,7 @@ def api_artwork_preview_crops():
 
         return jsonify({"pairs": result_pairs})
 
-    except Exception as e:
+    except Exception:
         logger.exception("preview-crops error")
         return jsonify({"error": "Błąd generowania podglądu"}), 500
     finally:
@@ -4503,7 +4520,7 @@ def api_artwork_split_compare():
         finally:
             doc.close()
 
-    except Exception as e:
+    except Exception:
         logger.exception("artwork split-compare error")
         return jsonify({"error": "Błąd porównania artworków"}), 500
     finally:
@@ -5227,7 +5244,6 @@ def _a3d_copy_to_dir(glb_path: str, dest_dir: str) -> list:
     Zwraca listę zapisanych ścieżek. Katalog musi istnieć (nie tworzymy — literówka
     w ścieżce ma być błędem, nie nowym folderem). Gdy env ARTWORK_COPY_ROOTS jest
     ustawione (ścieżki rozdzielone os.pathsep), cel musi leżeć pod jednym z korzeni."""
-    import shutil
     dest_dir = os.path.abspath(dest_dir)
     roots = [r for r in (os.environ.get("ARTWORK_COPY_ROOTS") or "").split(os.pathsep) if r.strip()]
 
@@ -5457,7 +5473,7 @@ def api_artwork_3d_batch_status(jid):
 @app.route("/api/artwork/3d/batch/zip/<jid>")
 @login_required
 def api_artwork_3d_batch_zip(jid):
-    import io, zipfile
+    import io
     from flask import send_file
     job = _async_job_get(jid)
     if not job:
@@ -5716,7 +5732,7 @@ def api_artwork_compare_multi():
             result = compare_multi_artworks(paths)
         return jsonify(result)
 
-    except Exception as e:
+    except Exception:
         import traceback as _tb
         app.logger.error("Multi-artwork compare error: %s", _tb.format_exc())
         logger.exception("Unexpected error %s", request.path)
@@ -5983,7 +5999,7 @@ def api_artwork_batch_pair():
         dest_b = os.path.join(app.config["UPLOAD_FOLDER"], f"{uid}_aw_b_{safe_name}")
         with open(dest_a, "wb") as fh:
             fh.write(data)
-        import shutil; shutil.copy2(dest_a, dest_b)
+        shutil.copy2(dest_a, dest_b)
         saved.append(f.filename)
 
     from artwork_batch_processor import auto_pair_artwork_files
@@ -6651,7 +6667,7 @@ def ai_status():
     try:
         from ai_validator import is_api_key_set
         return jsonify(is_api_key_set())
-    except Exception as e:
+    except Exception:
         logger.exception("Unexpected error %s", request.path)
         return jsonify({"ok": False, "error": "Błąd serwera"}), 500
 
@@ -6726,7 +6742,7 @@ def ai_learn_document():
         if _learn_doc_type not in ("auto", "PO", "PI", "CI", "PL", "SAD", "BL", "WZ", "FV"):
             _learn_doc_type = "auto"
         return jsonify(learn_from_document(path, _learn_doc_type))
-    except Exception as e:
+    except Exception:
         logger.exception("Unexpected error %s", request.path)
         return jsonify({"error": "Błąd serwera"}), 500
     finally:
@@ -6747,7 +6763,7 @@ def ai_apply_profile():
         from ai_learning import apply_learned_profile
         return jsonify(apply_learned_profile(code, proposal,
                        approved_by=session.get("username", "unknown")))
-    except Exception as e:
+    except Exception:
         logger.exception("Unexpected error %s", request.path)
         return jsonify({"error": "Błąd serwera"}), 500
 
@@ -6777,7 +6793,7 @@ def ai_learn_comparison(cid):
     try:
         from ai_learning import learn_from_comparison
         return jsonify(learn_from_comparison(cr, sc))
-    except Exception as e:
+    except Exception:
         logger.exception("Unexpected error %s", request.path)
         return jsonify({"error": "Błąd serwera"}), 500
 
@@ -6797,7 +6813,7 @@ def ai_apply_suggestions():
         return jsonify(apply_comparison_suggestions(sc, suggestions,
                        approved_fields=approved,
                        approved_by=session.get("username", "unknown")))
-    except Exception as e:
+    except Exception:
         logger.exception("Unexpected error %s", request.path)
         return jsonify({"error": "Błąd serwera"}), 500
 
@@ -6808,7 +6824,7 @@ def ai_pending_updates():
     try:
         from ai_learning import get_pending_updates
         return jsonify(get_pending_updates())
-    except Exception as e:
+    except Exception:
         logger.exception("Unexpected error %s", request.path)
         return jsonify({"error": "Błąd serwera"}), 500
 
@@ -6820,7 +6836,7 @@ def ai_dismiss_pending(pending_id):
     try:
         from ai_learning import dismiss_pending
         return jsonify({"ok": dismiss_pending(pending_id)})
-    except Exception as e:
+    except Exception:
         logger.exception("Unexpected error %s", request.path)
         return jsonify({"error": "Błąd serwera"}), 500
 
@@ -6831,7 +6847,7 @@ def ai_learning_stats():
     try:
         from ai_learning import get_learning_stats
         return jsonify(get_learning_stats())
-    except Exception as e:
+    except Exception:
         logger.exception("Unexpected error %s", request.path)
         return jsonify({"error": "Błąd serwera"}), 500
 
@@ -7245,7 +7261,6 @@ def templates_page():
 def api_templates_list():
     """Zwraca listę szablonów publicznych (lub wszystkich dla admina)."""
     page_type = request.args.get("page_type", "")
-    uid  = session["user_id"]
     role = session["role"]
     db   = get_db()
     try:
@@ -7306,7 +7321,7 @@ def api_templates_create():
         )
         db.commit()
         return jsonify({"id": cursor.lastrowid}), 201
-    except Exception as e:
+    except Exception:
         logger.exception("Unexpected error %s", request.path)
         return jsonify({"error": "Błąd serwera"}), 500
     finally:
@@ -8546,7 +8561,6 @@ def api_library_file_use(fid):
     do użycia w porównaniu (zamiast uploadu).
     Jeśli plik nie jest na dysku serwera, zwraca z_path — ścieżkę sieciową.
     """
-    import shutil
     db = get_db()
     try:
         row = db.execute(
@@ -9552,7 +9566,6 @@ def api_artwork_master_download(pid):
 @require_role("manager")
 def api_artwork_masters_storage_info():
     """Zwraca informacje o zużyciu dysku przez mastery."""
-    import shutil
     info = {"dir": MASTERS_DIR, "files": [], "total_bytes": 0, "total_mb": 0, "disk_free_gb": None}
     try:
         if os.path.isdir(MASTERS_DIR):
@@ -9952,7 +9965,7 @@ def api_artwork_profile_ai_detect():
             })
         return jsonify({"ok": True, "fields": clean, "count": len(clean)})
 
-    except Exception as e:
+    except Exception:
         import traceback as _tb
         app.logger.error("AI detect (PDF) error: %s", _tb.format_exc())
         return jsonify({"error": "Błąd modułu AI — spróbuj ponownie."}), 500
@@ -10051,7 +10064,7 @@ def api_artwork_profile_ai_detect_image():
             })
         return jsonify({"ok": True, "fields": clean, "count": len(clean)})
 
-    except Exception as e:
+    except Exception:
         import traceback as _tb
         app.logger.error("AI detect (image) error: %s", _tb.format_exc())
         return jsonify({"error": "Błąd modułu AI — spróbuj ponownie."}), 500
@@ -11241,6 +11254,45 @@ def api_artwork_master_file_view():
                      as_attachment=False, download_name=os.path.basename(rel_path))
 
 
+def _resolve_artwork_master_path(db, rel_path: str, filename: str = "") -> str | None:
+    """Return the on-disk path of a master already present on the server, or None.
+
+    Used by ``/api/artwork/master-files/from-path`` (US-001). Candidates, in order:
+      1. ``library_files.file_path`` recorded by the sync agent for ``rel_path``;
+      2. ``<LIBRARY_FOLDER>/<rel_path>``;
+      3. ``<LIBRARY_FOLDER>/<dir of rel_path>/<filename>`` when ``filename`` differs.
+    Every candidate must resolve (realpath) inside ``LIBRARY_FOLDER`` — fail-closed
+    (SEC-006): traversal, absolute paths and records pointing elsewhere yield None.
+    """
+    rel = str(rel_path or "").replace("\\", "/").strip().strip("/")
+    if not rel or ".." in rel.split("/") or "\x00" in rel:
+        return None
+    lib_folder = os.path.realpath(app.config.get("LIBRARY_FOLDER", "library"))
+
+    def _inside_library(path: str) -> bool:
+        real = os.path.realpath(path)
+        return real == lib_folder or real.startswith(lib_folder + os.sep)
+
+    candidates: list = []
+    try:
+        row = db.execute(
+            "SELECT file_path FROM library_files WHERE rel_path=?", (rel,)
+        ).fetchone()
+        if row and (row["file_path"] or "").strip():
+            candidates.append(row["file_path"].strip())
+    except Exception as _e:
+        logger.debug("resolve master path: library_files lookup failed rel=%s: %s", rel, _e)
+    candidates.append(os.path.join(lib_folder, *rel.split("/")))
+    fname = os.path.basename(str(filename or "").replace("\\", "/").strip())
+    if fname and fname != rel.split("/")[-1]:
+        parent = rel.split("/")[:-1]
+        candidates.append(os.path.join(lib_folder, *parent, fname))
+    for cand in candidates:
+        if _inside_library(cand) and os.path.isfile(cand):
+            return os.path.realpath(cand)
+    return None
+
+
 @app.route("/api/artwork/master-files/from-path", methods=["POST"])
 @require_role("manager")
 @csrf_protect
@@ -12178,7 +12230,7 @@ def api_artwork_materials_export_csv():
 @require_role("admin")
 def api_admin_system_status():
     """Return status of all system and Python dependencies."""
-    import importlib, shutil, subprocess, sys, platform
+    import importlib, subprocess, sys, platform
     checks = []
 
     def _check(name, label, test_fn, detail_fn=None):

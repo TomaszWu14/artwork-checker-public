@@ -50,7 +50,7 @@ def test_blank_already_top_bottom_is_noop():
 def test_all_printed_no_rotation():
     # Drukowane pudełko (żadna ścianka nie jest blank) — brak obrotu (zero fałszywych zamian).
     info = a3.DielineInfo(); info.w_mm, info.h_mm, info.d_mm = 210.0, 120.0, 55.0
-    out = a3.enforce_plain_top_bottom(_panels(set()), info)
+    a3.enforce_plain_top_bottom(_panels(set()), info)
     assert (info.w_mm, info.h_mm, info.d_mm) == (210.0, 120.0, 55.0)
 
 
