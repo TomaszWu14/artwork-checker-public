@@ -37,3 +37,4 @@
 | SEC-006 pliki fail-closed | US-006 | `test_artwork_3d_save_copy.py` (częściowo) | — | ⚠️ |
 | SEC-007 403 per rola | US-009 i każda nowa trasa | `test_palviz_auth.py`, `test_artwork_idor.py` (wybrane) | — | ⚠️ |
 | SEC-008 zależności | US-011 | — | — | ❌ |
+| FR-011 / SEC-006 — import mastera ze ścieżki serwera (resolver fail-closed) | US-001 | `test_us001_master_path_resolver.py` | fix/US-001 | 🔧 |
