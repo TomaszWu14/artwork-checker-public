@@ -29,7 +29,7 @@
 | FR-019 | Przyjmowanie PDF z Power Automate (intake) tokenem | ✅ | C | `/api/intake/artwork` |
 | FR-020 | Webhooki wychodzące (ERP/WMS) z podpisem HMAC | ✅ | C | `/api/webhooks*` |
 | FR-021 | Budżet miesięczny AI z ostrzeżeniem/blokadą; koszty per model/typ | ✅ | S | `api_usage_tracker.py` |
-| FR-022 | Administrator tworzy, dezaktywuje konta i zmienia role w aplikacji (z audytem) | ❌ | S | US-009 |
+| FR-022 | Administrator tworzy, dezaktywuje konta i zmienia role w aplikacji (z audytem) | ⚠️ (PR US-009) | S | `blueprints/users.py` |
 | FR-023 | Interfejs PL z przełączeniem na EN | ⚠️ (EN przez post-processing HTML) | C | `translation_en.py` |
 | FR-024 | Pomoc w aplikacji opisuje aktualne funkcje | ⚠️ | C | `help.html` (nieaktualna) |
 

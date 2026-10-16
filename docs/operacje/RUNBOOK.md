@@ -12,7 +12,8 @@
    `DATABASE_URL` **lub** `SQLITE_PATH=/data/doccompare.db`, `DATA_DIR=/data`, `UPLOAD_FOLDER=/data/uploads`,
    `APP_BASE_URL`, `LOG_DIR`, `WEB_CONCURRENCY=2`, `THREADS_PER_WORKER=3`, `DISABLE_QWEN=1`.
    Opcjonalnie: `ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`, `RESEND_API_KEY`+`EMAIL_FROM`, `SENTRY_DSN`,
-   `INTAKE_TOKEN`, `PALVIZ_PUSH_URL`+`PALVIZ_API_KEY`, `ARTWORK_COPY_ROOTS`, `REDIS_URL`.
+   `INTAKE_TOKEN`, `PALVIZ_PUSH_URL`+`PALVIZ_API_KEY`, `ARTWORK_COPY_ROOTS` (lista katalogów rozdzielona `:`;
+   bez niej „Zapisz kopię” modelu 3D jest w produkcji wyłączone), `REDIS_URL`.
 3. Zamontuj trwały wolumen `/data` (bez niego uploady i SQLite giną przy redeployu — R-14).
 4. Start: `python migrate_db.py && gunicorn app:app -c gunicorn.conf.py` (CMD w Dockerfile). Migracja jest idempotentna.
 5. Pierwsze uruchomienie tworzy konto `admin` z losowym hasłem: w logach i w `INITIAL_ADMIN_PASSWORD.txt`
