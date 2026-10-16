@@ -22,6 +22,11 @@ Wersja aplikacji: `constants.APP_VERSION`.
 - `.gitleaks.toml` z udokumentowaną allowlistą danych testowych; pre-commit z gitleaks i hookami porządkowymi.
 
 ### Changed
+- Zależności (zbiorczo z PR Dependabota #6, #7, #9–#16): akcje CI `actions/checkout@v7`, `actions/setup-python@v7`,
+  `actions/upload-artifact@v7`, `gitleaks/gitleaks-action@v3`, `docker/setup-buildx-action@v4` we wszystkich workflow;
+  dolne granice `camelot-py>=2.0.0`, `pdf2image>=1.17.0`, `reportlab>=5.0.1`, `scikit-learn>=1.9.1`, `shapely>=2.2.0`,
+  `tiktoken>=0.14.0`. `requirements-prod.lock` bez zmian (te wersje były już zamrożone). Python 3.14 (#5) i
+  `transformers>=5` (#8) — wstrzymane do decyzji PO / US-021.
 - US-002: `ruff check` przechodzi bez błędów (66 → 0: 17 zduplikowanych kluczy w słowniku tłumaczeń EN —
   wartości identyczne, 28 nieużywanych zmiennych, 10 f-stringów bez pól, 7 podwójnych importów, 4 niezdefiniowane
   nazwy z US-001) i **blokuje CI**; `ruff format --check` pozostaje doradczy (US-020).
