@@ -105,6 +105,8 @@ PASSWORD_MIN_LENGTH = 12
 
 # Reset hasła — ważność linku (US-003: 1 h, wcześniej 24 h)
 RESET_TOKEN_TTL_HOURS = 1
+# Link ustawienia hasła dla nowego konta (US-009) — dłuższy niż reset, wysyłany przez admina
+INVITE_TOKEN_TTL_HOURS = 24
 
 # Rate limiting — reset hasła
 RATE_LIMIT_FORGOT_MAX    = 3

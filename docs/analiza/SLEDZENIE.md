@@ -6,7 +6,7 @@
 | Wymaganie | Historyjka | Test(y) | PR | Status |
 |---|---|---|---|---|
 | FR-001 logowanie | — (istniejące) | `test_integration.py`, `test_integration_api.py`, `conftest.py::login` | — | ✅ |
-| FR-002 reset hasła | US-003 | `test_us003_reset_token_hash.py` | security/US-003 | 🔧 |
+| FR-002 reset hasła | US-003 | `test_us003_reset_token_hash.py` | #19 | ✅ |
 | FR-003 porównanie pary | — | `test_artwork_pdf.py`, `test_artwork_table_diff.py`, `test_text_layer.py` | — | ✅ (wąsko) |
 | FR-004 raport różnic | — | `test_artwork_ocr_model.py`, `test_business_logic.py` | — | ✅ |
 | FR-005 lista kontrolna | #2 (merged) | `test_checklist_ean_checksum.py` | #2 | ✅ |
@@ -26,17 +26,18 @@
 | FR-019 intake | — | — | — | ❌ |
 | FR-020 webhooki | — | — (SSRF guard bez testu) | — | ❌ |
 | FR-021 budżet AI | — | `test_ai_hybrid.py`, `test_ai_json.py` | — | ⚠️ |
-| FR-022 zarządzanie kontami | US-009 | — | — | ❌ |
+| FR-022 zarządzanie kontami (tworzenie z linkiem, rola, dezaktywacja, ochrona ostatniego admina) | US-009 | `test_us009_user_management.py` | feature/US-009 | 🔧 |
 | NFR-004 SQLite/PostgreSQL | — | `test_escape_like.py`, `test_ensure_memo.py`, `test_app_boots.py` | — | ✅ (tylko SQLite w CI) |
-| NFR-008 bramki CI | US-000 | `.github/workflows/ci.yml` | ten PR | 🔧 |
-| SEC-002 tokeny resetu | US-003 | `test_us003_reset_token_hash.py` | security/US-003 | 🔧 |
-| SEC-003 sekrety z env | US-004 | `test_us004_api_key_env_only.py` | security/US-004 | 🔧 |
-| SEC-001 limity logowania + blokada konta + polityka haseł | US-005 | `test_us005_login_hardening.py`, `test_integration_api.py::test_login_rate_limit_blocks_after_max_failures` | security/US-005 | 🔧 |
-| SEC-004 prompt hardening | US-007 | — | — | ❌ |
+| NFR-008 bramki CI | US-000 | `.github/workflows/ci.yml` | #4 | ✅ |
+| SEC-002 tokeny resetu | US-003 | `test_us003_reset_token_hash.py` | #19 | ✅ |
+| SEC-003 sekrety z env | US-004 | `test_us004_api_key_env_only.py` | #20 | ✅ |
+| SEC-001 limity logowania + blokada konta + polityka haseł | US-005 | `test_us005_login_hardening.py`, `test_integration_api.py::test_login_rate_limit_blocks_after_max_failures` | #21 | ✅ |
+| SEC-004 prompt hardening (reguła systemowa, bloki <document>, wykrywanie injection, AI nie łagodzi werdyktu) | US-007 | `test_us007_prompt_hardening.py` | security/US-007 | 🔧 |
+| SEC-006 pliki fail-closed (kopia 3D tylko do ARTWORK_COPY_ROOTS, realpath) | US-006 | `test_artwork_3d_save_copy.py` | security/US-006 | 🔧 |
 | SEC-005 CSP (etap 1: report-only + jedno `esc`) | US-008 | `test_us008_csp_phase1.py` | security/US-008 | 🔧 |
-| SEC-006 pliki fail-closed | US-006 | `test_artwork_3d_save_copy.py` (częściowo) | — | ⚠️ |
 | SEC-007 403 per rola | US-009 i każda nowa trasa | `test_palviz_auth.py`, `test_artwork_idor.py` (wybrane) | — | ⚠️ |
-| SEC-008 zależności | US-011 | — | — | ❌ |
-| FR-011 / SEC-006 — import mastera ze ścieżki serwera (resolver fail-closed) | US-001 | `test_us001_master_path_resolver.py` | fix/US-001 | 🔧 |
-| NFR-008 — lint blokujący w CI (0 błędów ruff) | US-002 | `ruff check .` w `ci.yml` (krok blokujący) + `pytest` | chore/US-002 | 🔧 |
-| SEC-003 / R-09 — placeholdery `.env` odrzucane w produkcji | US-018 | `test_us018_env_placeholders.py` | security/US-018 | 🔧 |
+| FR-011 / SEC-006 — import mastera ze ścieżki serwera (resolver fail-closed) | US-001 | `test_us001_master_path_resolver.py` | #17 | ✅ |
+| NFR-008 — lint blokujący w CI (0 błędów ruff) | US-002 | `ruff check .` w `ci.yml` (krok blokujący) + `pytest` | #22 | ✅ |
+| SEC-003 / R-09 — placeholdery `.env` odrzucane w produkcji | US-018 | `test_us018_env_placeholders.py` | #18 | ✅ |
+| SEC-009 kontener non-root + HEALTHCHECK, Trivy misconfig blokujący | US-012 | `ci.yml` → job Trivy (DS-0002) | chore/US-012 | 🔧 |
+| SEC-008 zależności (lock z hashami, pip-audit na locku, Dependabot) | US-011 | `ci.yml` → job pip-audit (`--require-hashes`) | chore/US-011 | 🔧 |
