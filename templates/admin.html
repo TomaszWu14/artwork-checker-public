@@ -451,7 +451,6 @@ function admTab(name){
 // ── init ──────────────────────────────────────────────────────────────────────
 loadAiStatus();
 loadSystemStatus();
-loadRoleModules();
 // Przywróć ostatnio otwartą zakładkę.
 try { var _at = localStorage.getItem('admTab'); if (_at && document.getElementById('pane-'+_at)) { admTab(_at); if (_at === 'users') loadUsers(); } } catch(e){}
 </script>
