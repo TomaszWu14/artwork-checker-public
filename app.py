@@ -5340,17 +5340,40 @@ def artwork_3d_model(fname):
     return send_from_directory(out_dir, safe, mimetype=mime, as_attachment=download)
 
 
+def _a3d_copy_roots() -> list:
+    """Dozwolone katalogi docelowe kopii modeli 3D z env ARTWORK_COPY_ROOTS
+    (ścieżki rozdzielone os.pathsep), znormalizowane przez realpath (US-006)."""
+    raw = os.environ.get("ARTWORK_COPY_ROOTS") or ""
+    return [os.path.realpath(r.strip()) for r in raw.split(os.pathsep) if r.strip()]
+
+
+def _a3d_copy_roots_required() -> bool:
+    """Fail-closed (US-006, SEC-006): w produkcji (DATABASE_URL) albo przy
+    ARTWORK_COPY_REQUIRE_ROOTS=1 zapis kopii wymaga skonfigurowanej listy korzeni."""
+    flag = (os.environ.get("ARTWORK_COPY_REQUIRE_ROOTS") or "").strip().lower()
+    return bool(os.environ.get("DATABASE_URL")) or flag in ("1", "true", "yes", "on")
+
+
+class CopyRootsNotConfigured(RuntimeError):
+    """Zapis kopii wyłączony — brak ARTWORK_COPY_ROOTS tam, gdzie jest wymagane."""
+
+
 def _a3d_copy_to_dir(glb_path: str, dest_dir: str) -> list:
     """Kopiuje zatwierdzony model (GLB + PNG, jeśli jest) do wskazanego katalogu.
     Zwraca listę zapisanych ścieżek. Katalog musi istnieć (nie tworzymy — literówka
-    w ścieżce ma być błędem, nie nowym folderem). Gdy env ARTWORK_COPY_ROOTS jest
-    ustawione (ścieżki rozdzielone os.pathsep), cel musi leżeć pod jednym z korzeni."""
-    dest_dir = os.path.abspath(dest_dir)
-    roots = [r for r in (os.environ.get("ARTWORK_COPY_ROOTS") or "").split(os.pathsep) if r.strip()]
+    w ścieżce ma być błędem, nie nowym folderem). Cel (po realpath — bez ucieczki
+    przez symlinki) musi leżeć pod jednym z korzeni ARTWORK_COPY_ROOTS; bez korzeni
+    zapis działa tylko w dev (US-006)."""
+    import shutil
+    dest_dir = os.path.realpath(dest_dir)
+    roots = _a3d_copy_roots()
+    if not roots and _a3d_copy_roots_required():
+        raise CopyRootsNotConfigured(
+            "Zapis kopii jest wyłączony — administrator musi skonfigurować dozwolone "
+            "katalogi (ARTWORK_COPY_ROOTS).")
 
     def _under(root):
         try:  # commonpath rzuca ValueError przy różnych dyskach (Windows)
-            root = os.path.abspath(root)
             return os.path.commonpath([dest_dir, root]) == root
         except ValueError:
             return False
@@ -5366,6 +5389,16 @@ def _a3d_copy_to_dir(glb_path: str, dest_dir: str) -> list:
             shutil.copy2(src, dst)
             saved.append(dst)
     return saved
+
+
+@app.route("/api/artwork/3d/copy-roots", methods=["GET"])
+@require_role("manager")
+def api_artwork_3d_copy_roots():
+    """Lista dozwolonych katalogów dla „Zapisz kopię” (UI podpowiada wybór z listy)."""
+    roots = _a3d_copy_roots()
+    required = _a3d_copy_roots_required()
+    return jsonify({"roots": roots, "required": required,
+                    "enabled": bool(roots) or not required})
 
 
 @app.route("/api/artwork/3d/save-copy", methods=["POST"])
@@ -5388,6 +5421,8 @@ def api_artwork_3d_save_copy():
         return jsonify({"error": "Model wygasł — wygeneruj go ponownie."}), 404
     try:
         saved = _a3d_copy_to_dir(glb_path, dest_dir)
+    except CopyRootsNotConfigured as e:
+        return jsonify({"error": str(e)}), 503
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except OSError as e:
