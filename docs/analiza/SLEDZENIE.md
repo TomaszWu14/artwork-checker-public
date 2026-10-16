@@ -26,7 +26,7 @@
 | FR-019 intake | — | — | — | ❌ |
 | FR-020 webhooki | — | — (SSRF guard bez testu) | — | ❌ |
 | FR-021 budżet AI | — | `test_ai_hybrid.py`, `test_ai_json.py` | — | ⚠️ |
-| FR-022 zarządzanie kontami | US-009 | — | — | ❌ |
+| FR-022 zarządzanie kontami (tworzenie z linkiem, rola, dezaktywacja, ochrona ostatniego admina) | US-009 | `test_us009_user_management.py` | feature/US-009 | 🔧 |
 | NFR-004 SQLite/PostgreSQL | — | `test_escape_like.py`, `test_ensure_memo.py`, `test_app_boots.py` | — | ✅ (tylko SQLite w CI) |
 | NFR-008 bramki CI | US-000 | `.github/workflows/ci.yml` | ten PR | 🔧 |
 | SEC-002 tokeny resetu | US-003 | `test_us003_reset_token_hash.py` | security/US-003 | 🔧 |
