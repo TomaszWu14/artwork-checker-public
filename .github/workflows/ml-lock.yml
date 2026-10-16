@@ -49,10 +49,12 @@ jobs:
         run: tools/regen_ml_lock.sh
 
       - name: Lock bez pakietów CUDA (PyTorch musi być w wariancie CPU)
+        # nvidia-ml-py to czysto pythonowe bindingi NVML (zależność ultralytics), nie runtime CUDA.
         run: |
-          if grep -qE '^(nvidia-[a-z0-9-]+|triton)==' requirements-ml.lock; then
+          cuda=$(grep -E '^(nvidia-[a-z0-9-]+|triton)==' requirements-ml.lock | grep -vE '^nvidia-ml-py==' || true)
+          if [ -n "$cuda" ]; then
             echo "::error::requirements-ml.lock zawiera pakiety CUDA — torch nie został rozwiązany z indeksu CPU"
-            grep -E '^(nvidia-[a-z0-9-]+|triton)==' requirements-ml.lock
+            echo "$cuda"
             exit 1
           fi
           grep -E '^(torch|torchvision)==.*\+cpu' requirements-ml.lock
