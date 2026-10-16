@@ -58,7 +58,7 @@ babel>=2.12
 ftfy>=6.2                     # naprawa mojibake/Unicode w OCR — mniej fałszywych różnic A/B
 
 # ── Eksport ─────────────────────────────────────────────
-reportlab>=4.0,<5.0
+reportlab>=5.0.1,<6.0
 openpyxl>=3.1,<4.0
 python-docx>=1.1
 

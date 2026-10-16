@@ -32,7 +32,7 @@ scikit-image>=0.22
 imagehash>=4.3
 
 # ── Export ────────────────────────────────────────────────────────────────────
-reportlab>=4.0
+reportlab>=5.0.1
 openpyxl>=3.1
 python-docx>=1.1
 
