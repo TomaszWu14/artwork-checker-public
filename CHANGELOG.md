@@ -33,6 +33,10 @@ Wersja aplikacji: `constants.APP_VERSION`.
 - README: sekcja „Proces i dokumentacja” z linkami do nowych dokumentów.
 
 ### Fixed
+- Panel admina: usunięte wywołanie nieistniejącej `loadRoleModules()` (pozostałość DocCompare) — błąd przerywał
+  skrypt startowy i nie działało przywracanie ostatnio otwartej zakładki.
+- Strona Artwork: pętla starego panelu uploadu (usunięte elementy `fileA`/`zoneA`) rzucała wyjątek, przez który
+  nie inicjalizowały się `_pageImgs`, `_sections`, stan lightboxa (zoom kółkiem, klik) i skróty klawiszowe.
 - US-001: `/api/artwork/master-files/from-path` wołało niezdefiniowany resolver (`NameError` → 500); dodano
   `_resolve_artwork_master_path` ograniczony do `LIBRARY_FOLDER` (fail-closed) i usunięto martwą gałąź
   `_ensure_shipment`/`_save_doc_to_shipment` w `_save_comparison` (pozostałość modułu transportu).

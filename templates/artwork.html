@@ -787,6 +787,9 @@ var _compareActive=false;
 ['A','B'].forEach(function(s){
   var inp=document.getElementById('file'+s);
   var zone=document.getElementById('zone'+s);
+  // Stary panel uploadu (fileA/zoneA…) nie istnieje już w szablonie — bez tej osłony wyjątek
+  // przerywał cały blok <script> i nie inicjalizowały się m.in. _pageImgs, _sections, lightbox i skróty klawiszowe.
+  if(!inp||!zone) return;
 
   function showPreview(file){
     if(!file) return;
