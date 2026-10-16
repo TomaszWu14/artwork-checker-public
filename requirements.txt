@@ -99,7 +99,7 @@ addict                        # Słowniki rozszerzalne (GroundingDINO config)
 # ── GOT-OCR 2.0 (General OCR Theory) ────────────────────
 # Najnowszy model OCR (2024) — rozumie tabele, layouty, tekst drukowany i odręczny
 # Ładowany przez transformers z HuggingFace: stepfun-ai/GOT-OCR2_0
-tiktoken>=0.7                 # Tokenizer (GOT-OCR 2.0 + Qwen)
+tiktoken>=0.14.0                 # Tokenizer (GOT-OCR 2.0 + Qwen)
 accelerate>=0.30              # Szybkie ładowanie modeli HuggingFace
 verovio                       # GOT-OCR 2.0 optional dep
 qwen-vl-utils                 # Vision input helpers for Qwen2.5-VL
