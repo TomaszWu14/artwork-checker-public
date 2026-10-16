@@ -101,7 +101,29 @@ def _load_or_create_secret_key():
         return None
 
 
+# Wartości-atrapy z szablonów .env (YOUR_*_HERE) i znane słabe klucze są traktowane
+# jak BRAK sekretu (US-018, ryzyko R-09): dev dostaje losowy klucz z instance/,
+# produkcja (DATABASE_URL) odmawia startu — patrz _validate_startup_config().
+_PLACEHOLDER_SECRET_RE = re.compile(
+    r"^(?:YOUR_[A-Z0-9_]+_HERE|change[-_ ]?me|dev-secret|doccompare-local-secret-2024"
+    r"|secret|password)$",
+    re.IGNORECASE,
+)
+
+
+def _is_placeholder_secret(value) -> bool:
+    """True gdy sekret jest pusty albo jest oczywistą atrapą / znaną słabą wartością."""
+    v = str(value or "").strip()
+    return not v or bool(_PLACEHOLDER_SECRET_RE.match(v))
+
+
 _secret_key = os.environ.get("SECRET_KEY", "")
+if _secret_key and _is_placeholder_secret(_secret_key):
+    logger.critical(
+        "SECRET_KEY looks like a template placeholder (%r) — treating it as unset.",
+        _secret_key[:24],
+    )
+    _secret_key = ""
 if not _secret_key:
     _persisted = _load_or_create_secret_key()
     if _persisted:
@@ -263,12 +285,15 @@ def _validate_startup_config() -> None:
     errors: list[str] = []
     warnings: list[str] = []
 
-    _known_insecure = {"", "dev-secret", "doccompare-local-secret-2024"}
-    if not os.environ.get("SECRET_KEY") or os.environ.get("SECRET_KEY") in _known_insecure:
+    if _is_placeholder_secret(os.environ.get("SECRET_KEY")):
         if _db_url:
-            errors.append("SECRET_KEY must be set explicitly in production (DATABASE_URL is set)")
+            errors.append("SECRET_KEY must be set explicitly in production (DATABASE_URL is set) "
+                          "— empty values and template placeholders (YOUR_*_HERE) are rejected")
         else:
             warnings.append("SECRET_KEY not set — sessions are forgeable; set SECRET_KEY env var")
+    if _db_url and _PLACEHOLDER_SECRET_RE.match(_db_url.strip()):
+        errors.append("DATABASE_URL is a template placeholder from .env.example — set a real "
+                      "PostgreSQL URL or leave it empty to use SQLite")
 
     upload_folder = app.config.get("UPLOAD_FOLDER", "uploads")
     if _db_url and not str(upload_folder).startswith("/data"):

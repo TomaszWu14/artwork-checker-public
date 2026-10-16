@@ -18,6 +18,19 @@ import sqlite3
 
 DATABASE_URL: str = os.environ.get("DATABASE_URL", "")
 
+
+def _reject_placeholder_url(url: str) -> None:
+    """Fail fast when DATABASE_URL is a template placeholder (e.g. YOUR_DATABASE_URL_HERE
+    copied from .env.example) instead of surfacing an opaque psycopg2 error later (US-018)."""
+    if re.fullmatch(r"YOUR_[A-Z0-9_]+_HERE", (url or "").strip(), re.IGNORECASE):
+        raise SystemExit(
+            "FATAL: DATABASE_URL is a template placeholder from .env.example — set a real "
+            "PostgreSQL URL or leave it empty to use SQLite."
+        )
+
+
+_reject_placeholder_url(DATABASE_URL)
+
 # Auto-place SQLite on the persistent volume when /data (or DATA_DIR) is mounted.
 # This ensures the database survives container rebuilds on Coolify/Render.
 # Explicit SQLITE_PATH env var always takes priority.

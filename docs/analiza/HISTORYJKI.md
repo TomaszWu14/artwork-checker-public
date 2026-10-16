@@ -58,7 +58,7 @@ omijała ochrony.
 - Given hasło krótsze niż 12 znaków lub z listy 10k najczęstszych, When zmiana/reset hasła, Then odmowa z
   czytelnym komunikatem. Ryzyko: R-01 (SEC-001).
 
-### US-018 · Must · 📋 · Placeholdery `.env.example` traktowane jako niebezpieczne
+### US-018 · Must · 🔧 (PR otwarty) · Placeholdery `.env.example` traktowane jako niebezpieczne
 - Given `SECRET_KEY=YOUR_SECRET_KEY_HERE` i `DATABASE_URL` ustawione, When start, Then aplikacja odmawia startu.
 - `.env.example` ma puste wartości dla sekretów. Ryzyko: R-09.
 

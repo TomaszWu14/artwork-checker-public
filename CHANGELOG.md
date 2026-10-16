@@ -29,6 +29,9 @@ Wersja aplikacji: `constants.APP_VERSION`.
   `_ensure_shipment`/`_save_doc_to_shipment` w `_save_comparison` (pozostałość modułu transportu).
 
 ### Security
+- US-018: wartości-atrapy z szablonów `.env` (`YOUR_*_HERE`, `changeme`, znane słabe klucze) są traktowane jak brak
+  sekretu — produkcja odmawia startu przy takim `SECRET_KEY`/`DATABASE_URL`; `.env.example` i `.env.staging.example`
+  bez wartości (R-09).
 - Zidentyfikowano i zaplanowano (bez zmian w kodzie w tym wydaniu): limity logowania w DB i blokada konta
   (US-005), hash tokenów resetu (US-003), sekrety tylko z env (US-004), ochrona promptów AI (US-007),
   CSP bez `unsafe-eval` (US-008), `save-copy` fail-closed (US-006) — patrz `docs/bezpieczenstwo/RYZYKA.md`.
