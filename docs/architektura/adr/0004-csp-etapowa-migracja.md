@@ -1,6 +1,6 @@
 # ADR-0004: Etapowa migracja do ścisłej Content-Security-Policy (US-008)
 
-- **Status:** etap 1 zrealizowany (#28); etap 2 podzielony na 2a (US-022, ten PR) i 2b (US-024 — Alpine CSP); etapy 2b–4 — **decyzja PO**
+- **Status:** etap 1 zrealizowany (#28); etap 2 podzielony na 2a (US-022, ten PR) i 2b (US-024 — Alpine CSP); etap 2b (US-024) **odłożony decyzją PO 2026-10-16**; etapy 3–4 — decyzja PO
 - **Role:** [SEC] + [DEV]
 
 ## Kontekst

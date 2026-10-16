@@ -113,9 +113,9 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
 ### US-016 · Could · 📋 · Archiwizacja nieaktualnych dokumentów (`docs/architektura.md`, `DOKUMENTACJA_IT.md`, `PROCES_*`) do `docs/archiwum/`
 ### US-017 · Could · ✅ (#30) · `POST /logout` z CSRF; kontrola dezaktywacji konta w ręcznych sprawdzeniach sesji
 ### US-019 · Could · ✅ (#31) · Limit stron/DPI dla OCR (ochrona przed wyczerpaniem zasobów)
-### US-021 · Could · ⛔ (zablokowane: środowisko bez dostępu do `download.pytorch.org` — decyzja PO) · Lockfile z hashami dla pełnego obrazu ML (`requirements.txt`, torch CPU z osobnego indeksu) i użycie go w `Dockerfile`/`Dockerfile.base`
+### US-021 · Could · ⛔ (zablokowane: środowisko bez dostępu do `download.pytorch.org`; obejmie też `transformers` 5 — Dependabot #8 zamknięty) · Lockfile z hashami dla pełnego obrazu ML (`requirements.txt`, torch CPU z osobnego indeksu) i użycie go w `Dockerfile`/`Dockerfile.base`
 ### US-022 · Should · ✅ (#33) · CSP etap 2a: raport bez Babel w przeglądarce, Tailwind zbudowany, biblioteki z `static/vendor` — CSP bez CDN (ADR-0004)
-### US-024 · Should (do decyzji PO) · 📋 · CSP etap 2b: Alpine w wersji CSP (`Alpine.data` w ~18 szablonach) — zdjęcie `unsafe-eval` (ADR-0004)
+### US-024 · Should · ⏸ (odłożone — decyzja PO 2026-10-16) · CSP etap 2b: Alpine w wersji CSP (`Alpine.data` w ~18 szablonach) — zdjęcie `unsafe-eval` (ADR-0004)
 ### US-023 · Should (do decyzji PO) · 📋 · CSP etap 3–4: handlery `on*=` → `addEventListener`, nonce na skryptach, egzekwowanie ścisłej CSP (ADR-0004)
 ### US-020 · Could · 📋 · Jednorazowe `ruff format` 108 plików i `ruff format --check` jako bramka (decyzja PO — duży diff)
 
