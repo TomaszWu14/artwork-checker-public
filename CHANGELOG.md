@@ -33,6 +33,9 @@ Wersja aplikacji: `constants.APP_VERSION`.
   `_ensure_shipment`/`_save_doc_to_shipment` w `_save_comparison` (pozostałość modułu transportu).
 
 ### Security
+- US-017: wylogowanie wyłącznie przez `POST /logout` z tokenem CSRF — `GET /logout` pokazuje potwierdzenie i niczego
+  nie zmienia (obca strona nie wyloguje użytkownika obrazkiem/linkiem); trasy API z ręczną kontrolą sesji
+  (`/api/library/search`, `/api/ref-database/*`) odrzucają konta dezaktywowane (401), jak `login_required`.
 - US-006: „Zapisz kopię” modelu 3D zapisuje wyłącznie pod katalogami z `ARTWORK_COPY_ROOTS` (porównanie po `realpath`,
   bez ucieczki przez symlinki); w produkcji (`DATABASE_URL`) lub z `ARTWORK_COPY_REQUIRE_ROOTS=1` brak listy = funkcja
   wyłączona (503). UI podpowiada dozwolone katalogi (`GET /api/artwork/3d/copy-roots`) (R-06).
