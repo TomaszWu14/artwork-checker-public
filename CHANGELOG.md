@@ -22,6 +22,8 @@ Wersja aplikacji: `constants.APP_VERSION`.
 - `.gitleaks.toml` z udokumentowaną allowlistą danych testowych; pre-commit z gitleaks i hookami porządkowymi.
 
 ### Changed
+- Decyzje PO (2026-10-16): Dependabot #5 (Python 3.14) i #8 (`transformers` 5) zamknięte — zmiana Pythona osobną
+  historyjką, `transformers` 5 razem z US-021; US-024 (Alpine CSP, zdjęcie `unsafe-eval`) odłożone.
 - `artwork.html`: usunięty martwy kod (736 linii) — stary panel uploadu i porównania pojedynczej pary
   (`runCompare`, `renderAll` i 25 innych funkcji) oraz modal biblioteki masterów, którego nic nie otwierało. Odwoływał się
   do 43 nieistniejących elementów; test pilnuje, by każde `getElementById` w szablonie wskazywało istniejący element.
