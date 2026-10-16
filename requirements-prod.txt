@@ -19,7 +19,7 @@ sentry-sdk[flask]>=2.0
 pdfplumber>=0.10
 pymupdf>=1.24
 pypdf>=3.0
-camelot-py>=0.11
+camelot-py>=2.0.0
 
 # ── OCR (basic — Tesseract via system package) ────────────────────────────────
 pytesseract>=0.3
