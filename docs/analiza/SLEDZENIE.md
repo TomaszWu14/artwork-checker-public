@@ -36,8 +36,8 @@
 | SEC-005 CSP | US-008 | — | — | ❌ |
 | SEC-006 pliki fail-closed (kopia 3D tylko do ARTWORK_COPY_ROOTS, realpath) | US-006 | `test_artwork_3d_save_copy.py` | security/US-006 | 🔧 |
 | SEC-007 403 per rola | US-009 i każda nowa trasa | `test_palviz_auth.py`, `test_artwork_idor.py` (wybrane) | — | ⚠️ |
-| SEC-008 zależności | US-011 | — | — | ❌ |
 | FR-011 / SEC-006 — import mastera ze ścieżki serwera (resolver fail-closed) | US-001 | `test_us001_master_path_resolver.py` | #17 | ✅ |
 | NFR-008 — lint blokujący w CI (0 błędów ruff) | US-002 | `ruff check .` w `ci.yml` (krok blokujący) + `pytest` | #22 | ✅ |
 | SEC-003 / R-09 — placeholdery `.env` odrzucane w produkcji | US-018 | `test_us018_env_placeholders.py` | #18 | ✅ |
 | SEC-009 kontener non-root + HEALTHCHECK, Trivy misconfig blokujący | US-012 | `ci.yml` → job Trivy (DS-0002) | chore/US-012 | 🔧 |
+| SEC-008 zależności (lock z hashami, pip-audit na locku, Dependabot) | US-011 | `ci.yml` → job pip-audit (`--require-hashes`) | chore/US-011 | 🔧 |

@@ -92,7 +92,7 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
 - Given ostatni aktywny admin, When próbuję go zdezaktywować lub zmienić rolę, Then odmowa.
 - Given rola `user`, When POST `/api/users`, Then 403 (test dla każdej roli). Ryzyko: R-07. Wymaganie FR-022.
 
-### US-011 · Should · 📋 · Pinning zależności i Dependabot
+### US-011 · Should · 🔧 (PR otwarty) · Pinning zależności i Dependabot
 - Given `requirements-prod.txt`, When generuję lock (`pip-compile`/`uv`), Then `requirements-prod.lock` z hashami
   jest używany w Dockerfile i CI; `pip-audit` działa na locku.
 - Dependabot (pip, actions, docker) co tydzień. Ryzyko: R-08 (SEC-008).
@@ -113,6 +113,7 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
 ### US-016 · Could · 📋 · Archiwizacja nieaktualnych dokumentów (`docs/architektura.md`, `DOKUMENTACJA_IT.md`, `PROCES_*`) do `docs/archiwum/`
 ### US-017 · Could · 📋 · `POST /logout` z CSRF; kontrola dezaktywacji konta w ręcznych sprawdzeniach sesji
 ### US-019 · Could · 📋 · Limit stron/DPI dla OCR (ochrona przed wyczerpaniem zasobów)
+### US-021 · Could · 📋 · Lockfile z hashami dla pełnego obrazu ML (`requirements.txt`, torch CPU z osobnego indeksu) i użycie go w `Dockerfile`/`Dockerfile.base`
 ### US-020 · Could · 📋 · Jednorazowe `ruff format` 108 plików i `ruff format --check` jako bramka (decyzja PO — duży diff)
 
 ## Won't (na teraz)
