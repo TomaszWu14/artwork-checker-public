@@ -13,7 +13,7 @@ sentry-sdk[flask]>=2.0        # Error tracking
 pdfplumber>=0.10,<1.0
 pymupdf>=1.24,<2.0             # PyMuPDF — najszybsza ekstrakcja PDF
 pypdf>=3.0,<5.0                # PDF page extraction (split-compare, field-queue)
-camelot-py>=0.11               # Tabele z PDF
+camelot-py>=2.0.0               # Tabele z PDF
 
 # ── OCR ────────────────────────────────────────────────
 pytesseract>=0.3               # OCR wrapper (wymaga Tesseract binary) — fallback ostateczny
@@ -26,7 +26,7 @@ rapidocr-onnxruntime>=1.3      # RapidOCR: modele Paddle w ONNX — samowystarcz
 # paddleocr>=2.7               # PaddleOCR: najwyższa dokładność na drukowanym tekście
 # easyocr>=1.7                 # Neural OCR: 80+ języków — cyrylica i trudne cropy
 # python-doctr[torch]>=0.9     # DocTR: głęboki OCR — tertiary fallback
-pdf2image>=1.16                # PDF → obrazy dla OCR
+pdf2image>=1.17.0                # PDF → obrazy dla OCR
 pillow>=10.0,<12.0             # Przetwarzanie obrazów
 opencv-python-headless>=4.8
 
@@ -49,7 +49,7 @@ ultralytics>=8.0               # YOLOv8 — trening własnego modelu na etykieta
 
 # ── Matching / NLP ──────────────────────────────────────
 rapidfuzz>=3.0,<4.0
-scikit-learn>=1.3,<2.0
+scikit-learn>=1.9.1,<2.0
 
 # ── Normalizacja ────────────────────────────────────────
 dateparser>=1.2
@@ -58,7 +58,7 @@ babel>=2.12
 ftfy>=6.2                     # naprawa mojibake/Unicode w OCR — mniej fałszywych różnic A/B
 
 # ── Eksport ─────────────────────────────────────────────
-reportlab>=4.0,<5.0
+reportlab>=5.0.1,<6.0
 openpyxl>=3.1,<4.0
 python-docx>=1.1
 
@@ -99,7 +99,7 @@ addict                        # Słowniki rozszerzalne (GroundingDINO config)
 # ── GOT-OCR 2.0 (General OCR Theory) ────────────────────
 # Najnowszy model OCR (2024) — rozumie tabele, layouty, tekst drukowany i odręczny
 # Ładowany przez transformers z HuggingFace: stepfun-ai/GOT-OCR2_0
-tiktoken>=0.7                 # Tokenizer (GOT-OCR 2.0 + Qwen)
+tiktoken>=0.14.0                 # Tokenizer (GOT-OCR 2.0 + Qwen)
 accelerate>=0.30              # Szybkie ładowanie modeli HuggingFace
 verovio                       # GOT-OCR 2.0 optional dep
 qwen-vl-utils                 # Vision input helpers for Qwen2.5-VL
@@ -112,7 +112,7 @@ redis>=5.0                    # Klient Redis (sterownik kolejki)
 
 # ── Artwork 3D (modele opakowań GLB z dieline) ──────────
 trimesh>=4.0                  # Budowa siatki 3D i eksport GLB (artwork_3d.py)
-shapely>=2.0                  # Geometryczne wykrywanie paneli dielinu (fallback 3D, artwork_3d.py)
+shapely>=2.2.0                  # Geometryczne wykrywanie paneli dielinu (fallback 3D, artwork_3d.py)
 # OPCJONALNE, ciężkie: pyvista ciągnie VTK (setki MB) sprzeczne z odchudzaniem (#8).
 # Kod degraduje gracefully — render_glb_preview łapie ImportError i zwraca False
 # (GLB powstaje, brak tylko statycznego PNG podglądu). Doinstaluj ręcznie jeśli
