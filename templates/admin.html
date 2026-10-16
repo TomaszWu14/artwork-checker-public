@@ -189,17 +189,13 @@
 <div class="sec">Konfiguracja AI (Claude API)</div>
 <div class="form" style="flex-direction:column;align-items:stretch;gap:10px">
   <div style="font-size:13px;color:var(--muted);line-height:1.6">
-    Klucz API do analizy AI artworków i porównań dokumentów. Uzyskaj na <strong style="color:var(--text)">console.anthropic.com</strong>.
+    Klucz API do analizy AI artworków. Uzyskaj na <strong style="color:var(--text)">console.anthropic.com</strong>
+    i ustaw <strong style="color:var(--text)">wyłącznie w zmiennej środowiskowej</strong>
+    <code>ANTHROPIC_API_KEY</code> na serwerze (panel hostingu / <code>.env</code>), po czym zrestartuj aplikację.
+    Klucz nie jest przechowywany w bazie danych ani zapisywany z tego panelu — patrz
+    <code>docs/operacje/RUNBOOK.md</code>.
   </div>
   <div id="aiStatus" style="font-size:12px;font-family:var(--mono);color:var(--muted)">Sprawdzanie...</div>
-  <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
-    <div class="ff" style="flex:1;min-width:280px">
-      <label for="aiKey">KLUCZ ANTHROPIC API</label>
-      <input type="password" id="aiKey" placeholder="sk-ant-api03-..." style="font-family:var(--mono)">
-    </div>
-    <button type="button" class="badd" onclick="saveAiKey()">💾 Zapisz klucz</button>
-  </div>
-  <div class="msg" id="aiMsg"></div>
 </div>
 </div><!-- /pane-aiconfig -->
 
@@ -267,16 +263,7 @@ let _editUid = null;
 const ALL_MODULES = ['artwork','dane_ref','admin'];   // moduły forka Artwork (usunięto zakupy/transport/spedycja/magazyn)
 
 // ── chip helpers ─────────────────────────────────────────────────────────────
-async function saveAiKey() {
-  const k = document.getElementById('aiKey').value.trim();
-  const m = document.getElementById('aiMsg');
-  if (!k) { m.textContent='Wklej klucz API.'; m.className='msg merr'; return; }
-  if (!k.startsWith('sk-ant-')) { m.textContent='Klucz powinien zaczynać się od sk-ant-'; m.className='msg merr'; return; }
-  const r = await fetch('/api/ai/config', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({api_key:k}) });
-  const d = await r.json();
-  if (d.ok) { m.textContent='✓ Klucz zapisany i aktywny'; m.className='msg mok'; document.getElementById('aiKey').value=''; loadAiStatus(); }
-  else { m.textContent='✕ '+(d.error||'Błąd'); m.className='msg merr'; }
-}
+// Zapis klucza API przez UI usunięty (US-004): klucz tylko w env ANTHROPIC_API_KEY.
 async function loadAiStatus() {
   try {
     const r = await fetch('/api/ai/status');

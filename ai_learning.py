@@ -29,21 +29,9 @@ Odpowiadaj WYŁĄCZNIE w JSON — bez markdown, bez komentarzy."""
 # ── Klucz API ────────────────────────────────────────────────────────────────
 
 def _key() -> str:
-    k = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-    if k: return k
-    try:
-        db = get_db()
-        try:
-            r = db.execute("SELECT value FROM settings WHERE category='ai' AND key='anthropic_api_key'").fetchone()
-        finally:
-            db.close()
-        if r and r[0]:
-            os.environ["ANTHROPIC_API_KEY"] = r[0].strip()
-            return r[0].strip()
-    except Exception as _e:
-        import logging
-        logging.getLogger("ai_learning").debug("API key DB lookup failed: %s", _e)
-    return ""
+    """Anthropic API key from the environment only (US-004, SEC-003) — no DB lookup,
+    no mutation of os.environ."""
+    return os.environ.get("ANTHROPIC_API_KEY", "").strip()
 
 def _call(prompt: str, max_tokens: int = 3000) -> dict:
     key = _key()

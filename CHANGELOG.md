@@ -21,6 +21,9 @@ Wersja aplikacji: `constants.APP_VERSION`.
 - README: sekcja „Proces i dokumentacja” z linkami do nowych dokumentów.
 
 ### Security
+- US-004: klucz Anthropic API jest czytany wyłącznie ze zmiennej środowiskowej — `POST /api/ai/config` zwraca 410,
+  wpis z tabeli `settings` z poprzednich wersji jest usuwany przy starcie (log CRITICAL), helpery w `ai_validator`,
+  `ai_learning` i `artwork_comparator` nie modyfikują `os.environ`; panel admina pokazuje instrukcję zamiast formularza (R-03).
 - Zidentyfikowano i zaplanowano (bez zmian w kodzie w tym wydaniu): limity logowania w DB i blokada konta
   (US-005), hash tokenów resetu (US-003), sekrety tylko z env (US-004), ochrona promptów AI (US-007),
   CSP bez `unsafe-eval` (US-008), `save-copy` fail-closed (US-006) — patrz `docs/bezpieczenstwo/RYZYKA.md`.

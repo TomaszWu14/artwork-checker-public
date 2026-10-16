@@ -6549,27 +6549,9 @@ def extract_field_crops_for_preview(path_a: str, path_b: str,
 
 
 def _get_api_key_artwork() -> str:
-    """Czyta klucz API z env lub z bazy danych ustawień."""
-    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-    if key:
-        return key
-    try:
-        from db import get_db
-        db = get_db()
-        try:
-            row = db.execute(
-                "SELECT value FROM settings WHERE category='ai' AND key='anthropic_api_key'"
-            ).fetchone()
-        finally:
-            db.close()
-        if row and row[0]:
-            key = row[0].strip()
-            if key:
-                os.environ["ANTHROPIC_API_KEY"] = key
-                return key
-    except Exception:
-        pass
-    return ""
+    """Klucz Anthropic API wyłącznie ze środowiska (US-004, SEC-003) — bez odczytu
+    z bazy i bez modyfikacji os.environ."""
+    return os.environ.get("ANTHROPIC_API_KEY", "").strip()
 
 
 def _compare_size_tables_transformer(img_a, img_b) -> list:
