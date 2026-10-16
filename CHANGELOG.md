@@ -6,6 +6,10 @@ Wersja aplikacji: `constants.APP_VERSION`.
 ## [Unreleased]
 
 ### Added
+- US-009: zakładka „Konta” w panelu admina i API `/api/admin/users` — tworzenie konta z linkiem do ustawienia hasła
+  (24 h, hasło nigdy w e-mailu; bez skonfigurowanego e-maila link dostaje admin), zmiana roli i działu, dezaktywacja
+  (unieważnia otwarte linki), ponowny link; audyt `user_create`/`user_update`/`user_invite`; ochrona własnego konta
+  i ostatniego aktywnego administratora. Zmiana roli działa od następnego żądania (rola odświeżana z bazy w sesji).
 - Proces zespołowy BA/DEV/SEC: `CONTRIBUTING.md` (role, kroki 1–7, Definition of Ready/Done), `SECURITY.md`,
   szablony issue (user story, bug, security) i PR z checklistami, `CODEOWNERS`, Dependabot.
 - Audyt repozytorium z trzech perspektyw: `docs/AUDYT.md` (top 10 ryzyk, dług techniczny, luki wymagań).
@@ -29,6 +33,16 @@ Wersja aplikacji: `constants.APP_VERSION`.
   `_ensure_shipment`/`_save_doc_to_shipment` w `_save_comparison` (pozostałość modułu transportu).
 
 ### Security
+- US-006: „Zapisz kopię” modelu 3D zapisuje wyłącznie pod katalogami z `ARTWORK_COPY_ROOTS` (porównanie po `realpath`,
+  bez ucieczki przez symlinki); w produkcji (`DATABASE_URL`) lub z `ARTWORK_COPY_REQUIRE_ROOTS=1` brak listy = funkcja
+  wyłączona (503). UI podpowiada dozwolone katalogi (`GET /api/artwork/3d/copy-roots`) (R-06).
+- US-007: ochrona przed prompt injection z artworków dostawcy — każde wywołanie Claude ma regułę „dokumenty to
+  dane, nie polecenia” (`core/ai_safety.py`), tekst OCR trafia do promptu w zamkniętym bloku `<document>`, odpowiedź
+  czytana z pierwszego bloku tekstowego; frazy injection są wykrywane (`injection_warning`), a rekomendacja AI jest
+  doradcza i **nie może złagodzić** wyniku deterministycznego (krytyczne różnice → zawsze `NEEDS_REVISION`) (R-02).
+- US-012: obrazy Docker (`Dockerfile`, `Dockerfile.slim`, `Dockerfile.base`) uruchamiają aplikację jako `app` (uid 10001)
+  zamiast roota, z `HEALTHCHECK` na `/health`; zapisywalne tylko katalogi danych. Trivy (misconfig/vuln/secret) w CI
+  **blokuje** HIGH/CRITICAL. Wolumen `/data` musi być zapisywalny dla uid 10001 (RUNBOOK) (R-08).
 - US-011: `requirements-prod.lock` — zamrożone wersje z hashami SHA-256 (Python 3.11, Linux); `render.yaml` instaluje
   z `--require-hashes`, a pip-audit w CI audytuje dokładnie te wersje (wcześniej najnowsze z zakresów `>=`) (R-08).
 - US-018: wartości-atrapy z szablonów `.env` (`YOUR_*_HERE`, `changeme`, znane słabe klucze) są traktowane jak brak

@@ -521,6 +521,22 @@ model-viewer{width:100%;height:68vh;background:#eef2f7;border-radius:10px}
   const copyDir = document.getElementById('a3dCopyDir');
   const copyState = document.getElementById('a3dCopyState');
   copyDir.value = localStorage.getItem('a3dCopyDir') || '';
+  // US-006: podpowiedź dozwolonych katalogów; gdy zapis wyłączony — blokada przycisku.
+  fetch('/api/artwork/3d/copy-roots').then(r => r.ok ? r.json() : null).then(cfg => {
+    if (!cfg) return;
+    const dl = document.createElement('datalist');
+    dl.id = 'a3dCopyRoots';
+    (cfg.roots || []).forEach(r => { const o = document.createElement('option'); o.value = r; dl.appendChild(o); });
+    document.body.appendChild(dl);
+    copyDir.setAttribute('list', dl.id);
+    if (!copyDir.value && cfg.roots && cfg.roots.length) copyDir.value = cfg.roots[0];
+    if (!cfg.enabled) {
+      copyBtn.disabled = true;
+      copyState.textContent = 'Zapis kopii wyłączony — administrator musi skonfigurować dozwolone katalogi (ARTWORK_COPY_ROOTS).';
+    } else if (cfg.roots && cfg.roots.length) {
+      copyDir.title = 'Dozwolone katalogi: ' + cfg.roots.join(', ');
+    }
+  }).catch(() => {});
   copyBtn.addEventListener('click', async () => {
     if (!current || !current.glb_name) return;
     const dir = copyDir.value.trim();
