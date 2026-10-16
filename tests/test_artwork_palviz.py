@@ -163,7 +163,7 @@ def test_export_faces_karton_4walls(tmp_path):
     pdf = str(tmp_path / "k.pdf")
     _synth_dieline(pdf)
     out = str(tmp_path / "k")
-    res = a3d.export_faces(pdf, out, level="karton", sku="ZAR-KRT")
+    a3d.export_faces(pdf, out, level="karton", sku="ZAR-KRT")
     man = json.load(open(os.path.join(out, "manifest.json"), encoding="utf-8"))
     # karton: tylko boki, bez góry/dołu
     assert set(man["faces"]) == {"front", "back", "left", "right"}

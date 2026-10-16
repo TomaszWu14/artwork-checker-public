@@ -18,7 +18,15 @@ Wersja aplikacji: `constants.APP_VERSION`.
 - `.gitleaks.toml` z udokumentowaną allowlistą danych testowych; pre-commit z gitleaks i hookami porządkowymi.
 
 ### Changed
+- US-002: `ruff check` przechodzi bez błędów (66 → 0: 17 zduplikowanych kluczy w słowniku tłumaczeń EN —
+  wartości identyczne, 28 nieużywanych zmiennych, 10 f-stringów bez pól, 7 podwójnych importów, 4 niezdefiniowane
+  nazwy z US-001) i **blokuje CI**; `ruff format --check` pozostaje doradczy (US-020).
 - README: sekcja „Proces i dokumentacja” z linkami do nowych dokumentów.
+
+### Fixed
+- US-001: `/api/artwork/master-files/from-path` wołało niezdefiniowany resolver (`NameError` → 500); dodano
+  `_resolve_artwork_master_path` ograniczony do `LIBRARY_FOLDER` (fail-closed) i usunięto martwą gałąź
+  `_ensure_shipment`/`_save_doc_to_shipment` w `_save_comparison` (pozostałość modułu transportu).
 
 ### Security
 - US-018: wartości-atrapy z szablonów `.env` (`YOUR_*_HERE`, `changeme`, znane słabe klucze) są traktowane jak brak

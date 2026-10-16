@@ -207,8 +207,6 @@ _RAW = {
     "Ważność": "Severity",
     "Kategoria": "Category",
     "Opis": "Description",
-    "Dok. A": "Doc A",
-    "Dok. B": "Doc B",
     "Opis A": "Desc A",
     "Opis B": "Desc B",
     "Ilość A": "Qty A",
@@ -217,9 +215,7 @@ _RAW = {
     "Cena B": "Price B",
     "Net A": "Net A",
     "Net B": "Net B",
-    "Komentarz": "Comment",
     "Dokumenty zgodne": "Documents match",
-    "Błędy krytyczne": "Critical errors",
     "rozbieżności": "discrepancies",
     "ostrzeżenia": "warnings",
     "błędów": "errors",
@@ -232,7 +228,6 @@ _RAW = {
     "Wgraj pliki master (A) — kliknij lub przeciągnij": "Upload master files (A) — click or drag",
     "Wgraj PDF dostawcy (B) — kliknij lub przeciągnij": "Upload supplier PDF (B) — click or drag",
     "Wgraj pliki PDF — kliknij lub przeciągnij": "Upload PDF files — click or drag",
-    "Brak historii porównań artworków": "No artwork comparison history",
     "Weryfikacja kodów kreskowych": "Barcode verification",
     "Postęp porównania artworków": "Artwork comparison progress",
     "Postęp ekstrakcji": "Extraction progress",
@@ -320,7 +315,6 @@ _RAW = {
         "Container condition, damage, deviations...",
 
     # ── Calendar ─────────────────────────────────────────────────────────
-    "Kalendarz ETD/ETA": "ETD/ETA Calendar",
     "Nawigacja kalendarza": "Calendar navigation",
     "Poprzedni miesiąc": "Previous month",
     "Następny miesiąc": "Next month",
@@ -328,7 +322,6 @@ _RAW = {
     "Bieżący miesiąc": "Current month",
 
     # ── Checklists ────────────────────────────────────────────────────────
-    "Checklisty dokumentów": "Document checklists",
     "Brak zdarzeń.": "No events.",
     "Brak zdarzeń": "No events",
 
@@ -339,7 +332,6 @@ _RAW = {
 
     # ── Data hub ──────────────────────────────────────────────────────────
     "Hub danych": "Data hub",
-    "Centrum danych": "Data centre",
     "Centralne miejsce danych referencyjnych — produkty, dostawcy, artworki, śledzenie i słowniki.  🔁 Zakupy + Transport + Artworki":
         "Central reference data — products, suppliers, artwork, tracking and dictionaries.  🔁 Purchasing + Transport + Artwork",
 
@@ -371,7 +363,6 @@ _RAW = {
 
     # ── Library ──────────────────────────────────────────────────────────
     "Biblioteka PO": "PO Library",
-    "Biblioteka plików": "File library",
     "Biblioteka Masterów": "Master Library",
 
     # ── AI agent / proforma ───────────────────────────────────────────────
@@ -450,7 +441,6 @@ _RAW = {
     "Paginacja": "Pagination",
 
     # ── Column / role helpers (supplier wizard) ──────────────────────────
-    "Mapowanie kolumn": "Column mapping",
     "Podgląd tabeli": "Table preview",
     "Brak zaznaczenia = dostęp do wszystkich modułów.":
         "No selection = access to all modules.",
@@ -460,14 +450,12 @@ _RAW = {
 
     # ── Currencies ────────────────────────────────────────────────────────
     "Kursy walut": "Exchange rates",
-    "Brak kursów walut": "No exchange rates",
     "Data ważności": "Expiry date",
     "Data zamówienia": "Order date",
 
     # ── Artwork admin ─────────────────────────────────────────────────────
     "Zarządzanie artworkami": "Artwork management",
     "Brakujące pola": "Missing fields",
-    "Brak materiałów": "No materials",
     "Dodaj materiał": "Add material",
     "Dalej — Mapowanie PI →": "Next — PI mapping →",
     "Dalej — Mapowanie PO →": "Next — PO mapping →",
@@ -542,7 +530,6 @@ _RAW = {
     "Opcjonalny opis szablonu…": "Optional template description…",
     "Szukaj PO, dostawcy, referencji…": "Search PO, supplier, reference…",
     "Szukaj pliku lub użytkownika...": "Search file or user...",
-    "Szukaj pliku, PO, dostawcy, usera…": "Search file, PO, supplier, user…",
     "Szukaj pola SAD, nazwy, opisu…": "Search SAD field, name, description…",
     "Jan Kowalski": "John Smith",
     "Marek Nowak": "Mark Brown",
@@ -550,15 +537,12 @@ _RAW = {
 
     # ── Misc short labels ─────────────────────────────────────────────────
     "Typ": "Type",
-    "Opis": "Description",
     "Nazwa": "Name",
     "Data": "Date",
     "Ilość": "Qty",
     "Cena": "Price",
     "Wartość": "Value",
-    "Waluta": "Currency",
     "REF": "REF",
-    "Kraj": "Country",
     "Uwagi": "Notes",
     "Akcje": "Actions",
     "Szczegóły": "Details",
@@ -577,7 +561,6 @@ _RAW = {
     "Tak": "Yes",
     "Nie": "No",
     "Otwórz →": "Open →",
-    "&#8592; Powrót": "&#8592; Back",
 }
 
 # Build sorted list (longest key first to avoid substring clobbering)

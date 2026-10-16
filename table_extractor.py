@@ -175,7 +175,6 @@ def identify_columns(header_row: list[str]) -> dict[str, int]:
     Zwraca {col_type: col_index} dla wiersza nagłówkowego.
     Obsługuje wielojęzyczne nagłówki, kombinowane komórki, wieloliniowe nagłówki.
     """
-    ci = {}
     # Normalizuj nagłówki: strip whitespace, lowercase, zamień newline na spację
     header_str = [re.sub(r'\s+', ' ', str(h or "").lower()).strip() for h in header_row]
 
@@ -1257,9 +1256,6 @@ def compare_tables(path_a: str, path_b: str,
         da.doc_type = TYPE_MAP[doc_type_a]
     if doc_type_b != "auto" and doc_type_b in TYPE_MAP:
         db.doc_type = TYPE_MAP[doc_type_b]
-
-    # Logika specjalna dla znanych par
-    pair = f"{doc_type_a}+{doc_type_b}"
 
     headers = cmp_headers(da.header_fields, db.header_fields)
     items   = match_items(da.items, db.items)
