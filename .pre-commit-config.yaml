@@ -1,11 +1,26 @@
 # Hooki pre-commit (opcjonalne, dla deweloperów). Instalacja:
 #   pip install pre-commit && pre-commit install
-# Uruchamiają ruff (lint + format) na zmienianych plikach przed commitem.
-# Świadomie NIE uruchamiamy tu pytest (wolne) — testy pilnuje bramka CI.
+# ruff (lint + format), gitleaks (sekrety), hooki porządkowe. Świadomie NIE uruchamiamy
+# tu pytest (wolne) — testy pilnuje bramka CI. Uzasadnienie narzędzi: docs/architektura/adr/0002.
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: detect-private-key
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.6.9
     hooks:
       - id: ruff
         args: [--fix]
       - id: ruff-format
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks

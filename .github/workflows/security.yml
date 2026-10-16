@@ -71,3 +71,27 @@ jobs:
             pip-audit -r "$f" --progress-spinner off || true
           done
           [ "$found" = 1 ] || echo "Brak plików requirements*.txt — pomijam."
+
+  trivy-image:
+    # Skan OBRAZU Docker (pełny Dockerfile: torch + OCR, build ~8 min, kilka GB) — tylko na żądanie
+    # (workflow_dispatch), by nie palić minut przy każdym PR (decyzja Z-05, ADR-0002).
+    name: Trivy (obraz Docker) — tylko ręcznie
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Zwolnij miejsce na dysku (obraz ML jest duży)
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android \
+                      /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          sudo docker image prune --all --force || true
+          df -h
+      - name: Build obrazu
+        run: docker build -t artwork:scan .
+      - name: Instalacja Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Skan obrazu (HIGH/CRITICAL; doradczy do US-012)
+        run: trivy image --severity HIGH,CRITICAL --exit-code 0 artwork:scan

@@ -1,0 +1,33 @@
+# CODEOWNERS — przypisanie obszarów do ról (opisowo).
+# Repo ma jednego maintainera (@TomaszWu14), który pełni rolę PO oraz [BA]/[DEV]/[SEC].
+# Komentarze mówią, która perspektywa jest WYMAGANA w przeglądzie danego obszaru
+# (checklisty w .github/pull_request_template.md).
+
+# Domyślnie — [DEV] + odbiór [BA]
+*                                   @TomaszWu14
+
+# [SEC] obowiązkowy przegląd bezpieczeństwa
+/core/                              @TomaszWu14
+/app.py                             @TomaszWu14
+/blueprints/                        @TomaszWu14
+/db.py                              @TomaszWu14
+/migrate_db.py                      @TomaszWu14
+/library_sync.py                    @TomaszWu14
+/palviz_push.py                     @TomaszWu14
+/ai_validator.py                    @TomaszWu14
+/ai_learning.py                     @TomaszWu14
+/Dockerfile*                        @TomaszWu14
+/.github/                           @TomaszWu14
+/.gitleaks.toml                     @TomaszWu14
+/SECURITY.md                        @TomaszWu14
+/docs/bezpieczenstwo/               @TomaszWu14
+
+# [BA] właściciel wymagań i backlogu
+/docs/analiza/                      @TomaszWu14
+/README.md                          @TomaszWu14
+
+# [DEV] architektura, ADR, testy, operacje
+/docs/architektura/                 @TomaszWu14
+/docs/testy/                        @TomaszWu14
+/docs/operacje/                     @TomaszWu14
+/tests/                             @TomaszWu14
