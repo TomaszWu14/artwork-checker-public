@@ -33,6 +33,10 @@ Wersja aplikacji: `constants.APP_VERSION`.
   `_ensure_shipment`/`_save_doc_to_shipment` w `_save_comparison` (pozostałość modułu transportu).
 
 ### Security
+- US-019: limity renderowania PDF (`core/render_limits.py`) we wszystkich ścieżkach PyMuPDF — najwyżej
+  `ARTWORK_MAX_PDF_PAGES` (50) stron, bitmapa ograniczona do `ARTWORK_MAX_RENDER_PX` (6000 px) **już przy renderze**
+  (wcześniej arkusz wielkoformatowy był renderowany w pełnym DPI i dopiero potem zmniejszany), `ARTWORK_OCR_DPI`
+  ograniczone do 72–400; `/api/artwork/pdf-pages` zwraca `total_pages` (R-13).
 - US-006: „Zapisz kopię” modelu 3D zapisuje wyłącznie pod katalogami z `ARTWORK_COPY_ROOTS` (porównanie po `realpath`,
   bez ucieczki przez symlinki); w produkcji (`DATABASE_URL`) lub z `ARTWORK_COPY_REQUIRE_ROOTS=1` brak listy = funkcja
   wyłączona (503). UI podpowiada dozwolone katalogi (`GET /api/artwork/3d/copy-roots`) (R-06).

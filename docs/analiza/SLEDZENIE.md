@@ -35,6 +35,7 @@
 | SEC-004 prompt hardening (reguła systemowa, bloki <document>, wykrywanie injection, AI nie łagodzi werdyktu) | US-007 | `test_us007_prompt_hardening.py` | #24 | ✅ |
 | SEC-006 pliki fail-closed (kopia 3D tylko do ARTWORK_COPY_ROOTS, realpath) | US-006 | `test_artwork_3d_save_copy.py` | #23 | ✅ |
 | SEC-005 CSP (etap 1: report-only + jedno `esc`) | US-008 | `test_us008_csp_phase1.py` | #28 | ⚠️ (etap 1 z 4) |
+| NFR / R-13 — limity renderowania PDF (strony, piksele przed renderem, DPI z env) | US-019 | `test_us019_render_limits.py` | security/US-019 | 🔧 |
 | SEC-007 403 per rola | US-009 i każda nowa trasa | `test_palviz_auth.py`, `test_artwork_idor.py` (wybrane) | — | ⚠️ |
 | FR-011 / SEC-006 — import mastera ze ścieżki serwera (resolver fail-closed) | US-001 | `test_us001_master_path_resolver.py` | #17 | ✅ |
 | NFR-008 — lint blokujący w CI (0 błędów ruff) | US-002 | `ruff check .` w `ci.yml` (krok blokujący) + `pytest` | #22 | ✅ |

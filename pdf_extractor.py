@@ -14,6 +14,8 @@ import io
 import logging
 from typing import Optional
 
+from core.render_limits import capped_zoom, page_indices
+
 logger = logging.getLogger(__name__)
 
 # ── Dostępne biblioteki ───────────────────────────────────────────────────────
@@ -175,10 +177,11 @@ def _extract_ocr(pdf_path: str, lang: str = 'pol+eng') -> Optional[dict]:
 
         # Context manager — gwarantuje zamknięcie dokumentu także przy wyjątku.
         with fitz.open(pdf_path) as doc:
-            for page_num in range(len(doc)):
+            for page_num in page_indices(len(doc)):   # US-019: limit stron
                 page = doc[page_num]
-                # Renderuj w wysokiej rozdzielczości
-                mat = fitz.Matrix(2.5, 2.5)  # 2.5x = ~180 DPI
+                # Renderuj w wysokiej rozdzielczości (~180 DPI), z limitem pikseli (US-019)
+                z = capped_zoom(page.rect.width, page.rect.height, 2.5)
+                mat = fitz.Matrix(z, z)
                 pix = page.get_pixmap(matrix=mat, alpha=False)
                 img_data = pix.tobytes("png")
 
@@ -478,7 +481,7 @@ def _render_page_to_b64(doc, page_num: int, dpi: int = 200) -> str:
     """Renderuje stronę PDF do obrazu PNG zakodowanego w base64."""
     import base64
     page = doc[page_num]
-    zoom = dpi / 72.0
+    zoom = capped_zoom(page.rect.width, page.rect.height, dpi / 72.0)   # US-019
     mat = fitz.Matrix(zoom, zoom)
     pix = page.get_pixmap(matrix=mat, alpha=False)
     return base64.b64encode(pix.tobytes("png")).decode()

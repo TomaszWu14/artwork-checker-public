@@ -22,6 +22,7 @@ from core.security import (
     verify_csrf as _verify_csrf,
 )
 from core.audit import log_audit as _log_audit
+from core.render_limits import capped_zoom as _capped_zoom, page_indices as _page_indices
 from constants import ROLE_LEVEL, VALID_ROLES, API_RATE_MAX, API_RATE_WINDOW, KPI_CACHE_TTL, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB, RATE_LIMIT_LOGIN_ACCOUNT_MAX, PASSWORD_MIN_LENGTH, RESET_TOKEN_TTL_HOURS, RenderVariant
 from translations import t as _t_func, TRANSLATIONS
 from translation_en import translate_html as _translate_html_en
@@ -4385,7 +4386,9 @@ def api_artwork_preview_crops():
                             with open(comp_path, "wb") as fp:
                                 writer.write(fp)
                         else:
-                            pix = doc[page_idx].get_pixmap(matrix=_fitz_pv.Matrix(3.0, 3.0), alpha=False)
+                            _r = doc[page_idx].rect
+                            _z = _capped_zoom(_r.width, _r.height, 3.0)   # US-019
+                            pix = doc[page_idx].get_pixmap(matrix=_fitz_pv.Matrix(_z, _z), alpha=False)
                             comp_path = os.path.join(upload_dir, f"{uid}_pv_pg{page_idx}_{i}.png")
                             pix.save(comp_path)
                         comp_paths.append(comp_path)
@@ -4612,7 +4615,8 @@ def api_artwork_split_compare():
                             cx0 * r.width,  cy0 * r.height,
                             cx1 * r.width,  cy1 * r.height,
                         )
-                        pix = page.get_pixmap(matrix=fitz.Matrix(3.0, 3.0),
+                        _z = _capped_zoom(clip.width, clip.height, 3.0)   # US-019
+                        pix = page.get_pixmap(matrix=fitz.Matrix(_z, _z),
                                               clip=clip, alpha=False)
                         comp_path = os.path.join(upload_dir, f"{uid}_spl_crop_{i}.png")
                         pix.save(comp_path)
@@ -4624,7 +4628,8 @@ def api_artwork_split_compare():
                         with open(comp_path, "wb") as fp:
                             writer.write(fp)
                     else:
-                        pix = page.get_pixmap(matrix=fitz.Matrix(3.0, 3.0), alpha=False)
+                        _z = _capped_zoom(page.rect.width, page.rect.height, 3.0)   # US-019
+                        pix = page.get_pixmap(matrix=fitz.Matrix(_z, _z), alpha=False)
                         comp_path = os.path.join(upload_dir,
                                                  f"{uid}_spl_pg{page_idx}_{i}.png")
                         pix.save(comp_path)
@@ -5832,8 +5837,8 @@ def api_artwork_pdf_pages():
             doc = fitz.open(path)
             try:
                 pages = []
-                mat = fitz.Matrix(scale, scale)
-                indices = range(len(doc))
+                total_pages = len(doc)
+                indices = _page_indices(total_pages)   # US-019: limit miniatur
                 if page_idx_param is not None:
                     try:
                         idx = int(page_idx_param)
@@ -5843,7 +5848,8 @@ def api_artwork_pdf_pages():
                 quality = 90 if scale >= 1.0 else 75
                 for i in indices:
                     page = doc[i]
-                    pix = page.get_pixmap(matrix=mat, alpha=False)
+                    _z = _capped_zoom(page.rect.width, page.rect.height, scale)   # US-019
+                    pix = page.get_pixmap(matrix=fitz.Matrix(_z, _z), alpha=False)
                     thumb = base64.b64encode(pix.tobytes("jpeg", jpg_quality=quality)).decode()
                     w_mm = round(page.rect.width / 72 * 25.4)
                     h_mm = round(page.rect.height / 72 * 25.4)
@@ -5855,7 +5861,8 @@ def api_artwork_pdf_pages():
                     })
             finally:
                 doc.close()
-            return jsonify({"count": len(pages), "pages": pages})
+            # US-019: total_pages > count → plik ma więcej stron niż ARTWORK_MAX_PDF_PAGES.
+            return jsonify({"count": len(pages), "pages": pages, "total_pages": total_pages})
         except Exception as e:
             return jsonify({"count": 1, "pages": [], "error": str(e)[:200]})
     finally:

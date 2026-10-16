@@ -536,9 +536,12 @@ def _pdf_to_images(path: str, dpi: int = 220):
         import fitz
         doc = fitz.open(path)
         try:
+            from core.render_limits import capped_zoom, page_indices
             imgs = []
-            for page in doc:
-                mat = fitz.Matrix(dpi / 72, dpi / 72)
+            for _pno in page_indices(len(doc)):   # US-019: limit stron i pikseli
+                page = doc[_pno]
+                z = capped_zoom(page.rect.width, page.rect.height, dpi / 72)
+                mat = fitz.Matrix(z, z)
                 pix = page.get_pixmap(matrix=mat, alpha=False)
                 from PIL import Image
                 img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
