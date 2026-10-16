@@ -66,6 +66,22 @@ jobs:
           path: coverage.xml
           if-no-files-found: ignore
 
+  frontend:
+    name: Frontend — build z repo zgodny ze źródłem (US-022)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Instalacja przypiętych wersji (package-lock.json)
+        run: npm ci --no-audit --no-fund
+      - name: Build (vendor, JSX raportu, Tailwind)
+        run: npm run build
+      - name: "Zbudowane pliki w repo = wynik builda (inaczej: uruchom npm run build i zacommituj)"
+        run: git diff --exit-code -- static/
+
   sast-bandit:
     name: SAST — Bandit (blokuje ≥ średnie)
     runs-on: ubuntu-latest

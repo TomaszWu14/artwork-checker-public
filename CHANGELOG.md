@@ -45,6 +45,11 @@ Wersja aplikacji: `constants.APP_VERSION`.
   `ARTWORK_MAX_PDF_PAGES` (50) stron, bitmapa ograniczona do `ARTWORK_MAX_RENDER_PX` (6000 px) **już przy renderze**
   (wcześniej arkusz wielkoformatowy był renderowany w pełnym DPI i dopiero potem zmniejszany), `ARTWORK_OCR_DPI`
   ograniczone do 72–400; `/api/artwork/pdf-pages` zwraca `total_pages` (R-13).
+- US-022 (CSP etap 2a, ADR-0004): raport nie kompiluje JSX w przeglądarce (Babel usunięty — JSX budowany do
+  `static/js/artwork_report_pf.js`); Tailwind budowany z repo zamiast Play CDN; React 18.3.1, Alpine 3.13.0 i lucide
+  1.49.0 (wcześniej `lucide@latest`) z przypiętych kopii w `static/vendor`. CSP nie dopuszcza już `unpkg.com`,
+  `cdn.tailwindcss.com`, `cdn.jsdelivr.net`. Eksport raportu HTML działa offline (skrypty wbudowane). `'unsafe-eval'`
+  zostaje tylko dla Alpine (US-024) (R-05, łańcuch dostaw).
 - US-006: „Zapisz kopię” modelu 3D zapisuje wyłącznie pod katalogami z `ARTWORK_COPY_ROOTS` (porównanie po `realpath`,
   bez ucieczki przez symlinki); w produkcji (`DATABASE_URL`) lub z `ARTWORK_COPY_REQUIRE_ROOTS=1` brak listy = funkcja
   wyłączona (503). UI podpowiada dozwolone katalogi (`GET /api/artwork/3d/copy-roots`) (R-06).

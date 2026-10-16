@@ -114,7 +114,8 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
 ### US-017 · Could · ✅ (#30) · `POST /logout` z CSRF; kontrola dezaktywacji konta w ręcznych sprawdzeniach sesji
 ### US-019 · Could · 🔧 (PR otwarty) · Limit stron/DPI dla OCR (ochrona przed wyczerpaniem zasobów)
 ### US-021 · Could · 📋 · Lockfile z hashami dla pełnego obrazu ML (`requirements.txt`, torch CPU z osobnego indeksu) i użycie go w `Dockerfile`/`Dockerfile.base`
-### US-022 · Should (do decyzji PO) · 📋 · CSP etap 2: Alpine w wersji CSP, raport bez Babel w przeglądarce, Tailwind zbudowany — zdjęcie `unsafe-eval` (ADR-0004)
+### US-022 · Should · 🔧 (PR otwarty) · CSP etap 2a: raport bez Babel w przeglądarce, Tailwind zbudowany, biblioteki z `static/vendor` — CSP bez CDN (ADR-0004)
+### US-024 · Should (do decyzji PO) · 📋 · CSP etap 2b: Alpine w wersji CSP (`Alpine.data` w ~18 szablonach) — zdjęcie `unsafe-eval` (ADR-0004)
 ### US-023 · Should (do decyzji PO) · 📋 · CSP etap 3–4: handlery `on*=` → `addEventListener`, nonce na skryptach, egzekwowanie ścisłej CSP (ADR-0004)
 ### US-020 · Could · 📋 · Jednorazowe `ruff format` 108 plików i `ruff format --check` jako bramka (decyzja PO — duży diff)
 

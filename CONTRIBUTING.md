@@ -72,6 +72,10 @@ Funkcja jest skończona, gdy:
 Zależności produkcyjne: po zmianie `requirements-prod.txt` (także z PR Dependabota) zregeneruj `requirements-prod.lock`
 poleceniem z nagłówka pliku i dołącz go do tego samego PR.
 
+Frontend (US-022): po zmianie `frontend/src/*.jsx`, klas Tailwind w szablonach lub wersji w `package.json` uruchom
+`npm ci && npm run build` i zacommituj zmiany w `static/` — job CI `frontend` odrzuca rozjazd źródła i buildu.
+Nie dodawaj skryptów ani stylów z CDN (CSP ich nie dopuszcza) — nowe biblioteki przez `package.json` + `tools/build_frontend.mjs`.
+
 Instalacja środowiska testowego: `pip install -r dev-requirements.txt flask werkzeug "rapidfuzz>=3.0,<4.0"`.
 
 ## Zasady ogólne

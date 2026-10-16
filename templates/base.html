@@ -11,13 +11,13 @@
 <title>{% block title %}Artwork{% endblock %} — ACME</title>
 <link rel="dns-prefetch" href="https://fonts.googleapis.com">
 <link rel="dns-prefetch" href="https://fonts.gstatic.com">
-<link rel="dns-prefetch" href="https://unpkg.com">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
+{# US-022: Tailwind zbudowany z repo (npm run build), bez Play CDN — przed app.css, które go nadpisuje. #}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="{{ url_for('static', filename='vendor/lucide/lucide.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/shell.js') }}"></script>
 {% block extra_head %}{% endblock %}
 <script>
@@ -73,8 +73,8 @@ window.apiFetch = async function(url, opts){
   return data;
 };
 </script>
-<script defer src="https://unpkg.com/@alpinejs/collapse@3.13.0/dist/cdn.min.js"></script>
-<script defer src="https://unpkg.com/alpinejs@3.13.0/dist/cdn.min.js"></script>
+<script defer src="{{ url_for('static', filename='vendor/alpinejs/collapse.min.js') }}"></script>
+<script defer src="{{ url_for('static', filename='vendor/alpinejs/alpine.min.js') }}"></script>
 </head>
 <body class="flex min-h-screen" style="background:var(--bg)">
 

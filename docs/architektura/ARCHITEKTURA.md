@@ -80,7 +80,9 @@ flowchart TB
 - ADR-0001 — monolit Flask bez przepisywania; rozbijanie na blueprinty przyrostowo.
 - ADR-0002 — narzędzia jakości i bezpieczeństwa w CI (co blokuje, co doradcze).
 - ADR-0003 — jedna warstwa DB dla SQLite i PostgreSQL przez translację SQL.
-- ADR-0004 — etapowa migracja do ścisłej CSP (report-only → Alpine CSP → nonce → egzekwowanie).
+- ADR-0004 — etapowa migracja do ścisłej CSP (report-only → bez CDN/Babel → Alpine CSP → nonce → egzekwowanie).
+- Frontend (US-022): biblioteki JS w przypiętych wersjach w `static/vendor`, Tailwind i JSX raportu budowane
+  `npm run build` (`tools/build_frontend.mjs`, `package.json`); zbudowane pliki są w repo, job CI `frontend` sprawdza zgodność.
 
 ## Znane ograniczenia
 
