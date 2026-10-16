@@ -48,15 +48,18 @@ Jako SEC chcę, aby sekrety nie były przechowywane jawnie w bazie ani ustawiane
 - Given start aplikacji, When klucz jest w DB z poprzednich wersji, Then migracja usuwa wpis i loguje ostrzeżenie.
 - Given kod, When grep `os.environ["ANTHROPIC_API_KEY"] =`, Then 0 trafień. Ryzyko: R-03 (SEC-003).
 
-### US-005 · Must · 📋 · Odporność logowania na brute-force
+### US-005 · Must · 🔧 (PR otwarty) · Odporność logowania na brute-force
 Jako SEC chcę limitów logowania współdzielonych między workerami i blokady konta, aby rotacja IP nie
 omijała ochrony.
 - Given 5 nieudanych prób z jednego IP w 15 min, When kolejna próba, Then 429 — niezależnie od workera
-  (licznik w tabeli jak `api_rate_events`).
-- Given 10 nieudanych prób na jedno konto w 15 min (z dowolnych IP), When kolejna próba, Then odpowiedź z
-  opóźnieniem rosnącym (1 s → 32 s) i wpis `login_lockout` w audit log; konto odblokowuje się po oknie.
-- Given hasło krótsze niż 12 znaków lub z listy 10k najczęstszych, When zmiana/reset hasła, Then odmowa z
-  czytelnym komunikatem. Ryzyko: R-01 (SEC-001).
+  (licznik w `audit_log`; audyt sprostowany: ten mechanizm już istniał, pamięć procesu była tylko fallbackiem).
+- Given 10 nieudanych prób na jedno konto w 15 min (z dowolnych IP), When kolejna próba, Then **429 przez
+  resztę okna** (także dla poprawnego hasła) i wpis `login_lockout`; ten sam komunikat dla nieistniejącego
+  konta (brak enumeracji). *Zmiana kryterium przez BA/SEC:* zamiast rosnącego opóźnienia 1→32 s (wiązałoby
+  wątki gunicorna = wektor DoS) twarda blokada w oknie — do potwierdzenia przez PO.
+- Given hasło krótsze niż 12 znaków, bez litery lub cyfry, zawierające nazwę użytkownika albo z listy
+  popularnych haseł (wbudowana lista ~80 wzorców; pełne 10k — T-07), When zmiana/reset hasła, Then odmowa
+  z czytelnym komunikatem. Ryzyko: R-01 (SEC-001).
 
 ### US-018 · Must · 📋 · Placeholdery `.env.example` traktowane jako niebezpieczne
 - Given `SECRET_KEY=YOUR_SECRET_KEY_HERE` i `DATABASE_URL` ustawione, When start, Then aplikacja odmawia startu.

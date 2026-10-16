@@ -21,6 +21,9 @@ Wersja aplikacji: `constants.APP_VERSION`.
 - README: sekcja „Proces i dokumentacja” z linkami do nowych dokumentów.
 
 ### Security
+- US-005: blokada konta po 10 nieudanych logowaniach w 15 min (liczona w `audit_log`, wspólna dla workerów,
+  odporna na rotację IP, bez enumeracji kont) z wpisem `login_lockout`; polityka haseł przy resecie i zmianie
+  hasła: min. 12 znaków, litera i cyfra, bez nazwy użytkownika, bez popularnych haseł (R-01).
 - Zidentyfikowano i zaplanowano (bez zmian w kodzie w tym wydaniu): limity logowania w DB i blokada konta
   (US-005), hash tokenów resetu (US-003), sekrety tylko z env (US-004), ochrona promptów AI (US-007),
   CSP bez `unsafe-eval` (US-008), `save-copy` fail-closed (US-006) — patrz `docs/bezpieczenstwo/RYZYKA.md`.

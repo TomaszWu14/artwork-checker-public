@@ -6,7 +6,7 @@
 
 | ID | Ryzyko | Wpływ | Prawd. | Ocena | Decyzja | Historyjka | Właściciel | Przegląd |
 |---|---|---|---|---|---|---|---|---|
-| R-01 | Przejęcie konta przez brute-force (limit per worker, brak blokady konta) | 3 | 2 | 6 🟠 | mitygować | US-005 | DEV | 2026-11-15 |
+| R-01 | Przejęcie konta przez brute-force (limit tylko per IP — rotacja IP go omija; brak blokady konta; słaba polityka haseł) | 3 | 2 | 6 🟠 | mitygować (PR US-005 otwarty) | US-005 | DEV | 2026-11-15 |
 | R-02 | Fałszywy werdykt AI przez prompt injection w PDF dostawcy → wadliwe opakowanie w druku | 3 | 2 | 6 🟠 | mitygować | US-007 | DEV | 2026-11-15 |
 | R-03 | Wyciek klucza Anthropic z bazy/backupu (jawny zapis z UI) | 2 | 2 | 4 🟡 | mitygować | US-004 | DEV | 2026-11-15 |
 | R-04 | Przejęcie konta przez jawny token resetu z bazy (24 h) | 3 | 1 | 3 🟡 | mitygować | US-003 | DEV | 2026-11-15 |

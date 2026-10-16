@@ -29,7 +29,7 @@
 | FR-022 zarządzanie kontami | US-009 | — | — | ❌ |
 | NFR-004 SQLite/PostgreSQL | — | `test_escape_like.py`, `test_ensure_memo.py`, `test_app_boots.py` | — | ✅ (tylko SQLite w CI) |
 | NFR-008 bramki CI | US-000 | `.github/workflows/ci.yml` | ten PR | 🔧 |
-| SEC-001 limity logowania | US-005 | — | — | ❌ |
+| SEC-001 limity logowania + blokada konta + polityka haseł | US-005 | `test_us005_login_hardening.py`, `test_integration_api.py::test_login_rate_limit_blocks_after_max_failures` | security/US-005 | 🔧 |
 | SEC-002 tokeny resetu | US-003 | — | — | ❌ |
 | SEC-003 sekrety z env | US-004 | — | — | ❌ |
 | SEC-004 prompt hardening | US-007 | — | — | ❌ |

@@ -22,7 +22,7 @@ from core.security import (
     verify_csrf as _verify_csrf,
 )
 from core.audit import log_audit as _log_audit
-from constants import ROLE_LEVEL, VALID_ROLES, API_RATE_MAX, API_RATE_WINDOW, KPI_CACHE_TTL, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB, RenderVariant
+from constants import ROLE_LEVEL, VALID_ROLES, API_RATE_MAX, API_RATE_WINDOW, KPI_CACHE_TTL, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB, RATE_LIMIT_LOGIN_ACCOUNT_MAX, PASSWORD_MIN_LENGTH, RenderVariant
 from translations import t as _t_func, TRANSLATIONS
 from translation_en import translate_html as _translate_html_en
 
@@ -1262,6 +1262,86 @@ def _check_rate_limit(ip: str) -> bool:
             return len(attempts) >= _RATE_LIMIT_MAX
 
 
+def _account_failures(account_key: str) -> int:
+    """Failed logins for one account key in the lockout window (US-005, SEC-001).
+
+    ``account_key`` is the lower-cased username of the matched account — or the
+    typed identifier when nothing matched, so responses never reveal whether an
+    account exists. Counted in ``audit_log`` (shared across gunicorn workers,
+    survives restarts). On a DB error returns 0: the per-IP limit still applies.
+    """
+    cutoff = time.strftime("%Y-%m-%d %H:%M:%S",
+                           time.gmtime(time.time() - _RATE_LIMIT_WINDOW))
+    try:
+        db = get_db()
+        try:
+            row = db.execute(
+                "SELECT COUNT(*) FROM audit_log WHERE event='login_fail' "
+                "AND LOWER(username)=? AND created_at > ?",
+                (str(account_key or "").lower(), cutoff)
+            ).fetchone()
+            return int((row[0] if row else 0) or 0)
+        finally:
+            db.close()
+    except Exception as _e:
+        logger.warning("account lockout check failed (DB) — relying on per-IP limit: %s", _e)
+        return 0
+
+
+def _check_account_lockout(account_key: str) -> bool:
+    """True when the account (or unknown identifier) used up its failed-login budget,
+    so rotating source IPs no longer bypass the protection."""
+    return _account_failures(account_key) >= RATE_LIMIT_LOGIN_ACCOUNT_MAX
+
+
+# Najczęstsze hasła ≥ 12 znaków i wzorce (po usunięciu znaków niealfanumerycznych).
+# Lista celowo krótka i w kodzie (brak zależności od pliku zewnętrznego) — patrz
+# docs/analiza/ZALOZENIA.md T-07; pełną listę (np. 10k) można podłączyć później.
+_COMMON_PASSWORDS = frozenset({
+    "password1234", "password12345", "password123456", "passw0rd1234", "password2024",
+    "password2025", "password2026", "123456789012", "1234567890123", "12345678901234",
+    "qwertyuiop12", "qwertyuiop123", "qwerty123456", "qwerty1234567", "1q2w3e4r5t6y",
+    "1q2w3e4r5t6y7u", "zaq12wsxcde3", "zaq1xsw2cde3", "iloveyou1234", "welcome12345",
+    "welcome123456", "letmein12345", "abcdefghijkl", "abcdefghijk1", "abcd12345678",
+    "111111111111", "000000000000", "123123123123", "123456123456", "112233445566",
+    "changeme1234", "changeme12345", "admin1234567", "administrator1", "administrator12",
+    "adminadmin12", "superuser123", "manager12345", "user12345678", "haslo1234567",
+    "haslo12345678", "haslomaslo12", "polska123456", "warszawa1234", "kochanie1234",
+    "mojehaslo123", "mojehaslo1234", "doccompare123", "doccompare1234", "artwork12345",
+    "artwork123456", "acmeartwork1", "testtest1234", "test12345678", "summer2026ab",
+    "zima20262026", "monkey123456", "dragon123456", "football1234", "baseball1234",
+    "princess1234", "sunshine1234", "trustno12345", "master123456", "shadow123456",
+    "michael12345", "jennifer1234", "computer1234", "internet1234", "pokemon12345",
+    "starwars1234", "batman123456", "superman1234", "whatever1234", "freedom12345",
+    "passwordpassword", "password!1234", "p@ssw0rd1234", "p@ssword1234", "qwerty!12345",
+})
+
+
+def _password_policy_error(password: str, username: str = "") -> str | None:
+    """Return a Polish error message when the password violates the policy, else None.
+
+    Policy (US-005, ASVS V2.1): 12–1000 characters, at least one letter and one digit,
+    not a known common password (also after stripping punctuation), not a single
+    repeated character, not containing the username.
+    """
+    pw = str(password or "")
+    if len(pw) > 1000:
+        return "Hasło jest za długie."
+    if len(pw) < PASSWORD_MIN_LENGTH:
+        return f"Hasło musi mieć co najmniej {PASSWORD_MIN_LENGTH} znaków."
+    if not any(c.isdigit() for c in pw) or not any(c.isalpha() for c in pw):
+        return "Hasło musi zawierać co najmniej jedną literę i jedną cyfrę."
+    low = pw.lower()
+    if low in _COMMON_PASSWORDS or re.sub(r"[^a-z0-9]", "", low) in _COMMON_PASSWORDS:
+        return "To hasło jest zbyt popularne — wybierz inne."
+    if len(set(low)) <= 2:
+        return "Hasło nie może składać się z powtarzających się znaków."
+    u = str(username or "").strip().lower()
+    if len(u) >= 3 and u in low:
+        return "Hasło nie może zawierać nazwy użytkownika."
+    return None
+
+
 # ── CSRF protection → core.security (_get_csrf_token / _verify_csrf / csrf_protect) ──
 
 @app.context_processor
@@ -1447,6 +1527,7 @@ def login():
         db = get_db()
         login_ok = False
         login_user = None
+        account_key = identifier.lower()
         try:
             user = db.execute(
                 """SELECT * FROM users
@@ -1454,6 +1535,15 @@ def login():
                    AND COALESCE(is_active,1)=1""",
                 (identifier, identifier)
             ).fetchone()
+            # US-005 (SEC-001): per-account lockout keyed by the resolved username — or
+            # by the typed identifier when nothing matched, so the 429 does not reveal
+            # whether the account exists. Same message as the per-IP limit.
+            if user:
+                account_key = str(user["username"]).lower()
+            if _check_account_lockout(account_key):
+                return render_template(
+                    "login.html",
+                    error=f"Zbyt wiele prób. Spróbuj za {_RATE_LIMIT_WINDOW // 60} min."), 429
             # Always run a hash check regardless of whether the user exists to prevent
             # user enumeration via response-time analysis.
             _dummy = "pbkdf2:sha256:260000$x$" + "a" * 64
@@ -1482,7 +1572,11 @@ def login():
             _attempts.append(time.time())
             _login_attempts[ip] = _attempts[-(_RATE_LIMIT_MAX + 5):]
             remaining_tries = max(0, _RATE_LIMIT_MAX - len(_login_attempts[ip]))
-        _log_audit("login_fail", identifier, f"Błędne hasło, IP {ip}")
+        _log_audit("login_fail", account_key, f"Błędne hasło, IP {ip}")
+        _fails = _account_failures(account_key)
+        if _fails == RATE_LIMIT_LOGIN_ACCOUNT_MAX:
+            _log_audit("login_lockout", account_key,
+                       f"Blokada po {_fails} nieudanych próbach w {_RATE_LIMIT_WINDOW // 60} min, IP {ip}")
         error = "Nieprawidłowy email/login lub hasło."
         if remaining_tries < 3:
             error += f" Pozostało prób: {remaining_tries}"
@@ -1688,10 +1782,9 @@ def reset_password():
             if request.method == "POST":
                 pw  = request.form.get("password", "")
                 pw2 = request.form.get("confirm", "")
-                if len(pw) > 1000:
-                    error = "Hasło jest za długie."
-                elif len(pw) < 8:
-                    error = "Hasło musi mieć co najmniej 8 znaków."
+                _policy_err = _password_policy_error(pw, username)
+                if _policy_err:
+                    error = _policy_err
                 elif pw != pw2:
                     error = "Hasła nie są zgodne."
                 else:
@@ -2792,12 +2885,11 @@ def api_profile_change_password():
     new_pwd = data.get("new_password", "")
     if not current or not new_pwd:
         return jsonify({"error": "Podaj obecne i nowe hasło"}), 400
-    if len(current) > 1000 or len(new_pwd) > 1000:
+    if len(current) > 1000:
         return jsonify({"error": "Hasło jest za długie"}), 400
-    if len(new_pwd) < 8:
-        return jsonify({"error": "Nowe hasło musi mieć co najmniej 8 znaków"}), 400
-    if not any(c.isdigit() for c in new_pwd):
-        return jsonify({"error": "Nowe hasło musi zawierać cyfrę"}), 400
+    _policy_err = _password_policy_error(new_pwd, session.get("username", ""))
+    if _policy_err:
+        return jsonify({"error": _policy_err}), 400
     db = get_db()
     try:
         user = db.execute("SELECT password_hash FROM users WHERE id=?", (uid,)).fetchone()
