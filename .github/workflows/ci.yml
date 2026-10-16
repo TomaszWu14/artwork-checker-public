@@ -59,7 +59,7 @@ jobs:
         run: python -m pytest tests/ -q --cov=. --cov-report=xml --cov-report=term
       - name: Artefakt — pokrycie
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-xml
           path: coverage.xml
@@ -83,7 +83,7 @@ jobs:
         run: bandit -r . -x ./tests,./.git,./static/design -f json -o bandit.json || true
       - name: Artefakt — Bandit
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bandit-json
           path: bandit.json
@@ -104,7 +104,7 @@ jobs:
           --exclude static/design --exclude tests --error --sarif --output semgrep.sarif
       - name: Artefakt — Semgrep SARIF
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: semgrep-sarif
           path: semgrep.sarif
@@ -138,7 +138,7 @@ jobs:
           PY
       - name: Artefakt — pip-audit
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pip-audit-json
           path: pip-audit.json
@@ -176,7 +176,7 @@ jobs:
         run: trivy fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --exit-code 0 --format json --output trivy.json . || true
       - name: Artefakt — Trivy
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-json
           path: trivy.json
