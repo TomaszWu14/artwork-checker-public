@@ -12,7 +12,8 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    # Bez filtra gałęzi bazowej: PR-y „stacked” (baza = inna gałąź feature, np. #22 na #17)
+    # też muszą przejść bramkę — z filtrem [main] nie miały żadnego przebiegu CI (US-002).
   workflow_dispatch:
 
 concurrency:
