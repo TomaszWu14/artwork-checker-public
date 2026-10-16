@@ -40,3 +40,4 @@
 | FR-011 / SEC-006 — import mastera ze ścieżki serwera (resolver fail-closed) | US-001 | `test_us001_master_path_resolver.py` | fix/US-001 | 🔧 |
 | NFR-008 — lint blokujący w CI (0 błędów ruff) | US-002 | `ruff check .` w `ci.yml` (krok blokujący) + `pytest` | chore/US-002 | 🔧 |
 | SEC-003 / R-09 — placeholdery `.env` odrzucane w produkcji | US-018 | `test_us018_env_placeholders.py` | security/US-018 | 🔧 |
+| SEC-009 kontener non-root + HEALTHCHECK, Trivy misconfig blokujący | US-012 | `ci.yml` → job Trivy (DS-0002) | chore/US-012 | 🔧 |

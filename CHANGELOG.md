@@ -29,6 +29,9 @@ Wersja aplikacji: `constants.APP_VERSION`.
   `_ensure_shipment`/`_save_doc_to_shipment` w `_save_comparison` (pozostałość modułu transportu).
 
 ### Security
+- US-012: obrazy Docker (`Dockerfile`, `Dockerfile.slim`, `Dockerfile.base`) uruchamiają aplikację jako `app` (uid 10001)
+  zamiast roota, z `HEALTHCHECK` na `/health`; zapisywalne tylko katalogi danych. Trivy (misconfig/vuln/secret) w CI
+  **blokuje** HIGH/CRITICAL. Wolumen `/data` musi być zapisywalny dla uid 10001 (RUNBOOK) (R-08).
 - US-018: wartości-atrapy z szablonów `.env` (`YOUR_*_HERE`, `changeme`, znane słabe klucze) są traktowane jak brak
   sekretu — produkcja odmawia startu przy takim `SECRET_KEY`/`DATABASE_URL`; `.env.example` i `.env.staging.example`
   bez wartości (R-09).

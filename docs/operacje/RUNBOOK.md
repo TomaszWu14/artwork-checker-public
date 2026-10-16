@@ -13,11 +13,14 @@
    `APP_BASE_URL`, `LOG_DIR`, `WEB_CONCURRENCY=2`, `THREADS_PER_WORKER=3`, `DISABLE_QWEN=1`.
    Opcjonalnie: `ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`, `RESEND_API_KEY`+`EMAIL_FROM`, `SENTRY_DSN`,
    `INTAKE_TOKEN`, `PALVIZ_PUSH_URL`+`PALVIZ_API_KEY`, `ARTWORK_COPY_ROOTS`, `REDIS_URL`.
-3. Zamontuj trwały wolumen `/data` (bez niego uploady i SQLite giną przy redeployu — R-14).
+3. Zamontuj trwały wolumen `/data` (bez niego uploady i SQLite giną przy redeployu — R-14). Kontener działa jako
+   **uid/gid 10001 (`app`)** — wolumen musi być dla niego zapisywalny (`chown -R 10001:10001 <ścieżka wolumenu>`).
 4. Start: `python migrate_db.py && gunicorn app:app -c gunicorn.conf.py` (CMD w Dockerfile). Migracja jest idempotentna.
-5. Pierwsze uruchomienie tworzy konto `admin` z losowym hasłem: w logach i w `INITIAL_ADMIN_PASSWORD.txt`
-   (katalog aplikacji, `chmod 600`). Zaloguj się, zmień hasło (`/profile`), usuń plik.
-6. Sonda: `GET /health` → `{"status":"ok","db":"ok"}` (503 gdy baza/dysk degraded). Render używa `/login`.
+5. Pierwsze uruchomienie tworzy konto `admin` z losowym hasłem: w logach (stdout) i — poza kontenerem — w
+   `INITIAL_ADMIN_PASSWORD.txt` (katalog aplikacji, `chmod 600`). W kontenerze katalog kodu jest tylko do odczytu,
+   więc hasło jest wyłącznie w logach startowych. Zaloguj się, zmień hasło (`/profile`), usuń plik/wpis.
+6. Kontener ma `HEALTHCHECK` (`/health` co 30 s); stan widać w `docker ps` / panelu hostingu.
+7. Sonda: `GET /health` → `{"status":"ok","db":"ok"}` (503 gdy baza/dysk degraded). Render używa `/login`.
 
 ### Render
 `render.yaml`: `buildCommand` instaluje `requirements-prod.txt` i uruchamia migrację; `SECRET_KEY` generowany;
