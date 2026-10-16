@@ -1470,15 +1470,33 @@ def export_to_pdf(report: "ArtworkReport") -> bytes:
 
 # ─── HTML RENDERER ─────────────────────────────────────────────────────────────
 
+def _report_inline_assets() -> dict:
+    """US-022: eksport HTML to plik otwierany offline — React i skompilowany widok pól
+    wbudowujemy w plik (zamiast unpkg.com + Babel w przeglądarce jak dotąd)."""
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+    files = {
+        "react": "vendor/react/react.production.min.js",
+        "react_dom": "vendor/react/react-dom.production.min.js",
+        "report_pf": "js/artwork_report_pf.js",
+    }
+    assets = {}
+    for key, rel in files.items():
+        with open(os.path.join(static_dir, rel), encoding="utf-8") as fh:
+            # Zabezpieczenie przed przedwczesnym zamknięciem <script> przez treść pliku.
+            assets[key] = fh.read().replace("</script", "<\\/script")
+    return assets
+
+
 def render_report_html(report: ArtworkReport, template_env=None) -> str:
-    """Renderuje raport jako HTML przy użyciu Jinja2 lub (fallback) string format."""
+    """Renderuje raport jako samodzielny plik HTML (eksport) przy użyciu Jinja2."""
+    inline_assets = _report_inline_assets()
     if template_env is not None:
         tpl = template_env.get_template("artwork_report.html")
-        return tpl.render(report=report)
+        return tpl.render(report=report, inline_assets=inline_assets)
 
     # Fallback: prosty render bez Jinja2 (nie używany w produkcji)
     from jinja2 import Environment, FileSystemLoader
     template_dir = os.path.join(os.path.dirname(__file__), "templates")
     env = Environment(loader=FileSystemLoader(template_dir), autoescape=True)
     tpl = env.get_template("artwork_report.html")
-    return tpl.render(report=report)
+    return tpl.render(report=report, inline_assets=inline_assets)

@@ -215,8 +215,10 @@ def _auto_close_dbs(exc):
 # pozwala migrować szablony etapami bez psucia UI.
 _CSP_ENFORCED = (
     "default-src 'self'; "
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net; "
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; "
+    # US-022: biblioteki (React, Alpine, lucide) i Tailwind serwowane z /static — bez CDN w script-src.
+    # 'unsafe-eval' zostaje wyłącznie dla Alpine (standardowy build) — do zdjęcia w US-022b.
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
     "font-src 'self' data: https://fonts.gstatic.com; "
     "img-src 'self' data: blob: https://*.tile.openstreetmap.org; "
     "connect-src 'self' blob:; "          # model-viewer pobiera tekstury GLB przez fetch(blob:) — bez tego białe ściany 3D
@@ -229,7 +231,7 @@ _CSP_ENFORCED = (
 def _csp_report_only(nonce: str) -> str:
     return (
         "default-src 'self'; "
-        f"script-src 'self' 'nonce-{nonce}' https://unpkg.com https://cdn.jsdelivr.net; "
+        f"script-src 'self' 'nonce-{nonce}'; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src 'self' data: https://fonts.gstatic.com; "
         "img-src 'self' data: blob: https://*.tile.openstreetmap.org; "

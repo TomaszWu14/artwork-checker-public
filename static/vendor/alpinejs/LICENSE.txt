@@ -1,0 +1,2 @@
+alpinejs@3.13.0 — licencja MIT (https://github.com/alpinejs/alpine/blob/main/LICENSE.md)
+@alpinejs/collapse@3.13.0 — licencja MIT (https://github.com/alpinejs/alpine/blob/main/LICENSE.md)

@@ -1,6 +1,6 @@
 # ADR-0004: Etapowa migracja do ścisłej Content-Security-Policy (US-008)
 
-- **Status:** zaakceptowany etap 1 (2026-10-16); etapy 2–4 — **decyzja PO** (koszt/zakres)
+- **Status:** etap 1 zrealizowany (#28); etap 2 podzielony na 2a (US-022, ten PR) i 2b (US-024 — Alpine CSP); etapy 2b–4 — **decyzja PO**
 - **Role:** [SEC] + [DEV]
 
 ## Kontekst
@@ -22,9 +22,13 @@ Opcja 2:
    wcześniej m.in. `artwork_3d_batch` nie escapował `"` w atrybutach `title`), test regresji;
    egzekwowane `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`; `X-XSS-Protection: 0`;
    ścisła polityka z nonce w `Content-Security-Policy-Report-Only` + `/csp-report` (limit 60/min, 16 KB).
-2. **Etap 2 (US-022):** Alpine → build CSP (`@alpinejs/csp`, wymaga przeniesienia wyrażeń z atrybutów do
-   `Alpine.data`), raport React/Babel → prekompilacja do statycznego JS, Tailwind Play CDN → zbudowany CSS;
-   zdjęcie `'unsafe-eval'`.
+2. **Etap 2a (US-022, Sprint 3):** raport React/Babel → JSX kompilowany przy budowie (`frontend/src` → `static/js`),
+   Tailwind Play CDN → CSS budowany z repo, React/Alpine/lucide → przypięte kopie w `static/vendor` (build:
+   `npm run build`, CI pilnuje zgodności). CSP bez `unpkg.com`, `cdn.tailwindcss.com`, `cdn.jsdelivr.net`.
+   Pomiar przy implementacji: Alpine ~500 dyrektyw w 18 szablonach — przepisanie na `@alpinejs/csp` nie mieści
+   się w jednym bezpiecznym PR, więc wydzielone.
+   **Etap 2b (US-024):** Alpine → build CSP (wyrażenia z atrybutów do `Alpine.data`), szablon po szablonie;
+   po nim zdjęcie `'unsafe-eval'` (to jedyny powód, dla którego zostaje po etapie 2a).
 3. **Etap 3 (US-023):** handlery `on*=` → `addEventListener` w plikach `static/js/*.js`; `nonce="{{ csp_nonce() }}"`
    na pozostałych `<script>`; szablon po szablonie, kierując się raportami.
 4. **Etap 4:** zamiana Report-Only na egzekwowanie (`script-src 'self' 'nonce-…'`), zdjęcie `'unsafe-inline'` dla skryptów.

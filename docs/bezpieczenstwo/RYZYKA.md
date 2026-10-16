@@ -10,7 +10,7 @@
 | R-02 | Fałszywy werdykt AI przez prompt injection w PDF dostawcy → wadliwe opakowanie w druku | 3 | 2 | 6 🟠 | **zamknięte** (Sprint 2, #24; szczątkowe: AI tylko doradcze, werdykt deterministyczny) | US-007 | DEV | 2026-11-15 |
 | R-03 | Wyciek klucza Anthropic z bazy/backupu (jawny zapis z UI) | 2 | 2 | 4 🟡 | **zamknięte** (Sprint 1, 2026-10-16) | US-004 | DEV | 2026-11-15 |
 | R-04 | Przejęcie konta przez jawny token resetu z bazy (24 h) | 3 | 1 | 3 🟡 | **zamknięte** (Sprint 1, 2026-10-16) | US-003 | DEV | 2026-11-15 |
-| R-05 | XSS wykonywalny przez CSP `unsafe-inline`/`unsafe-eval` + `innerHTML` | 2 | 2 | 4 🟡 | mitygować (etap 1 #28; dalej US-022/US-023) | US-008 | DEV | 2026-12-15 |
+| R-05 | XSS wykonywalny przez CSP `unsafe-inline`/`unsafe-eval` + `innerHTML` | 2 | 2 | 4 🟡 | mitygować (etap 1 #28; etap 2a US-022 — bez CDN; dalej US-024 Alpine CSP, US-023) | US-008 | DEV | 2026-12-15 |
 | R-06 | Zapis plików w dowolnym katalogu serwera przez managera (`save-copy` bez `ARTWORK_COPY_ROOTS`) | 2 | 2 | 4 🟡 | **zamknięte** (Sprint 2, #23) | US-006 | DEV | 2026-11-30 |
 | R-07 | Konta zarządzane ręcznie w bazie — brak audytu i polityki haseł | 2 | 2 | 4 🟡 | mitygować | US-009 | DEV | 2026-12-15 |
 | R-08 | Podatność w zależności niewykryta (zakresy bez locka, skan miesięczny), kontener jako root | 2 | 2 | 4 🟡 | obniżone (#25 non-root, #26 lock z hashami); otwarte do US-021 i weryfikacji obrazu | US-011, US-012 | DEV | 2026-11-30 |

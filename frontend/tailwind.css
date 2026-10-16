@@ -1,0 +1,4 @@
+/* US-022: wejście builda Tailwind (npm run build → static/css/tailwind.css). */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
