@@ -189,7 +189,6 @@ def export_pdf(report: dict, comparison_id: int = None) -> bytes:
                  fontName=PDF_FONT_BOLD, leading=12)
     sSmall   = S('sm', fontSize=7.5, textColor=C_MUTED, leading=10, fontName=PDF_FONT)
     sCell    = S('cell', fontSize=8, leading=10, fontName=PDF_FONT)
-    sCellB   = S('cellb', fontSize=8, leading=10, fontName=PDF_FONT_BOLD)
     # Nagłówek tabeli: BIAŁY tekst (wiersz nagłówka ma ciemne tło #1e293b).
     # Kolor Paragraph wygrywa z TEXTCOLOR tabeli, więc musi być tu jawnie biały.
     sCellHdr = S('cellhdr', fontSize=8, leading=10, fontName=PDF_FONT_BOLD, textColor=C_WHITE)
@@ -199,7 +198,6 @@ def export_pdf(report: dict, comparison_id: int = None) -> bytes:
     modules = report.get('modules', {})
     tbl_m   = modules.get('table', {})
     typo_m  = modules.get('typo', {})
-    rx_m    = modules.get('regex', {})
 
     fa  = _safe(report.get('file_a'), '—')
     fb  = _safe(report.get('file_b'), '—')
@@ -213,8 +211,8 @@ def export_pdf(report: dict, comparison_id: int = None) -> bytes:
     risk_label = _risk_labels.get(risk) or _html.escape(str(risk or "").upper())
 
     hdr_tbl = Table([[
-        Paragraph(f'<font size="13"><b>DocCompare</b></font>  '
-                  f'<font size="9" color="#a5b4fc">Raport porównania dokumentów</font>',
+        Paragraph('<font size="13"><b>DocCompare</b></font>  '
+                  '<font size="9" color="#a5b4fc">Raport porównania dokumentów</font>',
                   S('ht', fontSize=9, textColor=C_WHITE, fontName=PDF_FONT, leading=16)),
         Paragraph(f'<b>{risk_label}</b>',
                   S('hs', fontSize=9, textColor=C_WHITE, fontName=PDF_FONT_BOLD,
@@ -315,8 +313,6 @@ def export_pdf(report: dict, comparison_id: int = None) -> bytes:
     except Exception:
         diff_val = '—'
         ta_f = tb_f = 0.0
-
-    score_pct = round(n_ok / n_total * 100, 1) if n_total else 0.0
 
     kpi_bgs = ['#f8fafc','#f0fdf4','#fef2f2','#eff6ff','#f0fdf4','#fefce8']
     kpi_borders = ['#cbd5e1','#22c55e','#f87171','#3b82f6','#22c55e','#eab308']
