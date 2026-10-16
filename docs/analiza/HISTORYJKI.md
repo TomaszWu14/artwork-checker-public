@@ -34,7 +34,7 @@ wracały.
   (żadne dane użytkownika nie giną).
 - Powiązane: ADR-0002.
 
-### US-003 · Must · 📋 · Tokeny resetu hasła jako hash, ważność 1 h
+### US-003 · Must · 🔧 (PR otwarty) · Tokeny resetu hasła jako hash, ważność 1 h
 Jako SEC chcę, aby odczyt bazy nie pozwalał przejąć konta przez token resetu.
 - Given żądanie resetu, When token powstaje, Then w DB zapisany jest `sha256(token)`, a link zawiera token jawny.
 - Given token starszy niż 60 min, When otwieram link, Then widzę „link wygasł".

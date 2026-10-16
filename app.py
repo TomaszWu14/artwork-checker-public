@@ -22,7 +22,7 @@ from core.security import (
     verify_csrf as _verify_csrf,
 )
 from core.audit import log_audit as _log_audit
-from constants import ROLE_LEVEL, VALID_ROLES, API_RATE_MAX, API_RATE_WINDOW, KPI_CACHE_TTL, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB, RenderVariant
+from constants import ROLE_LEVEL, VALID_ROLES, API_RATE_MAX, API_RATE_WINDOW, KPI_CACHE_TTL, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB, RESET_TOKEN_TTL_HOURS, RenderVariant
 from translations import t as _t_func, TRANSLATIONS
 from translation_en import translate_html as _translate_html_en
 
@@ -1596,6 +1596,13 @@ def _send_critical_alert(username: str, to_email: str, cid: int,
     threading.Thread(target=_do_send, daemon=True).start()
 
 
+def _hash_reset_token(token: str) -> str:
+    """SHA-256 of a password-reset token. Only the hash is stored (US-003, SEC-002):
+    a database dump or backup must not allow taking over an account."""
+    import hashlib as _hl
+    return _hl.sha256(str(token or "").encode("utf-8")).hexdigest()
+
+
 @app.route("/forgot-password", methods=["GET", "POST"])
 @csrf_protect
 def forgot_password():
@@ -1636,8 +1643,8 @@ def forgot_password():
                 )
                 db.execute(
                     "INSERT INTO password_reset_tokens(user_id,token,expires_at) "
-                    "VALUES(?,?,datetime('now','+24 hours'))",
-                    (user["id"], token)
+                    f"VALUES(?,?,datetime('now','+{int(RESET_TOKEN_TTL_HOURS)} hours'))",
+                    (user["id"], _hash_reset_token(token))
                 )
                 db.commit()
                 _log_audit("password_reset_request", user["username"], "Token wygenerowany")
@@ -1659,8 +1666,9 @@ def forgot_password():
 @csrf_protect
 def reset_password():
     token = request.args.get("token") or request.form.get("token", "")
-    if not token:
+    if not token or len(token) > 256:
         return redirect(url_for("login"))
+    token_hash = _hash_reset_token(token)   # DB stores only the hash (US-003)
 
     db = get_db()
     error = None
@@ -1672,7 +1680,7 @@ def reset_password():
             """SELECT pr.*, u.username FROM password_reset_tokens pr
                JOIN users u ON u.id=pr.user_id
                WHERE pr.token=? AND pr.used=0""",
-            (token,)
+            (token_hash,)
         ).fetchone()
         # Compare expiry in Python — avoids TEXT vs TIMESTAMPTZ operator error on PostgreSQL.
         # Truncate to [:19] so "+00:00" timezone suffix from PostgreSQL TIMESTAMPTZ is ignored.
@@ -1698,7 +1706,7 @@ def reset_password():
                     # Atomically claim the token — prevents double-use race condition
                     _claim = db.execute(
                         "UPDATE password_reset_tokens SET used=1 WHERE token=? AND used=0",
-                        (token,)
+                        (token_hash,)
                     )
                     if _claim.rowcount == 0:
                         expired = True
@@ -2222,19 +2230,19 @@ def admin_page():
                    SUM(CASE WHEN status IN ('ostrzezenie','warning') THEN 1 ELSE 0 END) as warnings
             FROM comparisons
         """).fetchone()
-        # Filter in Python to avoid TEXT vs TIMESTAMP comparison issue on PostgreSQL
+        # Only the COUNT of active reset links reaches the view — never token values
+        # (US-003, SEC-002). Filter in Python to avoid TEXT vs TIMESTAMP on PostgreSQL.
         try:
             all_tokens = db.execute(
-                """SELECT pr.token, pr.expires_at, u.username, u.email
-                   FROM password_reset_tokens pr JOIN users u ON u.id=pr.user_id
-                   WHERE pr.used=0
-                   ORDER BY pr.created_at DESC LIMIT 20"""
+                """SELECT expires_at FROM password_reset_tokens
+                   WHERE used=0 ORDER BY created_at DESC LIMIT 100"""
             ).fetchall()
             from datetime import datetime as _dt, timezone as _tz
             _now = _dt.now(_tz.utc).strftime("%Y-%m-%d %H:%M:%S")
-            reset_tokens = [t for t in all_tokens if t["expires_at"] and str(t["expires_at"]) > _now]
+            reset_tokens_count = sum(
+                1 for t in all_tokens if t["expires_at"] and str(t["expires_at"])[:19] > _now)
         except Exception:
-            reset_tokens = []
+            reset_tokens_count = 0
 
         # API usage stats
         api_usage_stats = {"total_cost": 0, "total_calls": 0, "by_model": [], "by_type": [], "recent": []}
@@ -2273,7 +2281,7 @@ def admin_page():
     finally:
         db.close()
     return render_template("admin.html", users=users, stats=stats,
-                           reset_tokens=reset_tokens,
+                           reset_tokens_count=reset_tokens_count,
                            api_usage=api_usage_stats,
                            username=session["username"], role=session["role"],
                            can_see_all=True, ROLE_LEVEL=ROLE_LEVEL)

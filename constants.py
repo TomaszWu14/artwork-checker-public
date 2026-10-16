@@ -99,6 +99,9 @@ APP_VERSION = "1.0.0-artwork"
 RATE_LIMIT_LOGIN_MAX    = 5     # max prób na okno
 RATE_LIMIT_LOGIN_WINDOW = 900   # 15 minut (sekundy)
 
+# Reset hasła — ważność linku (US-003: 1 h, wcześniej 24 h)
+RESET_TOKEN_TTL_HOURS = 1
+
 # Rate limiting — reset hasła
 RATE_LIMIT_FORGOT_MAX    = 3
 RATE_LIMIT_FORGOT_WINDOW = 900  # 15 minut
