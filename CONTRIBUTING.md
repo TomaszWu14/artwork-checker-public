@@ -71,6 +71,8 @@ Funkcja jest skończona, gdy:
 
 Zależności produkcyjne: po zmianie `requirements-prod.txt` (także z PR Dependabota) zregeneruj `requirements-prod.lock`
 poleceniem z nagłówka pliku i dołącz go do tego samego PR.
+Obraz ML (US-021): `requirements-ml.lock` regeneruje workflow „Lock obrazu ML” przy pushu zmiany `requirements.txt`
+(lub lokalnie `tools/regen_ml_lock.sh`, wymaga dostępu do download.pytorch.org); PR z nieaktualnym lockiem nie przejdzie CI.
 
 Frontend (US-022): po zmianie `frontend/src/*.jsx`, klas Tailwind w szablonach lub wersji w `package.json` uruchom
 `npm ci && npm run build` i zacommituj zmiany w `static/` — job CI `frontend` odrzuca rozjazd źródła i buildu.

@@ -49,6 +49,10 @@ Wersja aplikacji: `constants.APP_VERSION`.
   `_ensure_shipment`/`_save_doc_to_shipment` w `_save_comparison` (pozostałość modułu transportu).
 
 ### Security
+- US-021: `requirements-ml.lock` — pełny obraz ML (`Dockerfile`, `Dockerfile.base`) instaluje wersje z hashami
+  (`--require-hashes`, torch/torchvision w wariancie CPU) zamiast najnowszych z zakresów; lock regeneruje i sprawdza
+  workflow „Lock obrazu ML” (bez pakietów CUDA, instalowalność, zgodność z `requirements.txt`). `transformers` <5.
+  Naprawiony `Dockerfile.base`: `grep` bez dopasowań (zakomentowane zależności git) przerywał budowę (R-08).
 - US-017: wylogowanie wyłącznie przez `POST /logout` z tokenem CSRF — `GET /logout` pokazuje potwierdzenie i niczego
   nie zmienia (obca strona nie wyloguje użytkownika obrazkiem/linkiem); trasy API z ręczną kontrolą sesji
   (`/api/library/search`, `/api/ref-database/*`) odrzucają konta dezaktywowane (401), jak `login_required`.

@@ -19,7 +19,7 @@ camelot, rapidfuzz, sklearn) — cały ciężar to artwork CV + opcjonalny neura
 | Plik | Rola |
 |---|---|
 | `Dockerfile` | **Obecny, monolityczny** — wciąż używany przez Coolify. Nie ruszamy go, dopóki nie wykonasz cut-overu (krok 4). |
-| `Dockerfile.base` | Ciężki obraz bazowy: system + torch + całe `requirements.txt`. Bez kodu aplikacji. |
+| `Dockerfile.base` | Ciężki obraz bazowy: system + pakiety z `requirements-ml.lock` (wersje + hashe, torch CPU; US-021). Bez kodu aplikacji. |
 | `Dockerfile.slim` | Cienki obraz aplikacji: `FROM` obrazu bazowego + `COPY . .`. To na niego przełączasz Coolify. |
 | `.github/workflows/ml-base-image.yml` | Buduje `Dockerfile.base` i wypycha do GHCR (`ghcr.io/tomaszwu14/doccompare-ml-base`). |
 
@@ -65,8 +65,10 @@ praktycznie samo `COPY . .` → ~1 min.
 `Dockerfile.slim` **nie instaluje** pakietów — bierze je z obrazu bazowego.
 Dlatego po każdej zmianie `requirements.txt`:
 
-1. zmerguj zmianę `requirements.txt` do `main` → workflow „Buduj obraz bazowy ML"
-   odpali się automatycznie (path filter) i wypchnie nowy `:latest`,
+0. w PR workflow „Lock obrazu ML" sam zregeneruje i zacommituje `requirements-ml.lock` (US-021) —
+   obraz instaluje pakiety wyłącznie z locka (`pip install --require-hashes`),
+1. zmerguj zmianę `requirements.txt` do `main` i uruchom ręcznie workflow „Buduj obraz bazowy ML"
+   (automatyczny build jest wyłączony — obraz współdzielony) — wypchnie nowy `:latest`,
 2. dopiero potem deployuj aplikację (pobierze świeży obraz bazowy).
 
 Aby uniknąć „dryfu" (kod oczekuje pakietu, którego baza jeszcze nie ma), w razie

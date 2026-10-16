@@ -1,0 +1,99 @@
+name: Lock obrazu ML (US-021)
+
+# requirements-ml.lock — zamrożone wersje + hashe dla pełnego obrazu ML (Dockerfile, Dockerfile.base).
+# Generowany tutaj, bo wymaga indeksu download.pytorch.org (PyTorch CPU).
+#
+#   • push na gałąź ≠ main ze zmianą requirements.txt / skryptu / workflow → regeneracja i commit
+#     locka na tę samą gałąź (commit tokenem GITHUB_TOKEN nie uruchamia kolejnych workflow — brak pętli),
+#   • pull_request → sprawdzenie: lock zgodny z requirements.txt, bez pakietów CUDA, instalowalny,
+#   • ręcznie (workflow_dispatch, po scaleniu na main) → regeneracja do artefaktu do przejrzenia.
+# main nigdy nie dostaje commitów z workflow — zmiany locka przechodzą przez PR.
+
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - requirements.txt
+      - tools/regen_ml_lock.sh
+      - .github/workflows/ml-lock.yml
+  pull_request:
+    paths:
+      - requirements.txt
+      - requirements-ml.lock
+      - tools/regen_ml_lock.sh
+      - .github/workflows/ml-lock.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ml-lock-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lock:
+    name: Regeneracja i weryfikacja requirements-ml.lock
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # wyłącznie commit locka na gałąź feature przy zdarzeniu push
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Instalacja uv (przypięta wersja)
+        run: pip install "uv==0.13.1"
+
+      - name: Regeneracja (istniejące piny jako preferencje)
+        run: tools/regen_ml_lock.sh
+
+      - name: Lock bez pakietów CUDA (PyTorch musi być w wariancie CPU)
+        run: |
+          if grep -qE '^(nvidia-[a-z0-9-]+|triton)==' requirements-ml.lock; then
+            echo "::error::requirements-ml.lock zawiera pakiety CUDA — torch nie został rozwiązany z indeksu CPU"
+            grep -E '^(nvidia-[a-z0-9-]+|triton)==' requirements-ml.lock
+            exit 1
+          fi
+          grep -E '^(torch|torchvision)==.*\+cpu' requirements-ml.lock
+
+      - name: Instalowalność z weryfikacją hashy (rozwiązanie bez instalacji)
+        run: |
+          uv venv /tmp/mlcheck --python 3.11
+          uv pip install --python /tmp/mlcheck --require-hashes --dry-run --index-strategy unsafe-best-match -r requirements-ml.lock
+
+      - name: "pip-audit na locku (doradczy — wyniki do triage w RYZYKA.md)"
+        continue-on-error: true
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements-ml.lock --require-hashes --disable-pip --progress-spinner off
+
+      - name: "PR: lock w repo musi być aktualny (inaczej: tools/regen_ml_lock.sh i commit)"
+        if: github.event_name == 'pull_request'
+        run: |
+          if [ -n "$(git status --porcelain -- requirements-ml.lock)" ]; then
+            echo "::error::requirements-ml.lock nieaktualny względem requirements.txt"
+            git --no-pager diff --stat -- requirements-ml.lock || true
+            exit 1
+          fi
+
+      - name: "Push na gałąź feature: commit zregenerowanego locka"
+        if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+        run: |
+          if [ -n "$(git status --porcelain -- requirements-ml.lock)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add requirements-ml.lock
+            git commit -m "chore(US-021): regenerate requirements-ml.lock"
+            git push
+          else
+            echo "Lock aktualny — brak commitu."
+          fi
+
+      - name: Artefakt — lock
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: requirements-ml-lock
+          path: requirements-ml.lock
+          if-no-files-found: ignore

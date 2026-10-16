@@ -6,7 +6,8 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+# US-021: zależności z locka (wersje + hashe, PyTorch CPU) — nie z zakresów requirements.txt.
+COPY requirements-ml.lock .
 
 # All system deps, Python packages, and cleanup in a single layer so that
 # build-only tools (git, curl) and bytecode caches never bloat the exported
@@ -51,13 +52,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-liberation \
     curl \
     git \
-    # CPU-only PyTorch — must come before requirements.txt to prevent pip
-    # from resolving CUDA variants (~2.5 GB) from the default index.
-    && pip install --no-cache-dir --retries 5 --timeout 120 \
-        "torch>=2.1,<3.0" \
-        "torchvision>=0.16,<1.0" \
-        --index-url https://download.pytorch.org/whl/cpu \
-    && pip install --no-cache-dir --retries 5 --timeout 120 -r requirements.txt \
+    # US-021: wszystko z requirements-ml.lock — przypięte wersje i hashe SHA-256; torch/torchvision
+    # w wariancie +cpu (lock zawiera --extra-index-url do indeksu CPU PyTorch, CI odrzuca pakiety CUDA).
+    && pip install --no-cache-dir --retries 5 --timeout 120 --require-hashes -r requirements-ml.lock \
     # Remove build-only tools so they don't appear in the exported layer.
     && apt-get purge -y --auto-remove curl git \
     && apt-get clean \
