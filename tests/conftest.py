@@ -109,3 +109,9 @@ def set_session_csrf(client, token):
     by testować chronione POST-y bez parsowania HTML."""
     with client.session_transaction() as sess:
         sess["_csrf_token"] = token
+
+
+def logout(client):
+    """US-017: wylogowanie to POST /logout z tokenem CSRF (GET niczego nie zmienia)."""
+    set_session_csrf(client, CSRF_TOKEN)
+    return client.post("/logout", data={"_csrf_token": CSRF_TOKEN})

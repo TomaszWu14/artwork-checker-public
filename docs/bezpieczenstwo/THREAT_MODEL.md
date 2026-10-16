@@ -91,7 +91,7 @@ nazwa z hashem ✅. DoS: brak limitu wywołań ⚪ (Could). Repudiation: `sender
 | Zagrożenie | Scenariusz | Zabezpieczenie | Luka | Działanie |
 |---|---|---|---|---|
 | Elevation | `user` wywołuje endpoint admina | `require_role`, CSRF, testy 403 dla wybranych tras | brak testu „403 per rola" dla większości 297 tras ⚪ | SEC-007 w DoD |
-| Tampering | CSRF na akcjach admina | `csrf_protect` + `SameSite=Strict` | `GET /logout` ⚪ | US-017 |
+| Tampering | CSRF na akcjach admina | `csrf_protect` + `SameSite=Strict` | — ✅ (US-017: POST + CSRF) | US-017 |
 | Info disclosure | XSS w panelu (199 `innerHTML`) | Jinja autoescape, brak `\|safe` | CSP `unsafe-inline`/`unsafe-eval` 🟡 | US-008 (SEC-005) |
 | Repudiation | zmiany kont bez śladu | brak funkcji → zmiany w DB ręcznie 🟡 | US-009 |
 

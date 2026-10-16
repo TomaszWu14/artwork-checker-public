@@ -10,7 +10,7 @@ import pytest
 
 pytest.importorskip("flask")
 
-from tests.conftest import CSRF_TOKEN, TEST_USERS, set_session_csrf
+from tests.conftest import CSRF_TOKEN, TEST_USERS, logout, set_session_csrf
 import app as _app_mod
 
 USER_PW = TEST_USERS["it_user"][0]
@@ -108,7 +108,7 @@ def test_lockout_expires_after_window(client, clean_login_state):
         db.close()
     r = _attempt(client, "it_user", USER_PW, "198.51.100.253")
     assert r.status_code in (302, 303)
-    client.get("/logout")
+    logout(client)
 
 
 # ── Polityka haseł ────────────────────────────────────────────────────────────
@@ -169,4 +169,4 @@ def test_reset_password_enforces_policy(client, clean_login_state):
     assert "zbyt popularne" not in good.get_data(as_text=True)
     r = _attempt(client, "it_user", GOOD_PW, "198.51.100.254")
     assert r.status_code in (302, 303)
-    client.get("/logout")
+    logout(client)

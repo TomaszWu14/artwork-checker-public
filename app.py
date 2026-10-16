@@ -1918,12 +1918,37 @@ def reset_password():
                            success=success, username=username)
 
 
-@app.route("/logout")
+@app.route("/logout", methods=["GET", "POST"])
+@csrf_protect
 def logout():
+    """US-017: wylogowanie tylko przez POST z tokenem CSRF.
+
+    GET nie zmienia stanu (obca strona nie wyloguje użytkownika obrazkiem/linkiem) —
+    zalogowanemu pokazuje potwierdzenie z formularzem POST, niezalogowanego
+    odsyła na stronę logowania.
+    """
+    if request.method == "GET":
+        if "user_id" not in session:
+            return redirect(url_for("login"))
+        return render_template("logout.html")
     uname = session.get("username", "?")
     _log_audit("logout", uname)
     session.clear()
     return redirect(url_for("login"))
+
+
+def _api_session_ok() -> bool:
+    """Ręczna kontrola sesji dla tras API zwracających 401 zamiast przekierowania.
+
+    US-017: oprócz obecności `user_id` sprawdza, czy konto nadal jest aktywne
+    (jak `login_required`) — dezaktywowany użytkownik z otwartą sesją dostaje 401.
+    """
+    if "user_id" not in session:
+        return False
+    if not _check_session_active():
+        session.clear()
+        return False
+    return True
 
 
 @app.route("/search")
@@ -8106,7 +8131,7 @@ def api_library_browse():
 @app.route("/api/library/search")
 def api_library_search():
     """Wyszukiwanie plików w bibliotece."""
-    if "user_id" not in session and not _library_auth(request):
+    if not _library_auth(request) and not _api_session_ok():
         return jsonify({"error": "Brak autoryzacji"}), 401
     q = request.args.get("q", "").strip()
     try:
@@ -9030,7 +9055,7 @@ def api_ref_database_upload():
 @app.route("/api/ref-database/lookup")
 def api_ref_database_lookup():
     """Wyszukuje nazwę produktu po kodzie REF (exact + prefix fuzzy match)."""
-    if "user_id" not in session:
+    if not _api_session_ok():
         return jsonify({"error": "Wymagane logowanie"}), 401
     ref = request.args.get("ref", "").strip()
     if not ref:
@@ -9057,7 +9082,7 @@ def api_ref_database_lookup():
 @app.route("/api/ref-database/stats")
 def api_ref_database_stats():
     """Zwraca statystyki bazy REF."""
-    if "user_id" not in session:
+    if not _api_session_ok():
         return jsonify({"error": "Wymagane logowanie"}), 401
     db = get_db()
     try:
