@@ -27,5 +27,5 @@
 | ID | Wyjątek | Uzasadnienie | Zaakceptował | Data | Przegląd |
 |---|---|---|---|---|---|
 | W-01 | `# nosec B608` w 6 miejscach (interpolacja nazw kolumn/placeholderów) | nazwy z białych list w kodzie, wartości parametryzowane; każde miejsce ma komentarz | SEC (propozycja) — **do potwierdzenia PO** | 2026-10-15 | 2027-04-15 |
-| W-02 | `.gitleaks.toml` allowlista: `itpass-*-123`, `test-csrf-token-deadbeef`, `test-*-secret`, `YOUR_*_HERE` | syntetyczne dane testowe i placeholdery szablonów env | SEC (propozycja) — **do potwierdzenia PO** | 2026-10-15 | 2027-04-15 |
+| W-02 | `.gitleaks.toml` allowlista: `itpass-*-123`, `test-csrf-token-deadbeef`, `test-*-secret`, `YOUR_*_HERE`, syntetyczne hasła/tokeny z testów US-003/US-005 (wymienione z nazwy w pliku) | syntetyczne dane testowe i placeholdery szablonów env; gitleaks skanuje historię commitów, więc wpisy są po wartości, nie po ścieżce | SEC (propozycja) — **do potwierdzenia PO** | 2026-10-15 | 2027-04-15 |
 | W-03 | Lint ruff i Semgrep doradcze w CI do zamknięcia US-002 / triage | 66 błędów legacy; blokowanie zatrzymałoby wszystkie PR-y | SEC+DEV — **do potwierdzenia PO** | 2026-10-15 | 2026-11-15 |
