@@ -758,6 +758,6 @@ function sevpill(s){
   const[l,c]=m[s]||[s,'p-fmt'];
   return`<span class="pill ${c}">${l}</span>`;
 }
-function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function esc(s){ /* US-008: jedno kanoniczne escapowanie HTML (& < > " ') */ return (s==null||s===false)?'':String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 </script>
 {% endblock %}

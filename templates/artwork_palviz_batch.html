@@ -47,7 +47,7 @@
 
 <script>
 (function(){
-  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function esc(s){ /* US-008: jedno kanoniczne escapowanie HTML (& < > " ') */ return (s==null||s===false)?'':String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
   const rows=document.getElementById('rows');
   function addRow(){
     const div=document.createElement('div'); div.className='bt-row';

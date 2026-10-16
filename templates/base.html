@@ -454,7 +454,8 @@ document.addEventListener('DOMContentLoaded', initTimeAgo);
 // ── TICKET BADGE ──────────────────────────────────────────────────────────────
 // ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
 var _notifOpen=false, _notifData=[];
-function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escHtml(s){ /* US-008 */ return (s==null||s===false)?'':String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+window.esc = window.esc || escHtml;
 function notifTimeAgo(ts){
   if(!ts) return '';
   const d=new Date((ts+'').replace(' ','T')+'Z');

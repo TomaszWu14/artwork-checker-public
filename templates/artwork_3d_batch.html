@@ -77,7 +77,7 @@
   drop.addEventListener('dragleave', ()=>drop.style.borderColor='');
   drop.addEventListener('drop', e=>{e.preventDefault();drop.style.borderColor='';setFiles(e.dataTransfer.files);});
 
-  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function esc(s){ /* US-008: jedno kanoniczne escapowanie HTML (& < > " ') */ return (s==null||s===false)?'':String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
   function renderItems(items){
     grid.innerHTML = items.map(it=>{
       if(it.error) return `<div class="b3d-card"><div class="body"><div class="nm" title="${esc(it.src_name)}">${esc(it.src_name)}</div><div class="err">✕ ${esc(it.error)}</div></div></div>`;

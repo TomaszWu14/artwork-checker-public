@@ -33,8 +33,8 @@
 | SEC-003 sekrety z env | US-004 | `test_us004_api_key_env_only.py` | #20 | ✅ |
 | SEC-001 limity logowania + blokada konta + polityka haseł | US-005 | `test_us005_login_hardening.py`, `test_integration_api.py::test_login_rate_limit_blocks_after_max_failures` | #21 | ✅ |
 | SEC-004 prompt hardening (reguła systemowa, bloki <document>, wykrywanie injection, AI nie łagodzi werdyktu) | US-007 | `test_us007_prompt_hardening.py` | security/US-007 | 🔧 |
-| SEC-005 CSP | US-008 | — | — | ❌ |
 | SEC-006 pliki fail-closed (kopia 3D tylko do ARTWORK_COPY_ROOTS, realpath) | US-006 | `test_artwork_3d_save_copy.py` | security/US-006 | 🔧 |
+| SEC-005 CSP (etap 1: report-only + jedno `esc`) | US-008 | `test_us008_csp_phase1.py` | security/US-008 | 🔧 |
 | SEC-007 403 per rola | US-009 i każda nowa trasa | `test_palviz_auth.py`, `test_artwork_idor.py` (wybrane) | — | ⚠️ |
 | FR-011 / SEC-006 — import mastera ze ścieżki serwera (resolver fail-closed) | US-001 | `test_us001_master_path_resolver.py` | #17 | ✅ |
 | NFR-008 — lint blokujący w CI (0 błędów ruff) | US-002 | `ruff check .` w `ci.yml` (krok blokujący) + `pytest` | #22 | ✅ |
