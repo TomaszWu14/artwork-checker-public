@@ -18,7 +18,7 @@
 | R-10 | RODO: brak retencji audit logu, brak procedur praw osób, nieszyfrowane kopie, DPA z procesorami niepotwierdzone | 2 | 2 | 4 🟡 | mitygować | US-014 + Z-04 | PO | 2026-12-15 |
 | R-11 | Błąd 500 przez niezdefiniowane nazwy (F821) w trasie managera | 2 | 3 | 6 🟠 (dostępność) | **zamknięte** (Sprint 1, 2026-10-16) | US-001 | DEV | 2026-11-01 |
 | R-12 | DNS rebinding omija SSRF guard webhooków (sprawdzenie ≠ wysyłka) | 2 | 1 | 2 ⚪ | **akceptować** (admin konfiguruje webhooki; koszt obejścia wysoki) | — | PO | 2027-04-15 |
-| R-13 | Wyczerpanie zasobów przez duże PDF (200 MB, 220 DPI, brak limitu stron) przez zalogowanego użytkownika | 2 | 1 | 2 ⚪ | akceptować tymczasowo; US-019 w Could | US-019 | PO | 2027-01-15 |
+| R-13 | Wyczerpanie zasobów przez duże PDF (200 MB, 220 DPI, brak limitu stron) przez zalogowanego użytkownika | 2 | 1 | 2 ⚪ | mitygować (PR US-019: limit stron, pikseli i DPI; limit uploadu 200 MB bez zmian) | US-019 | PO | 2027-01-15 |
 | R-14 | Utrata plików tymczasowych/masterów przy redeployu bez wolumenu `/data` | 2 | 2 | 4 🟡 | mitygować konfiguracją (RUNBOOK) | — | admin | 2026-11-15 |
 | R-15 | Dług dokumentacyjny: 5 dokumentów opisuje DocCompare, README obiecuje nieistniejącą funkcję | 1 | 3 | 3 🟡 | mitygować | US-016 | BA | 2026-12-15 |
 

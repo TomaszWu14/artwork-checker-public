@@ -14,6 +14,8 @@
    Opcjonalnie: `ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`, `RESEND_API_KEY`+`EMAIL_FROM`, `SENTRY_DSN`,
    `INTAKE_TOKEN`, `PALVIZ_PUSH_URL`+`PALVIZ_API_KEY`, `ARTWORK_COPY_ROOTS` (lista katalogów rozdzielona `:`;
    bez niej „Zapisz kopię” modelu 3D jest w produkcji wyłączone), `REDIS_URL`.
+   Limity renderowania PDF (US-019): `ARTWORK_MAX_PDF_PAGES` (50), `ARTWORK_MAX_RENDER_PX` (6000), `ARTWORK_OCR_DPI`
+   (300, zakres 72–400) — przy braku pamięci obniż najpierw `ARTWORK_OCR_DPI`.
 3. Zamontuj trwały wolumen `/data` (bez niego uploady i SQLite giną przy redeployu — R-14). Kontener działa jako
    **uid/gid 10001 (`app`)** — wolumen musi być dla niego zapisywalny (`chown -R 10001:10001 <ścieżka wolumenu>`).
 4. Start: `python migrate_db.py && gunicorn app:app -c gunicorn.conf.py` (CMD w Dockerfile). Migracja jest idempotentna.

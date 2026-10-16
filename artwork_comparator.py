@@ -22,6 +22,8 @@ import os
 import re
 import threading
 import time
+
+from core.render_limits import capped_zoom, clamp_dpi, max_pdf_pages, page_indices
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass, field
 from typing import Optional
@@ -102,7 +104,9 @@ RENDER_DPI    = 150   # ↑ z 96 — lepsza jakość przy zoomie w split-screen
 # OCR_DPI ↑ 150→300: small medical-label print (<5 pt) needs ~300 DPI for reliable
 # OCR. Neural engines downscale to ≤2048 px internally, Tesseract benefits directly.
 # Tunable via ARTWORK_OCR_DPI; set back to 150 on memory-constrained deployments.
-OCR_DPI       = int(os.environ.get("ARTWORK_OCR_DPI", "300"))
+# US-019: wartość z env ograniczona do [72, 400] (śmieci → 300) — błędna konfiguracja
+# nie może wysadzić pamięci ani startu modułu.
+OCR_DPI       = clamp_dpi(os.environ.get("ARTWORK_OCR_DPI", "300"), 300)
 BADGE_DPI     = 200
 THUMB_W       = 700   # rozmiar miniaturki w raportach (małe pliki)
 HIRES_W       = 1200  # rozmiar hires w split-screen viewerze (dobry zoom)
@@ -474,12 +478,15 @@ def _pdf_to_images(path: str, dpi: int, max_pages: int = 50) -> list:
         raise RuntimeError("Zainstaluj pymupdf: pip install pymupdf")
     doc = fitz.open(path)
     try:
-        mat = fitz.Matrix(dpi / 72.0, dpi / 72.0)
+        max_pages = min(max_pages, max_pdf_pages())   # US-019: twardy limit z konfiguracji
         imgs = []
         for pno, page in enumerate(doc):
             if pno >= max_pages:   # limit stron — chroni przed OOM na wielkich PDF
                 break
-            pix = page.get_pixmap(matrix=mat, alpha=False)
+            # US-019: powiększenie liczone tak, by bitmapa od razu miała ≤ _MAX_IMG_PX
+            # (wcześniej render w pełnym DPI, a dopiero potem zmniejszanie).
+            z = capped_zoom(page.rect.width, page.rect.height, dpi / 72.0, _MAX_IMG_PX)
+            pix = page.get_pixmap(matrix=fitz.Matrix(z, z), alpha=False)
             img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
             pix = None             # zwolnij bufor C pixmapy od razu
             # Downscale if either dimension exceeds cap (mirror _load_pages) —
@@ -546,16 +553,18 @@ def _load_pages(path: str, dpi: int, page_idx: int = None) -> list:
             raise RuntimeError("Zainstaluj pymupdf: pip install pymupdf")
         doc = fitz.open(path)
         try:
-            mat = fitz.Matrix(dpi / 72.0, dpi / 72.0)
             imgs = []
-            indices = [page_idx] if (page_idx is not None and 0 <= page_idx < len(doc)) else range(len(doc))
+            # US-019: bez wskazanej strony renderujemy najwyżej ARTWORK_MAX_PDF_PAGES stron.
+            indices = [page_idx] if (page_idx is not None and 0 <= page_idx < len(doc)) else page_indices(len(doc))
             for i in indices:
                 key = _page_cache_key(path, dpi, i)
                 cached = _page_cache_get(key)
                 if cached is not None:
                     imgs.append(cached)
                     continue
-                pix = doc[i].get_pixmap(matrix=mat, alpha=False)
+                _r = doc[i].rect
+                z = capped_zoom(_r.width, _r.height, dpi / 72.0, _MAX_IMG_PX)
+                pix = doc[i].get_pixmap(matrix=fitz.Matrix(z, z), alpha=False)
                 img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
                 # Downscale if either dimension exceeds cap
                 if img.width > _MAX_IMG_PX or img.height > _MAX_IMG_PX:
