@@ -33,11 +33,14 @@ def _key() -> str:
     no mutation of os.environ."""
     return os.environ.get("ANTHROPIC_API_KEY", "").strip()
 
+from core.ai_safety import system_with_rule as _system_with_rule  # noqa: E402  (US-007)
+
+
 def _call(prompt: str, max_tokens: int = 3000) -> dict:
     key = _key()
     if not key: return {"error": "Brak ANTHROPIC_API_KEY"}
     payload = json.dumps({"model": CLAUDE_MODEL, "max_tokens": max_tokens,
-                          "system": _SYSTEM,
+                          "system": _system_with_rule(_SYSTEM),
                           "messages": [{"role": "user", "content": prompt}]}).encode()
     req = urllib.request.Request(CLAUDE_API_URL, data=payload,
         headers={"Content-Type": "application/json", "x-api-key": key,

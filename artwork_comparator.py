@@ -2918,6 +2918,11 @@ def _preprocess_for_ocr(img: "Image.Image") -> "Image.Image":
     return img
 
 
+from core.ai_safety import (system_with_rule as _ai_system, untrusted_block as _ai_doc,  # noqa: E402
+                            safe_name as _ai_name, injection_suspect as _ai_injection,
+                            first_text as _ai_first_text)
+
+
 def _claude_readtext(img, model: str = None) -> str:
     """OCR via Claude Vision — most accurate, understands context and layout.
 
@@ -2947,6 +2952,7 @@ def _claude_readtext(img, model: str = None) -> str:
             json={
                 "model": _model,
                 "max_tokens": 1024,
+                "system": _ai_system(),
                 "messages": [{"role": "user", "content": [
                     {"type": "image", "source": {"type": "base64",
                                                   "media_type": "image/jpeg", "data": b64}},
@@ -2980,10 +2986,9 @@ def _claude_readtext(img, model: str = None) -> str:
             record_usage(_model, _resp_json.get("usage", {}), call_type="ocr")
         except Exception:
             pass
-        _content = (_resp_json.get("content") or [])
-        if not _content:
+        txt = _ai_first_text(_resp_json.get("content")).strip()
+        if not txt:
             return ""
-        txt = (_content[0].get("text") or "").strip()
         # Claude czasem dodaje markdown (**pogrubienie**, `kod`, ~~przekreślenie~~,
         # # nagłówki) mimo prośby o czysty tekst. Jedna strona dostaje **www**, druga
         # www → fałszywa różnica. Usuń znaczniki formatowania (treść zostaje).
@@ -3514,8 +3519,8 @@ def _ai_extract_manufacturer_blocks(ocr_a: str, ocr_b: str) -> dict:
         "3. distributor — nazwa i adres dystrybutora / importera (np. ACME)\n\n"
         "Dla każdego pola zwróć PEŁNY tekst (wieloliniowy) dokładnie jak w OCR.\n"
         'Jeśli pole nie występuje zwróć "".\n\n'
-        f"=== PLIK A (wzorzec) ===\n{ocr_a[:3000]}\n\n"
-        f"=== PLIK B (dostawca) ===\n{ocr_b[:3000]}\n\n"
+        f"{_ai_doc('plik_A_wzorzec', ocr_a, 3000)}\n\n"
+        f"{_ai_doc('plik_B_dostawca', ocr_b, 3000)}\n\n"
         "Zwróć WYŁĄCZNIE JSON:\n"
         '{"manufacturer_a":"","manufacturer_b":"","eu_rep_a":"","eu_rep_b":"","distributor_a":"","distributor_b":""}'
     )
@@ -3523,6 +3528,7 @@ def _ai_extract_manufacturer_blocks(ocr_a: str, ocr_b: str) -> dict:
     payload = json.dumps({
         "model": _current_ai_model(),
         "max_tokens": 1000,
+        "system": _ai_system(),
         "messages": [{"role": "user", "content": prompt}],
     }).encode("utf-8")
     req = _ur.Request(
@@ -3538,10 +3544,9 @@ def _ai_extract_manufacturer_blocks(ocr_a: str, ocr_b: str) -> dict:
             record_usage(_current_ai_model(), data.get("usage", {}), call_type="artwork_manufacturer")
         except Exception:
             pass
-        _content = data.get("content") or []
-        if not _content:
+        text = _ai_first_text(data.get("content")).strip()
+        if not text:
             return {}
-        text = (_content[0].get("text") or "").strip()
         text = re.sub(r"^```(?:json)?\s*", "", text).rstrip("`").strip()
         m = re.search(r"\{[\s\S]+\}", text)
         if not m:
@@ -4235,14 +4240,14 @@ def _ai_decompose_label(ocr_text: str) -> dict:
         "- dane_zmienne: LOT, EXP, daty — uwzględnij placeholdery (□□□, XXXXXX, puste ramki)\n"
         "- kody_kreskowe: numery GS1 z AI (01)(10)(17) lub 13-cyfrowe EAN\n"
         "- WSZYSTKO trafia do jakiejś sekcji — nic nie pomijaj\n\n"
-        f"TEKST OCR:\n{ocr_text[:6000]}\n\n"
+        f"TEKST OCR:\n{_ai_doc('etykieta_ocr', ocr_text, 6000)}\n\n"
         f"Zwróć WYŁĄCZNIE JSON:\n{empty_json}"
     )
 
     payload = json.dumps({
         "model": _current_ai_model(),
         "max_tokens": 3000,
-        "system": _DECOMPOSE_SYSTEM,
+        "system": _ai_system(_DECOMPOSE_SYSTEM),
         "messages": [{"role": "user", "content": prompt}],
     }).encode("utf-8")
     req = _ur.Request(
@@ -4258,10 +4263,9 @@ def _ai_decompose_label(ocr_text: str) -> dict:
             record_usage(_current_ai_model(), data.get("usage", {}), call_type="artwork_decompose")
         except Exception:
             pass
-        _content = data.get("content") or []
-        if not _content:
+        text = _ai_first_text(data.get("content")).strip()
+        if not text:
             return {}
-        text = (_content[0].get("text") or "").strip()
         text = re.sub(r"^```(?:json)?\s*", "", text).strip().rstrip("`").strip()
         if not text.startswith("{"):
             m = re.search(r"\{[\s\S]+\}", text)
@@ -6673,6 +6677,7 @@ def _compare_size_table_vision(img_a_b64: Optional[str], img_b_b64: Optional[str
     payload = json.dumps({
         "model": _current_ai_model(),
         "max_tokens": 800,
+        "system": _ai_system(),
         "messages": [{"role": "user", "content": content}],
     }).encode("utf-8")
 
@@ -6689,10 +6694,9 @@ def _compare_size_table_vision(img_a_b64: Optional[str], img_b_b64: Optional[str
             record_usage(_current_ai_model(), data.get("usage", {}), call_type="artwork_size_table")
         except Exception:
             pass
-        _content = data.get("content") or []
-        if not _content:
+        raw = _ai_first_text(data.get("content")).strip()
+        if not raw:
             return []
-        raw = (_content[0].get("text") or "").strip()
         raw = re.sub(r"^```(?:json)?\s*", "", raw).strip().rstrip("`").strip()
         if not raw.startswith("{"):
             m = re.search(r"\{[\s\S]+\}", raw)
@@ -6753,10 +6757,14 @@ def _ai_analyze(result: "ArtworkCompareResult") -> Optional[dict]:
 
     # Zbierz zmienione pola z analizy regex
     changed_fields = "\n".join(
-        f"  [{r['severity'].upper()}] {r['field']}: {r['val_a']!r} → {r['val_b']!r}"
-        + (f" ({r['note']})" if r.get("note") else "")
+        f"  [{r['severity'].upper()}] {_ai_name(r['field'], 80)}: "
+        f"{_ai_name(r['val_a'], 200)!r} → {_ai_name(r['val_b'], 200)!r}"
+        + (f" ({_ai_name(r['note'], 200)})" if r.get("note") else "")
         for r in result.field_report if r["changed"]
     ) or "  (brak wykrytych zmian w polach tekstowych)"
+    # US-007: frazy prompt injection w wartościach z dokumentów → anomalia w raporcie.
+    _suspect = _ai_injection(*(f"{r.get('val_a', '')} {r.get('val_b', '')} {r.get('note', '')}"
+                               for r in result.field_report))
 
     ok_fields = ", ".join(
         r["field"] for r in result.field_report if not r["changed"] and r["val_a"] != "—"
@@ -6804,10 +6812,10 @@ def _ai_analyze(result: "ArtworkCompareResult") -> Optional[dict]:
         img_a = _safe_img(page0.img_a_b64)
         img_b = _safe_img(page0.img_b_b64)
         img_d = _safe_img(page0.img_diff_b64, max_kb=600)
-        content.append({"type": "text", "text": f"ARTWORK A: {result.file_a}"})
+        content.append({"type": "text", "text": f"ARTWORK A: {_ai_name(result.file_a)}"})
         if img_a:
             content.append({"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": img_a}})
-        content.append({"type": "text", "text": f"ARTWORK B: {result.file_b}"})
+        content.append({"type": "text", "text": f"ARTWORK B: {_ai_name(result.file_b)}"})
         if img_b:
             content.append({"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": img_b}})
         if img_d:
@@ -6822,9 +6830,9 @@ Format: A={result.dims_a or '?'} | B={result.dims_b or '?'}
 Pixel diff: {result.total_pixel_diff:.1f}% | Stron: A={result.pages_a} B={result.pages_b}
 
 WYKRYTE ZMIANY (OCR/regex):
-{changed_fields}
+{_ai_doc("wykryte_zmiany", changed_fields)}
 
-POLA BEZ ZMIAN: {ok_fields}
+POLA BEZ ZMIAN: {_ai_doc("pola_bez_zmian", ok_fields, 2000)}
 
 {"Zbadaj wizualnie oba artworki i mapę różnic. " if has_images else "Brak obrazów — oceń na podstawie danych tekstowych. "}Wygeneruj szczegółowy raport JSON zgodnie z instrukcją systemową."""
     })
@@ -6837,7 +6845,7 @@ POLA BEZ ZMIAN: {ok_fields}
     payload = json.dumps({
         "model": _risk_model(),
         "max_tokens": 2000,
-        "system": _AI_SYSTEM,
+        "system": _ai_system(_AI_SYSTEM),
         "messages": [{"role": "user", "content": content}],
     }).encode("utf-8")
 
@@ -6854,16 +6862,24 @@ POLA BEZ ZMIAN: {ok_fields}
             record_usage(_risk_model(), data.get("usage", {}), call_type="artwork_analysis")
         except Exception:
             pass
-        _content = data.get("content") or []
-        if not _content:
+        text = _ai_first_text(data.get("content")).strip()
+        if not text:
             return {}
-        text = (_content[0].get("text") or "").strip()
         text = re.sub(r"^```(?:json)?\s*", "", text).strip().rstrip("`").strip()
         if not text.startswith("{"):
             m = re.search(r"\{[\s\S]+\}", text)
             if m:
                 text = m.group()
-        return json.loads(text)
+        parsed = json.loads(text)
+        if not isinstance(parsed, dict):
+            return {"error": "Nieoczekiwany format odpowiedzi AI (oczekiwano obiektu JSON)"}
+        # US-007: wynik AI jest zawsze doradczy; nie może złagodzić werdyktu deterministycznego.
+        parsed["advisory"] = True
+        if _suspect:
+            parsed["injection_warning"] = (
+                "W treści artworku wykryto frazy wyglądające na próbę sterowania analizą AI "
+                "(prompt injection). Ocena AI nie została uwzględniona w rekomendacji.")
+        return parsed
     except urllib.error.HTTPError as e:
         body = ""
         try:
@@ -6919,6 +6935,7 @@ def _claude_detect_diff_boxes(img_a: "Image.Image", img_b: "Image.Image") -> lis
             json={
                 "model": _current_ai_model(),
                 "max_tokens": 1200,
+                "system": _ai_system(),
                 "messages": [{"role": "user", "content": [
                     {"type": "text", "text": "ARTWORK A:"},
                     {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b64_a}},
@@ -6942,10 +6959,9 @@ def _claude_detect_diff_boxes(img_a: "Image.Image", img_b: "Image.Image") -> lis
             record_usage(_current_ai_model(), resp.json().get("usage", {}), call_type="claude_diff_detect")
         except Exception:
             pass
-        _content = (resp.json().get("content") or [])
-        if not _content:
+        text = _ai_first_text(resp.json().get("content")).strip()
+        if not text:
             return []
-        text = (_content[0].get("text") or "").strip()
         text = re.sub(r"^```(?:json)?\s*", "", text).strip().rstrip("`").strip()
         if not text.startswith("["):
             m = re.search(r"\[[\s\S]+\]", text)
