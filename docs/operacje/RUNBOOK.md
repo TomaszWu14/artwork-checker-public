@@ -7,7 +7,7 @@
 
 ### Docker / Coolify
 1. Zbuduj obraz: `docker build -t artwork:$(git rev-parse --short HEAD) .` (pełny, ~8 min) lub
-   `Dockerfile.slim` na bazie `ghcr.io/<owner>/doccompare-ml-base` (`docs/OBRAZ_BAZOWY_ML.md`).
+   `Dockerfile.slim` na bazie `ghcr.io/<owner>/artwork-ml-base` (`docs/OBRAZ_BAZOWY_ML.md`).
 2. Ustaw env (minimum): `SECRET_KEY` (`python -c "import secrets;print(secrets.token_hex(32))"`),
    `DATABASE_URL` **lub** `SQLITE_PATH=/data/doccompare.db`, `DATA_DIR=/data`, `UPLOAD_FOLDER=/data/uploads`,
    `APP_BASE_URL`, `LOG_DIR`, `WEB_CONCURRENCY=2`, `THREADS_PER_WORKER=3`, `DISABLE_QWEN=1`.

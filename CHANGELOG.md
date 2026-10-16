@@ -22,6 +22,8 @@ Wersja aplikacji: `constants.APP_VERSION`.
 - `.gitleaks.toml` z udokumentowaną allowlistą danych testowych; pre-commit z gitleaks i hookami porządkowymi.
 
 ### Changed
+- Obraz bazowy ML publikowany jako `ghcr.io/<owner>/artwork-ml-base` (własny pakiet repo) zamiast współdzielonego
+  `doccompare-ml-base` starej aplikacji, do którego to repo nie ma uprawnień; `Dockerfile.slim` i dokumentacja zaktualizowane.
 - Dokumentacja: US-021 ✅ (#38); R-08 obniżone — obraz ML z locka zbudowany i przetestowany na `main`,
   zamknięcie po publikacji do GHCR.
 - Decyzje PO (2026-10-16): Dependabot #5 (Python 3.14) i #8 (`transformers` 5) zamknięte — zmiana Pythona osobną
