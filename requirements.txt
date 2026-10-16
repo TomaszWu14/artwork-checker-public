@@ -41,7 +41,7 @@ imagehash>=4.3                 # Perceptual hashing — szybki pre-filtr "czy ob
 # `pip install -r requirements.txt` na Windowsie. Doinstaluj ręcznie PO torchu jeśli
 # potrzebujesz: pip install "git+https://github.com/cvg/LightGlue.git@eb42fee2d71449efb0aa5c10549752b5d75384d8"
 # lightglue @ git+https://github.com/cvg/LightGlue.git@eb42fee2d71449efb0aa5c10549752b5d75384d8
-transformers>=4.40             # HuggingFace — DINOv2 similarity + Table Transformer detection
+transformers>=5.19.0             # HuggingFace — DINOv2 similarity + Table Transformer detection
 torch>=2.1                     # PyTorch CPU — wymagany przez LightGlue, DINOv2, Table Transformer, DocTR
 
 # ── YOLOv8 (detekcja elementów pakowania) ───────────────
