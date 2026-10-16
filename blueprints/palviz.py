@@ -18,6 +18,7 @@ from werkzeug.utils import secure_filename
 from db import get_db
 from core.security import login_required, require_role, csrf_protect, can_see_all
 from core.audit import log_audit
+from core.render_limits import capped_zoom
 
 bp = Blueprint("palviz", __name__)
 
@@ -250,7 +251,8 @@ def api_templates_analyze():
         from dieline_templates import signature, match_template
         doc = fitz.open(pdf_path)
         page = max(doc, key=lambda p: p.rect.width * p.rect.height)
-        pix = page.get_pixmap(matrix=fitz.Matrix(110 / 72, 110 / 72), alpha=False)
+        _z = capped_zoom(page.rect.width, page.rect.height, 110 / 72)   # US-019
+        pix = page.get_pixmap(matrix=fitz.Matrix(_z, _z), alpha=False)
         pix.save(os.path.join(prev_dir, png_name))
         img_w, img_h = pix.width, pix.height
         doc.close()

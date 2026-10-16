@@ -22,6 +22,7 @@ from core.security import (
     verify_csrf as _verify_csrf,
 )
 from core.audit import log_audit as _log_audit
+from core.render_limits import capped_zoom as _capped_zoom, page_indices as _page_indices
 from constants import ROLE_LEVEL, VALID_ROLES, API_RATE_MAX, API_RATE_WINDOW, KPI_CACHE_TTL, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB, RATE_LIMIT_LOGIN_ACCOUNT_MAX, PASSWORD_MIN_LENGTH, RESET_TOKEN_TTL_HOURS, RenderVariant
 from translations import t as _t_func, TRANSLATIONS
 from translation_en import translate_html as _translate_html_en
@@ -1919,12 +1920,37 @@ def reset_password():
                            success=success, username=username)
 
 
-@app.route("/logout")
+@app.route("/logout", methods=["GET", "POST"])
+@csrf_protect
 def logout():
+    """US-017: wylogowanie tylko przez POST z tokenem CSRF.
+
+    GET nie zmienia stanu (obca strona nie wyloguje użytkownika obrazkiem/linkiem) —
+    zalogowanemu pokazuje potwierdzenie z formularzem POST, niezalogowanego
+    odsyła na stronę logowania.
+    """
+    if request.method == "GET":
+        if "user_id" not in session:
+            return redirect(url_for("login"))
+        return render_template("logout.html")
     uname = session.get("username", "?")
     _log_audit("logout", uname)
     session.clear()
     return redirect(url_for("login"))
+
+
+def _api_session_ok() -> bool:
+    """Ręczna kontrola sesji dla tras API zwracających 401 zamiast przekierowania.
+
+    US-017: oprócz obecności `user_id` sprawdza, czy konto nadal jest aktywne
+    (jak `login_required`) — dezaktywowany użytkownik z otwartą sesją dostaje 401.
+    """
+    if "user_id" not in session:
+        return False
+    if not _check_session_active():
+        session.clear()
+        return False
+    return True
 
 
 @app.route("/search")
@@ -4387,7 +4413,9 @@ def api_artwork_preview_crops():
                             with open(comp_path, "wb") as fp:
                                 writer.write(fp)
                         else:
-                            pix = doc[page_idx].get_pixmap(matrix=_fitz_pv.Matrix(3.0, 3.0), alpha=False)
+                            _r = doc[page_idx].rect
+                            _z = _capped_zoom(_r.width, _r.height, 3.0)   # US-019
+                            pix = doc[page_idx].get_pixmap(matrix=_fitz_pv.Matrix(_z, _z), alpha=False)
                             comp_path = os.path.join(upload_dir, f"{uid}_pv_pg{page_idx}_{i}.png")
                             pix.save(comp_path)
                         comp_paths.append(comp_path)
@@ -4614,7 +4642,8 @@ def api_artwork_split_compare():
                             cx0 * r.width,  cy0 * r.height,
                             cx1 * r.width,  cy1 * r.height,
                         )
-                        pix = page.get_pixmap(matrix=fitz.Matrix(3.0, 3.0),
+                        _z = _capped_zoom(clip.width, clip.height, 3.0)   # US-019
+                        pix = page.get_pixmap(matrix=fitz.Matrix(_z, _z),
                                               clip=clip, alpha=False)
                         comp_path = os.path.join(upload_dir, f"{uid}_spl_crop_{i}.png")
                         pix.save(comp_path)
@@ -4626,7 +4655,8 @@ def api_artwork_split_compare():
                         with open(comp_path, "wb") as fp:
                             writer.write(fp)
                     else:
-                        pix = page.get_pixmap(matrix=fitz.Matrix(3.0, 3.0), alpha=False)
+                        _z = _capped_zoom(page.rect.width, page.rect.height, 3.0)   # US-019
+                        pix = page.get_pixmap(matrix=fitz.Matrix(_z, _z), alpha=False)
                         comp_path = os.path.join(upload_dir,
                                                  f"{uid}_spl_pg{page_idx}_{i}.png")
                         pix.save(comp_path)
@@ -5834,8 +5864,8 @@ def api_artwork_pdf_pages():
             doc = fitz.open(path)
             try:
                 pages = []
-                mat = fitz.Matrix(scale, scale)
-                indices = range(len(doc))
+                total_pages = len(doc)
+                indices = _page_indices(total_pages)   # US-019: limit miniatur
                 if page_idx_param is not None:
                     try:
                         idx = int(page_idx_param)
@@ -5845,7 +5875,8 @@ def api_artwork_pdf_pages():
                 quality = 90 if scale >= 1.0 else 75
                 for i in indices:
                     page = doc[i]
-                    pix = page.get_pixmap(matrix=mat, alpha=False)
+                    _z = _capped_zoom(page.rect.width, page.rect.height, scale)   # US-019
+                    pix = page.get_pixmap(matrix=fitz.Matrix(_z, _z), alpha=False)
                     thumb = base64.b64encode(pix.tobytes("jpeg", jpg_quality=quality)).decode()
                     w_mm = round(page.rect.width / 72 * 25.4)
                     h_mm = round(page.rect.height / 72 * 25.4)
@@ -5857,7 +5888,8 @@ def api_artwork_pdf_pages():
                     })
             finally:
                 doc.close()
-            return jsonify({"count": len(pages), "pages": pages})
+            # US-019: total_pages > count → plik ma więcej stron niż ARTWORK_MAX_PDF_PAGES.
+            return jsonify({"count": len(pages), "pages": pages, "total_pages": total_pages})
         except Exception as e:
             return jsonify({"count": 1, "pages": [], "error": str(e)[:200]})
     finally:
@@ -8101,7 +8133,7 @@ def api_library_browse():
 @app.route("/api/library/search")
 def api_library_search():
     """Wyszukiwanie plików w bibliotece."""
-    if "user_id" not in session and not _library_auth(request):
+    if not _library_auth(request) and not _api_session_ok():
         return jsonify({"error": "Brak autoryzacji"}), 401
     q = request.args.get("q", "").strip()
     try:
@@ -9025,7 +9057,7 @@ def api_ref_database_upload():
 @app.route("/api/ref-database/lookup")
 def api_ref_database_lookup():
     """Wyszukuje nazwę produktu po kodzie REF (exact + prefix fuzzy match)."""
-    if "user_id" not in session:
+    if not _api_session_ok():
         return jsonify({"error": "Wymagane logowanie"}), 401
     ref = request.args.get("ref", "").strip()
     if not ref:
@@ -9052,7 +9084,7 @@ def api_ref_database_lookup():
 @app.route("/api/ref-database/stats")
 def api_ref_database_stats():
     """Zwraca statystyki bazy REF."""
-    if "user_id" not in session:
+    if not _api_session_ok():
         return jsonify({"error": "Wymagane logowanie"}), 401
     db = get_db()
     try:

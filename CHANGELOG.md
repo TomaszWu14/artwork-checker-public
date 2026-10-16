@@ -22,6 +22,11 @@ Wersja aplikacji: `constants.APP_VERSION`.
 - `.gitleaks.toml` z udokumentowaną allowlistą danych testowych; pre-commit z gitleaks i hookami porządkowymi.
 
 ### Changed
+- Zależności (zbiorczo z PR Dependabota #6, #7, #9–#16): akcje CI `actions/checkout@v7`, `actions/setup-python@v7`,
+  `actions/upload-artifact@v7`, `gitleaks/gitleaks-action@v3`, `docker/setup-buildx-action@v4` we wszystkich workflow;
+  dolne granice `camelot-py>=2.0.0`, `pdf2image>=1.17.0`, `reportlab>=5.0.1`, `scikit-learn>=1.9.1`, `shapely>=2.2.0`,
+  `tiktoken>=0.14.0`. `requirements-prod.lock` bez zmian (te wersje były już zamrożone). Python 3.14 (#5) i
+  `transformers>=5` (#8) — wstrzymane do decyzji PO / US-021.
 - US-002: `ruff check` przechodzi bez błędów (66 → 0: 17 zduplikowanych kluczy w słowniku tłumaczeń EN —
   wartości identyczne, 28 nieużywanych zmiennych, 10 f-stringów bez pól, 7 podwójnych importów, 4 niezdefiniowane
   nazwy z US-001) i **blokuje CI**; `ruff format --check` pozostaje doradczy (US-020).
@@ -33,6 +38,13 @@ Wersja aplikacji: `constants.APP_VERSION`.
   `_ensure_shipment`/`_save_doc_to_shipment` w `_save_comparison` (pozostałość modułu transportu).
 
 ### Security
+- US-017: wylogowanie wyłącznie przez `POST /logout` z tokenem CSRF — `GET /logout` pokazuje potwierdzenie i niczego
+  nie zmienia (obca strona nie wyloguje użytkownika obrazkiem/linkiem); trasy API z ręczną kontrolą sesji
+  (`/api/library/search`, `/api/ref-database/*`) odrzucają konta dezaktywowane (401), jak `login_required`.
+- US-019: limity renderowania PDF (`core/render_limits.py`) we wszystkich ścieżkach PyMuPDF — najwyżej
+  `ARTWORK_MAX_PDF_PAGES` (50) stron, bitmapa ograniczona do `ARTWORK_MAX_RENDER_PX` (6000 px) **już przy renderze**
+  (wcześniej arkusz wielkoformatowy był renderowany w pełnym DPI i dopiero potem zmniejszany), `ARTWORK_OCR_DPI`
+  ograniczone do 72–400; `/api/artwork/pdf-pages` zwraca `total_pages` (R-13).
 - US-022 (CSP etap 2a, ADR-0004): raport nie kompiluje JSX w przeglądarce (Babel usunięty — JSX budowany do
   `static/js/artwork_report_pf.js`); Tailwind budowany z repo zamiast Play CDN; React 18.3.1, Alpine 3.13.0 i lucide
   1.49.0 (wcześniej `lucide@latest`) z przypiętych kopii w `static/vendor`. CSP nie dopuszcza już `unpkg.com`,

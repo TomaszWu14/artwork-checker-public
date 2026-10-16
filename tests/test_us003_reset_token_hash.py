@@ -13,7 +13,7 @@ import pytest
 
 pytest.importorskip("flask")
 
-from tests.conftest import CSRF_TOKEN, TEST_USERS, login
+from tests.conftest import CSRF_TOKEN, TEST_USERS, login, logout
 import app as _app_mod
 
 NEW_PASSWORD = "Nowe-Haslo-US003-1234"
@@ -105,7 +105,7 @@ def test_plain_token_from_url_resets_password_once(client, reset_env):
     r = client.post("/login", data={"identifier": "it_user", "password": NEW_PASSWORD,
                                     "_csrf_token": CSRF_TOKEN})
     assert r.status_code in (302, 303)
-    client.get("/logout")
+    logout(client)
     # ponowne użycie → wygasł
     again = client.get(f"/reset-password?token={token}")
     assert "wygas" in again.get_data(as_text=True).lower()

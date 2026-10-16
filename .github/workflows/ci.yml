@@ -31,8 +31,8 @@ jobs:
     name: Lint (ruff check blokuje; format doradczy)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Instalacja ruff
@@ -48,8 +48,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Kompilacja składni całego repo
@@ -60,7 +60,7 @@ jobs:
         run: python -m pytest tests/ -q --cov=. --cov-report=xml --cov-report=term
       - name: Artefakt — pokrycie
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-xml
           path: coverage.xml
@@ -70,7 +70,7 @@ jobs:
     name: Frontend — build z repo zgodny ze źródłem (US-022)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -87,8 +87,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [tests]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Instalacja Bandit
@@ -100,7 +100,7 @@ jobs:
         run: bandit -r . -x ./tests,./.git,./static/design -f json -o bandit.json || true
       - name: Artefakt — Bandit
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bandit-json
           path: bandit.json
@@ -113,7 +113,7 @@ jobs:
     container:
       image: semgrep/semgrep
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Skan regułami OWASP / Flask / Python
         continue-on-error: true   # doradczy do pierwszego triage (W-03) — ostrzeżenie, nie czerwony check
         run: >
@@ -121,7 +121,7 @@ jobs:
           --exclude static/design --exclude tests --error --sarif --output semgrep.sarif
       - name: Artefakt — Semgrep SARIF
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: semgrep-sarif
           path: semgrep.sarif
@@ -132,8 +132,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [tests]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Instalacja pip-audit
@@ -155,7 +155,7 @@ jobs:
           PY
       - name: Artefakt — pip-audit
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pip-audit-json
           path: pip-audit.json
@@ -166,11 +166,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [sast-bandit, sast-semgrep, sca-pip-audit]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0   # pełna historia — skan także starych commitów
       - name: "gitleaks (konfiguracja i allowlista w .gitleaks.toml)"
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -179,7 +179,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [secrets-gitleaks]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Instalacja Trivy
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
@@ -192,7 +192,7 @@ jobs:
         run: trivy fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --exit-code 0 --format json --output trivy.json . || true
       - name: Artefakt — Trivy
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-json
           path: trivy.json
