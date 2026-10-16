@@ -258,7 +258,7 @@ function dbUsage(){
 
 <!-- Edit user modal -->
 <script>
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function esc(s){ /* US-008: jedno kanoniczne escapowanie HTML (& < > " ') */ return (s==null||s===false)?'':String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 let _editUid = null;
 const ALL_MODULES = ['artwork','dane_ref','admin'];   // moduły forka Artwork (usunięto zakupy/transport/spedycja/magazyn)
 

@@ -29,6 +29,9 @@ Wersja aplikacji: `constants.APP_VERSION`.
   `_ensure_shipment`/`_save_doc_to_shipment` w `_save_comparison` (pozostałość modułu transportu).
 
 ### Security
+- US-008 (etap 1, ADR-0004): jedno kanoniczne `esc()` we wszystkich szablonach (escapuje też `"` i `'` — m.in.
+  wstrzyknięcie atrybutu przez nazwę pliku w batchu 3D), egzekwowane `object-src 'none'`, `base-uri`, `form-action`,
+  `X-XSS-Protection: 0`; ścisła CSP z nonce w trybie Report-Only z raportami do `/csp-report` (R-05 obniżone).
 - US-018: wartości-atrapy z szablonów `.env` (`YOUR_*_HERE`, `changeme`, znane słabe klucze) są traktowane jak brak
   sekretu — produkcja odmawia startu przy takim `SECRET_KEY`/`DATABASE_URL`; `.env.example` i `.env.staging.example`
   bez wartości (R-09).

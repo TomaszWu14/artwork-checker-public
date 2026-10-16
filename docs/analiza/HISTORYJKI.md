@@ -79,7 +79,7 @@ omijała ochrony.
   pokazuje różnice wykryte deterministycznie, a sekcja AI jest oznaczona „doradcza".
 - Test z fixture „złośliwy PDF" bez wywołania sieci (mock). Ryzyko: R-02 (SEC-004).
 
-### US-008 · Should · 📋 · CSP bez `unsafe-eval`, nonce dla skryptów inline
+### US-008 · Should · 🔧 (etap 1 w PR; etapy 2–4 → US-022, US-023, decyzja PO — ADR-0004) · CSP bez `unsafe-eval`, nonce dla skryptów inline
 - Given odpowiedź HTML, When sprawdzam nagłówek, Then `script-src` nie zawiera `unsafe-eval`; `unsafe-inline`
   zastąpione `nonce-…` (lub hash) — Alpine w wariancie CSP.
 - Given 199 użyć `innerHTML`, When przegląd, Then każde użycie z danymi użytkownika przechodzi przez jeden
@@ -113,6 +113,8 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
 ### US-016 · Could · 📋 · Archiwizacja nieaktualnych dokumentów (`docs/architektura.md`, `DOKUMENTACJA_IT.md`, `PROCES_*`) do `docs/archiwum/`
 ### US-017 · Could · 📋 · `POST /logout` z CSRF; kontrola dezaktywacji konta w ręcznych sprawdzeniach sesji
 ### US-019 · Could · 📋 · Limit stron/DPI dla OCR (ochrona przed wyczerpaniem zasobów)
+### US-022 · Should (do decyzji PO) · 📋 · CSP etap 2: Alpine w wersji CSP, raport bez Babel w przeglądarce, Tailwind zbudowany — zdjęcie `unsafe-eval` (ADR-0004)
+### US-023 · Should (do decyzji PO) · 📋 · CSP etap 3–4: handlery `on*=` → `addEventListener`, nonce na skryptach, egzekwowanie ścisłej CSP (ADR-0004)
 ### US-020 · Could · 📋 · Jednorazowe `ruff format` 108 plików i `ruff format --check` jako bramka (decyzja PO — duży diff)
 
 ## Won't (na teraz)

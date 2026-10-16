@@ -33,7 +33,7 @@
 | SEC-003 sekrety z env | US-004 | `test_us004_api_key_env_only.py` | security/US-004 | 🔧 |
 | SEC-001 limity logowania + blokada konta + polityka haseł | US-005 | `test_us005_login_hardening.py`, `test_integration_api.py::test_login_rate_limit_blocks_after_max_failures` | security/US-005 | 🔧 |
 | SEC-004 prompt hardening | US-007 | — | — | ❌ |
-| SEC-005 CSP | US-008 | — | — | ❌ |
+| SEC-005 CSP (etap 1: report-only + jedno `esc`) | US-008 | `test_us008_csp_phase1.py` | security/US-008 | 🔧 |
 | SEC-006 pliki fail-closed | US-006 | `test_artwork_3d_save_copy.py` (częściowo) | — | ⚠️ |
 | SEC-007 403 per rola | US-009 i każda nowa trasa | `test_palviz_auth.py`, `test_artwork_idor.py` (wybrane) | — | ⚠️ |
 | SEC-008 zależności | US-011 | — | — | ❌ |

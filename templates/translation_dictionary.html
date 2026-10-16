@@ -256,7 +256,7 @@ var CTXS = {all:'Wszystkie',PO:'PO',PI:'PI',CI:'CI',PL:'PL (Packing List)',SAD:'
 function ctxLabel(c){ return CTXS[c] || c; }
 
 // ── ESC ──────────────────────────────────────────────────────────────────────
-function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function esc(s){ /* US-008: jedno kanoniczne escapowanie HTML (& < > " ') */ return (s==null||s===false)?'':String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 
 // ── LOAD DICT ────────────────────────────────────────────────────────────────
 function loadDict(){

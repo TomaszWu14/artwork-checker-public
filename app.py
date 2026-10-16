@@ -202,25 +202,85 @@ def _auto_close_dbs(exc):
             pass
 
 
+# ── CSP (US-008, ADR-0004) ─────────────────────────────────────────────────────
+# Etap 1: polityka EGZEKWOWANA jak dotąd (z 'unsafe-inline'/'unsafe-eval', bo szablony mają
+# ~65 skryptów inline, ~400 handlerów on*= oraz Alpine/Babel wymagające eval) + dodatkowo
+# object-src/base-uri/form-action. Równolegle docelowa, ścisła polityka w trybie
+# REPORT-ONLY (nonce, bez eval) — przeglądarki raportują naruszenia do /csp-report, co
+# pozwala migrować szablony etapami bez psucia UI.
+_CSP_ENFORCED = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; "
+    "font-src 'self' data: https://fonts.gstatic.com; "
+    "img-src 'self' data: blob: https://*.tile.openstreetmap.org; "
+    "connect-src 'self' blob:; "          # model-viewer pobiera tekstury GLB przez fetch(blob:) — bez tego białe ściany 3D
+    "worker-src 'self' blob:; "           # model-viewer dekoduje w Web Workerze z blob:
+    "object-src 'none'; base-uri 'self'; form-action 'self'; "
+    "frame-ancestors 'self';"
+)
+
+
+def _csp_report_only(nonce: str) -> str:
+    return (
+        "default-src 'self'; "
+        f"script-src 'self' 'nonce-{nonce}' https://unpkg.com https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' data: https://fonts.gstatic.com; "
+        "img-src 'self' data: blob: https://*.tile.openstreetmap.org; "
+        "connect-src 'self' blob:; worker-src 'self' blob:; "
+        "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; "
+        "report-uri /csp-report"
+    )
+
+
+def csp_nonce() -> str:
+    """Nonce bieżącego żądania dla <script nonce="{{ csp_nonce() }}"> (etap 3 ADR-0004)."""
+    if not getattr(g, "_csp_nonce", None):
+        g._csp_nonce = secrets.token_urlsafe(16)
+    return g._csp_nonce
+
+
+app.jinja_env.globals["csp_nonce"] = csp_nonce
+
+_csp_report_times: list = []
+_csp_report_lock = threading.Lock()
+
+
+@app.route("/csp-report", methods=["POST"])
+def csp_report():
+    """Odbiór raportów naruszeń CSP od przeglądarek (bez sesji/CSRF — przeglądarka nie dołącza
+    tokenu). Ochrona przed zalewem: limit rozmiaru, 60 raportów/min na proces, log przycięty."""
+    now = time.time()
+    with _csp_report_lock:
+        _csp_report_times[:] = [t for t in _csp_report_times if now - t < 60]
+        if len(_csp_report_times) >= 60:
+            return "", 204
+        _csp_report_times.append(now)
+    if (request.content_length or 0) > 16 * 1024:
+        return "", 413
+    try:
+        rep = (request.get_json(force=True, silent=True) or {}).get("csp-report") or {}
+        logger.info("CSP report-only violation: directive=%s blocked=%s page=%s",
+                    str(rep.get("violated-directive", ""))[:80],
+                    str(rep.get("blocked-uri", ""))[:200],
+                    str(rep.get("document-uri", "")).split("?")[0][:200])
+    except Exception:
+        pass
+    return "", 204
+
+
 @app.after_request
 def _set_security_headers(response):
     response.headers.pop("Server", None)
     response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
-    response.headers.setdefault("X-XSS-Protection", "1; mode=block")
+    # Przestarzały filtr XSS przeglądarek bywa wektorem ataku — zalecane "0" (US-008).
+    response.headers.setdefault("X-XSS-Protection", "0")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-    response.headers.setdefault(
-        "Content-Security-Policy",
-        "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; "
-        "font-src 'self' data: https://fonts.gstatic.com; "
-        "img-src 'self' data: blob: https://*.tile.openstreetmap.org; "
-        "connect-src 'self' blob:; "          # model-viewer pobiera tekstury GLB przez fetch(blob:) — bez tego białe ściany 3D
-        "worker-src 'self' blob:; "           # model-viewer dekoduje w Web Workerze z blob:
-
-        "frame-ancestors 'self';"
-    )
+    response.headers.setdefault("Content-Security-Policy", _CSP_ENFORCED)
+    if response.content_type and "text/html" in response.content_type:
+        response.headers.setdefault("Content-Security-Policy-Report-Only", _csp_report_only(csp_nonce()))
     response.headers.setdefault(
         "Permissions-Policy",
         "geolocation=(), camera=(), microphone=(), payment=()"

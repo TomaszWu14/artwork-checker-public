@@ -468,6 +468,6 @@ async function importProfiles(inp){
   toast(`Import: ${ok} OK, ${err} błędów`, ok>0&&err===0?'ok':'warn');
   if(ok>0) location.reload();
 }
-function esc(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function esc(s){ /* US-008: jedno kanoniczne escapowanie HTML (& < > " ') */ return (s==null||s===false)?'':String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 </script>
 {% endblock %}

@@ -2509,7 +2509,7 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
       return '';
     }).join('');
   }
-  function esc(c){return c.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function esc(c){ /* US-008: jedno kanoniczne escapowanie HTML (& < > " ') */ return (c==null||c===false)?'':String(c).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
   document.querySelectorAll('.inline-diff').forEach(function(el){
     var a=el.dataset.a||'', b=el.dataset.b||'';
     var ops=charDiff(a,b);

@@ -1447,7 +1447,7 @@ document.getElementById('lb').addEventListener('wheel',function(e){
 document.getElementById('lb').addEventListener('click',function(e){
   if(e.target===this || e.target===document.getElementById('lbContainer')) closeLb();
 });
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function esc(s){ /* US-008: jedno kanoniczne escapowanie HTML (& < > " ') */ return (s==null||s===false)?'':String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 
 </script>
 
@@ -4439,9 +4439,7 @@ function fqBuildRow(f, idx) {
 // Word-level diff for "Master:" / "Dostawca:" text rows. Returns HTML with
 // only differing tokens wrapped in a red span — matched tokens stay neutral.
 function fqWordDiff(a, b) {
-  function esc(s){ return String(s).replace(/[&<>"']/g, function(c){
-    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
-  }); }
+  function esc(s){ /* US-008: jedno kanoniczne escapowanie HTML (& < > " ') */ return (s==null||s===false)?'':String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
   function norm(t){ return String(t).toLowerCase().replace(/[^a-z0-9ąćęłńóśźż]/gi,''); }
   // Split keeping separators so we can re-join with original whitespace.
   var partsA = String(a||'').split(/(\s+)/);
