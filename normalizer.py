@@ -374,45 +374,19 @@ def normalize_ref(s: str) -> str:
     return re.sub(r'[\s\-_/]', '', s.upper().strip())
 
 
-def refs_match(a: str, b: str, fuzzy_threshold: int = 85) -> tuple[bool, float]:
+def refs_match(a: str, b: str) -> tuple[bool, float]:
     """
-    Porównuje dwa kody REF z normalizacją i fuzzy matching.
-    Zwraca (match: bool, confidence: float 0-1)
+    Porównuje dwa kody REF po normalizacji (wielkość liter, separatory, spacje).
+    Zwraca (match: bool, confidence: float 0/1).
+
+    Bez dopasowania rozmytego (US-026, decyzja PO 2026-10-17): kody różniące się choćby jednym
+    znakiem to RÓŻNE produkty (np. ABCDEFGH12 vs ABCDEFGX12, ABC12345X vs ABC12354X); zera też
+    są znaczące (S040 ≠ S40).
     """
     if not a or not b:
         return False, 0.0
-
-    # Dokładne dopasowanie po normalizacji
-    na = normalize_ref(a)
-    nb = normalize_ref(b)
-    if na == nb:
+    if normalize_ref(a) == normalize_ref(b):
         return True, 1.0
-
-    # Zera są ZNACZĄCE: jeśli kody różnią się WYŁĄCZNIE obecnością/liczbą zer
-    # (na początku, w środku lub na końcu), to RÓŻNE kody — blokujemy zanim fuzzy
-    # je zrówna (S040 vs S40, QX0510 vs QX510, AB012CD vs AB12CD). na != nb jest
-    # tu zagwarantowane, więc równość po usunięciu zer ⇒ różnica to tylko zera.
-    if na.replace('0', '') == nb.replace('0', ''):
-        return False, 0.0
-
-    # Warianty ROZMIARU: jeśli kody mają identyczny „korpus", a różnią się tylko
-    # końcowym segmentem numerycznym (np. NL753S40 vs NL753S45), to RÓŻNE produkty
-    # (różne rozmiary) — nie wolno ich łączyć fuzzy mimo wysokiego podobieństwa.
-    _ma = re.search(r'(\d+)$', na)
-    _mb = re.search(r'(\d+)$', nb)
-    if _ma and _mb and _ma.group(1) != _mb.group(1) and na[: _ma.start()] == nb[: _mb.start()]:
-        return False, 0.0
-
-    # Fuzzy matching
-    try:
-        from rapidfuzz import fuzz
-
-        score = fuzz.token_sort_ratio(na, nb)
-        if score >= fuzzy_threshold:
-            return True, score / 100.0
-    except ImportError:
-        pass
-
     return False, 0.0
 
 

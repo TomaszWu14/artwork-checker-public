@@ -10,7 +10,7 @@
 //
 // Wyniki są w repo; CI uruchamia ten skrypt i sprawdza `git diff --exit-code`,
 // więc źródło i zbudowane pliki nie mogą się rozjechać.
-import { build } from "esbuild";
+import { build, transform } from "esbuild";
 import { execFileSync } from "node:child_process";
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -55,6 +55,24 @@ await build({
   banner: { js: "// Zbudowane z frontend/src/artwork_report_pf.jsx przez `npm run build` — nie edytuj ręcznie." },
   logLevel: "warning",
 });
+
+// US-027: podgląd projektów raportu (/artwork/design-preview) — wcześniej React i Babel z unpkg
+// kompilowały JSX w przeglądarce (blokowane przez ścisłą CSP). Każdy plik kompilujemy do osobnego
+// IIFE (jak osobne <script> — wymiana tylko przez Object.assign(window, …)) i sklejamy w kolejności
+// ładowania. app-print.jsx nie jest ładowany przez index.html — pomijamy.
+const designOrder = ["design-canvas", "shared", "artwork-svg", "variant-a", "variant-b", "variant-c",
+  "variant-d", "variant-e", "app"];
+const designParts = [];
+for (const name of designOrder) {
+  const src = readFileSync(join(root, "frontend/src/design_preview", `${name}.jsx`), "utf8");
+  const { code } = await transform(src, {
+    loader: "jsx", jsx: "transform", format: "iife", target: ["es2020"], legalComments: "none",
+  });
+  designParts.push(`// ── ${name}.jsx ──\n${code}`);
+}
+writeFileSync(out("design/design_preview.js"),
+  "// Zbudowane z frontend/src/design_preview/*.jsx przez `npm run build` — nie edytuj ręcznie.\n"
+  + designParts.join("\n"));
 
 execFileSync(
   process.execPath,

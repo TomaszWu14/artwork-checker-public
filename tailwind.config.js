@@ -8,6 +8,7 @@ module.exports = {
     "./static/js/**/*.js",
     "!./static/js/vendor/**",
     "./frontend/src/**/*.{js,jsx}",
+    "!./frontend/src/design_preview/**", // US-027: makiety ze stylami inline, bez klas Tailwind
     "./*.py",
     "./blueprints/**/*.py",
   ],

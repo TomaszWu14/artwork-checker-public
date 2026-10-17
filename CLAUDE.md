@@ -231,8 +231,9 @@ map; `translation_en.py` post-processes rendered HTML to swap Polish phrases for
 ### Frontend
 
 Jinja2 templates (60+ in `templates/`) with Alpine.js for reactivity, Chart.js for KPI charts,
-Dropzone.js for uploads, and Tailwind CSS. `base.html` is the master layout. Design experiments live
-in `static/design/` (excluded from lint).
+Dropzone.js for uploads, and Tailwind CSS. `base.html` is the master layout. Design mockups of the report
+(`/artwork/design-preview`) live in `frontend/src/design_preview/*.jsx`, compiled by `npm run build` into
+`static/design/design_preview.js` (excluded from lint).
 
 The enforced CSP has no `'unsafe-inline'`/`'unsafe-eval'` for scripts (ADR-0004): inline `<script>` needs
 `nonce="{{ csp_nonce() }}"`, event handlers are `data-on-click="fn(…)"` + `CspActions.allow('fn')`

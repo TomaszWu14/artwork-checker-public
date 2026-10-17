@@ -11,6 +11,8 @@ Wersja aplikacji: `constants.APP_VERSION`.
   (także seedy `doc_types`/`sad_field_mapping` przy każdym starcie). Istniejące bazy: jednorazowo
   `python tools/drop_relic_tables.py --apply` (kopia przed usunięciem; RUNBOOK §4). Usunięta martwa stała
   `PROGRESS_ALLOWED_COLS` i nieużywane `supplier_profiles.log_analysis`.
+- US-026 (decyzja PO): komentarz AI w raporcie porównania — nie był pokazywany w HTML, a każdy raport kosztował
+  wywołanie Claude API; usunięty też z eksportu DOCX/PDF (zmienna `ARTWORK_AI_MODEL` nieużywana).
 
 ### Added
 - US-013: blokująca bramka pokrycia w CI — łączne pokrycie 9 modułów logiki domenowej (kody kreskowe, normalizacja,
@@ -19,6 +21,10 @@ Wersja aplikacji: `constants.APP_VERSION`.
   zestawu z 64 % do 97 %; test pilnuje, by lista modułów i próg nie zostały po cichu obniżone.
 
 ### Fixed
+- US-027: strona `/artwork/design-preview` (makiety raportu) była pusta — ładowała React i Babel z unpkg, co blokowała
+  ścisła CSP. Źródła JSX w `frontend/src/design_preview/`, kompilowane przez `npm run build`, React z `static/vendor`.
+- US-026 (decyzja PO): `refs_match` porównuje kody REF dokładnie po normalizacji — kody różniące się jednym znakiem
+  nie są już uznawane za zgodne.
 - US-025 (błędy wykryte testami US-013):
   - weryfikacja danych drukowanych: prawidłowe UPC-A i EAN-8 z tekstu OCR nie są już oznaczane jako błąd krytyczny;
     data ważności DD.MM.RRRR jest poprawnie porównywana z (17)RRMMDD; brak EAN w tekście przy kodzie GS1 nie daje
