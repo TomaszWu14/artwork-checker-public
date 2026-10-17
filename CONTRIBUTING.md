@@ -85,6 +85,9 @@ CSP (US-023): przeglądarka blokuje skrypty inline bez nonce i atrybuty `on*=`.
   Bez `if`, przypisań i wyrażeń — logikę przenieś do nazwanej funkcji (`static/js/csp_actions.js` ma gotowe
   `clickById`, `onKeys`, `onSelf`, `togglePassword`…).
 - `|tojson` w atrybucie `"…"` zawsze z `|forceescape`. Pilnuje tego `tests/test_us023_csp_strict.py`.
+- Alpine działa w buildzie CSP (US-024): komponent rejestruj `Alpine.data('nazwa', nazwa)` przy `alpine:init`;
+  w wyrażeniach `x-*`/`@…`/`:…` tylko pola i metody komponentu — bez `Math`, `window`, funkcji globalnych,
+  `??`, `?.`, funkcji strzałkowych i kilku instrukcji po `;` (przenieś do metody). Sprawdza `npm run check:alpine`.
 
 Instalacja środowiska testowego: `pip install -r dev-requirements.txt flask werkzeug "rapidfuzz>=3.0,<4.0"`.
 

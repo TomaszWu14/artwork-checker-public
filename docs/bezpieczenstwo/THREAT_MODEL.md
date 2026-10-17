@@ -92,7 +92,7 @@ nazwa z hashem ✅. DoS: brak limitu wywołań ⚪ (Could). Repudiation: `sender
 |---|---|---|---|---|
 | Elevation | `user` wywołuje endpoint admina | `require_role`, CSRF, testy 403 dla wybranych tras | brak testu „403 per rola" dla większości 297 tras ⚪ | SEC-007 w DoD |
 | Tampering | CSRF na akcjach admina | `csrf_protect` + `SameSite=Strict` | — ✅ (US-017: POST + CSRF) | US-017 |
-| Info disclosure | XSS w panelu (199 `innerHTML`) | Jinja autoescape, brak `\|safe` | CSP z nonce (US-023); `unsafe-eval` dla Alpine 🟡 | US-008, US-024 (SEC-005) |
+| Info disclosure | XSS w panelu (199 `innerHTML`) | Jinja autoescape, brak `\|safe` | CSP z nonce, bez `unsafe-inline`/`unsafe-eval` (US-023, US-024) ✅ | US-008 (SEC-005) |
 | Repudiation | zmiany kont bez śladu | brak funkcji → zmiany w DB ręcznie 🟡 | US-009 |
 
 ## Wymagania bezpieczeństwa wynikające z modelu (SEC-*)

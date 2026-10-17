@@ -1,6 +1,6 @@
 # ADR-0004: Etapowa migracja do ścisłej Content-Security-Policy (US-008)
 
-- **Status:** etap 1 zrealizowany (#28); etap 2a (US-022, #33); etap 2b (US-024 — Alpine CSP) **odłożony decyzją PO 2026-10-16**; etapy 3–4 zrealizowane (US-023, decyzja PO 2026-10-17) — z `'unsafe-eval'` do czasu US-024
+- **Status:** **zrealizowany** — etap 1 (#28); etap 2a (US-022, #33); etapy 3–4 (US-023, #42); etap 2b (US-024 — Alpine CSP; odłożony 2026-10-16, wznowiony decyzją PO 2026-10-17)
 - **Role:** [SEC] + [DEV]
 
 ## Kontekst
@@ -57,9 +57,29 @@ Pomiar przed zmianą: **425** handlerów `on*=` w 24 szablonach (w tym ~100 w zn
   `/artwork/design-preview` (eksperyment z `static/design/` ładujący unpkg — zepsuty już od #33, poza zakresem);
   wszystkie 812 elementów z akcjami parsują się i wskazują istniejące funkcje.
 
-**Ryzyko szczątkowe:** do czasu US-024 Alpine (standardowy build) wykonuje wyrażenia z atrybutów `x-*` przez
-`eval` — wstrzyknięty znacznik z dyrektywą Alpine w obszarze komponentu nadal byłby wykonywalny. Wstrzyknięty
-`<script>` i atrybuty `on*=` są już blokowane przez przeglądarkę.
+**Ryzyko szczątkowe (do US-024):** Alpine (standardowy build) wykonywał wyrażenia z atrybutów `x-*` przez
+`eval` — wstrzyknięty znacznik z dyrektywą Alpine w obszarze komponentu byłby wykonywalny.
+
+### Realizacja etapu 2b (US-024, 2026-10-17)
+Pomiar: 486 wyrażeń Alpine w 15 komponentach. Alpine 3.17 ma w buildzie CSP (`@alpinejs/csp`) własny parser
+wyrażeń (przypisania, operatory, wywołania metod, literały) — przepisywania wszystkich dyrektyw na
+`Alpine.data` z ADR nie trzeba. Parser odrzucił 24 wyrażenia (`??`, kilka instrukcji po `;`, `+=`), a 14 sięgało
+do globali, których build CSP nie udostępnia (`Math`, `Object`, `encodeURIComponent`, `enumPL`/`dataPL`, `COLS`).
+- `static/vendor/alpinejs/alpine-csp.min.js` (3.17.4, z `package.json` jak pozostałe biblioteki); collapse 3.17.4.
+- Wyrażenia spoza gramatyki → metody komponentu (`browseFrom(p)`, `loadPage(p)`, `startEditEmail()`…), globalne
+  funkcje → metody delegujące (`maxOf`, `enc`, `pct`, `isEmpty`, `enumPL`, `dataPL`), stała `COLS` → pole komponentu.
+- Każdy komponent rejestrowany `Alpine.data('nazwa', nazwa)` przy `alpine:init` (`x-data="nazwa()"` bez zmian).
+- **Bramka:** `tools/check_alpine_csp.mjs` (job CI `frontend`) parsuje każde wyrażenie parserem z `@alpinejs/csp`
+  i sprawdza, że odwołuje się tylko do pól komponentu, zmiennych `x-for` i magii Alpine.
+- **Polityka:** egzekwowane `script-src 'self' 'nonce-…'` z `report-uri /csp-report`; osobna polityka Report-Only
+  zbędna (byłaby identyczna) — usunięta.
+- **Weryfikacja e2e** (Chromium, polityka egzekwowana): 60 stron — 0 naruszeń (wcześniej 1254 raporty `eval`),
+  poza `/artwork/design-preview` (eksperyment z unpkg, poza zakresem); 170 handlerów Alpine na 15 stronach
+  wywołanych bez błędów wyrażeń; kontrola negatywna (`Math.max` w `@click`) zgłaszana przez Alpine.
+
+**Ryzyko szczątkowe po US-024:** `style-src 'unsafe-inline'` (style inline w szablonach) — wstrzyknięcie CSS, nie
+skryptu. Build CSP Alpine nadal wykonuje wstrzyknięte dyrektywy `x-*`, ale tylko w ramach swojego parsera: bez
+dostępu do globali, `document`, przypisań do obiektów DOM i niebezpiecznych metod (`setAttribute`, `insertAdjacentHTML`…).
 
 ## Konsekwencje
 - (+) Brak regresji UI teraz; mierzalny postęp (liczba raportów); ochrona atrybutów przed wstrzyknięciem już dziś.
