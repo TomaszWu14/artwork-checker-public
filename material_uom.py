@@ -132,8 +132,11 @@ def import_marm_rows(db, raw_rows) -> dict:
         idx = cols.get(field)
         return row[idx] if idx is not None and idx < len(row) else None
 
-    batch, refs, skipped = [], set(), 0
-    seen = set()  # (ref_norm, unit) w tej paczce — ostatni wygrywa
+    rows, refs, skipped = (
+        {},
+        set(),
+        0,
+    )  # (ref_norm, unit) → wiersz; duplikat w pliku — ostatni wygrywa
     for row in raw_rows[header_idx + 1 :]:
         ref = str(g(row, "ref") or "").strip()
         unit = str(g(row, "unit") or "").strip().upper()
@@ -142,29 +145,27 @@ def import_marm_rows(db, raw_rows) -> dict:
             skipped += 1
             continue
         key = (ref_norm, unit)
-        if key in seen:  # duplikat w pliku — pomiń wcześniejszy
+        if key in rows:  # duplikat w pliku — wcześniejszy pominięty (liczony raz, US-025)
             skipped += 1
-        seen.add(key)
         refs.add(ref_norm)
-        batch.append(
-            (
-                ref,
-                ref_norm,
-                unit,
-                _num(g(row, "numerator")),
-                _num(g(row, "denominator")),
-                _num(g(row, "width")),
-                _num(g(row, "height")),
-                _num(g(row, "length")),
-                str(g(row, "dim_unit") or "").strip().upper(),
-                _num(g(row, "gross_weight")),
-                str(g(row, "weight_unit") or "").strip().upper(),
-                _num(g(row, "volume")),
-                str(g(row, "volume_unit") or "").strip().upper(),
-                str(g(row, "ean") or "").strip(),
-            )
+        rows[key] = (
+            ref,
+            ref_norm,
+            unit,
+            _num(g(row, "numerator")),
+            _num(g(row, "denominator")),
+            _num(g(row, "width")),
+            _num(g(row, "height")),
+            _num(g(row, "length")),
+            str(g(row, "dim_unit") or "").strip().upper(),
+            _num(g(row, "gross_weight")),
+            str(g(row, "weight_unit") or "").strip().upper(),
+            _num(g(row, "volume")),
+            str(g(row, "volume_unit") or "").strip().upper(),
+            str(g(row, "ean") or "").strip(),
         )
 
+    batch = list(rows.values())
     sql = """INSERT OR REPLACE INTO material_uom_dims
         (ref_code, ref_norm, unit, numerator, denominator,
          width, height, length, dim_unit,

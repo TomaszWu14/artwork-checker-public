@@ -5,8 +5,13 @@ fuzzy/alias match — even when the WHERE-matched candidate set is large enough
 to span multiple pages (RESEARCH Pitfall 1: a naive re-sort of the already-
 paginated SQL slice would strand the exact match on a later page)."""
 
+import migrate_db
 import app as _app_mod
 import artwork_index as _ai
+
+# browse() czyta artwork_render_registry (tabela z migracji) — bez tego plik przechodził tylko
+# w pełnym zestawie, po innych testach uruchamiających migracje (US-025).
+migrate_db.run()
 
 
 def _clean(db):

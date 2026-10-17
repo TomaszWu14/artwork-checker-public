@@ -5,6 +5,19 @@ Wersja aplikacji: `constants.APP_VERSION`.
 
 ## [Unreleased]
 
+### Fixed
+- US-025 (błędy wykryte testami US-013):
+  - weryfikacja danych drukowanych: prawidłowe UPC-A i EAN-8 z tekstu OCR nie są już oznaczane jako błąd krytyczny;
+    data ważności DD.MM.RRRR jest poprawnie porównywana z (17)RRMMDD; brak EAN w tekście przy kodzie GS1 nie daje
+    fałszywego „EAN ≠ (None)”;
+  - odczyt kodów: nazwy formatów z zxing-cpp 2.x („EAN-13”, „Code 128”, „Data Matrix”) i starszych wersji są
+    rozpoznawane — wcześniej EAN/Code128 z zxing-cpp nie były walidowane ani parsowane;
+  - import dostawców: częściowy re-import nie nadpisuje kraju, waluty i słów kluczowych wartościami domyślnymi;
+  - raport: „Oznaczenie CE” nie jest już zaliczane przez pole „Producent” (dopasowanie po słowach); błąd walidacji
+    EAN dostawcy daje ostrzeżenie zamiast „Suma kontrolna GS1 poprawna”;
+  - biblioteka: wyszukiwanie samymi symbolami („%”, „---”) nie zwraca całej biblioteki; import MARM liczy duplikat raz;
+  - test `test_artwork_search_rank.py` działa samodzielnie (uruchamia migracje).
+
 ### Added
 - US-013: blokująca bramka pokrycia w CI — łączne pokrycie 9 modułów logiki domenowej (kody kreskowe, normalizacja,
   JM, nazewnictwo, indeks, raport, dane materiałów i dostawców) musi wynosić ≥ 80 % (decyzja PO 2026-10-17, Z-05);

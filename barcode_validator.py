@@ -54,7 +54,9 @@ def _normalize_ean(ean_str: str) -> str:
     # zawsze fałszywie się różni (false KRYTYCZNY na poprawnych kodach).
     if len(digits) == 14 and digits[0] == '0':
         digits = digits[1:]
-    return digits.zfill(13)
+    # Brak cyfr → "" (nie „0000000000000”), inaczej brak EAN w tekście dawał fałszywe
+    # „EAN w barcode ≠ EAN w tekście (None)” (US-025).
+    return digits.zfill(13) if digits else ""
 
 
 # ─── EAN-13 WALIDACJA ─────────────────────────────────────────────────────────
@@ -570,16 +572,19 @@ def _read_pyzbar(img) -> list:
 
 def _classify(fmt: str, raw: str) -> dict:
     """Klasyfikuje i parsuje zawartość kodu wg jego formatu."""
-    fu = fmt.upper()
-    if "EAN_13" in fu or fu == "EAN13":
+    # Nazwy formatów różnią się między bibliotekami i wersjami: zxing-cpp 2.x „EAN-13”, „Code 128”,
+    # „Data Matrix”; starsze „BarcodeFormat.EAN13”; pyzbar „EAN13”, „CODE128”, „QRCODE” — porównuj
+    # po samych literach i cyfrach (US-025).
+    fu = re.sub(r"[^A-Z0-9]", "", str(fmt).upper().replace("BARCODEFORMAT.", ""))
+    if fu == "EAN13":
         return {"type": "EAN-13", "ean": raw, "validation": validate_ean13(raw)}
-    if "EAN_8" in fu or fu == "EAN8":
+    if fu == "EAN8":
         return {"type": "EAN-8", "ean": raw, "validation": validate_ean8(raw)}
-    if "UPC_A" in fu or fu == "UPCA" or fu == "UPC":
+    if fu in ("UPCA", "UPC"):
         return {"type": "UPC-A", "ean": raw, "validation": validate_upca(raw)}
-    if "CODE_128" in fu or fu == "CODE128":
+    if fu in ("CODE128", "GS1128"):
         return {"type": "Code128/GS1-128", "gs1": parse_gs1_128(raw)}
-    if "DATA_MATRIX" in fu or "DATAMATRIX" in fu:
+    if "DATAMATRIX" in fu:
         return {"type": "DataMatrix/GS1", "gs1": parse_gs1_128(raw)}
     if "QR" in fu:
         return {"type": "QR", "data": raw}
@@ -1020,6 +1025,22 @@ def _check_barcodes_vs_text(barcodes: list, ocr_text: str, source: str) -> list:
 # ─── DEEP VALIDATE PRINTED DATA ───────────────────────────────────────────────
 
 
+def _exp_yymmdd(s: str) -> str:
+    """Datę z kodu lub tekstu sprowadza do RRMMDD (US-025).
+
+    Obsługuje RRRR-MM-DD (wynik parsera GS1), DD.MM.RRRR / DD-MM-RRRR / DD/MM/RRRR (zapis europejski
+    na opakowaniach) i surowe RRMMDD z AI (17). Inne zapisy → "" (porównanie uzna je za niezgodne).
+    """
+    s = (s or "").strip()
+    m = re.fullmatch(r"(\d{4})[-./](\d{2})[-./](\d{2})", s)
+    if m:
+        return m.group(1)[2:] + m.group(2) + m.group(3)
+    m = re.fullmatch(r"(\d{2})[-./](\d{2})[-./](\d{4})", s)
+    if m:
+        return m.group(3)[2:] + m.group(2) + m.group(1)
+    return s if re.fullmatch(r"\d{6}", s) else ""
+
+
 def deep_validate_printed_data(ocr_text: str, img_b64: Optional[str] = None) -> dict:
     """
     Sprawdza spójność nadrukowanych danych na artworku dostawcy:
@@ -1123,18 +1144,19 @@ def deep_validate_printed_data(ocr_text: str, img_b64: Optional[str] = None) -> 
 
     result["barcode_gs1"] = gs1_data
 
-    # ── 3. Walidacja EAN-13 z OCR ─────────────────────────────────────────────
+    # ── 3. Walidacja EAN/UPC z OCR (8 → EAN-8, 12 → UPC-A, 13 → EAN-13; US-025) ─────
     if ocr_ean:
-        v = validate_ean13(ocr_ean)
+        v = validate_barcode_number(ocr_ean)
+        kind = v["type"]
         if v["valid"]:
             result["details"].append(
-                {"level": "OK", "text": f"EAN-13 ({ocr_ean}) — cyfra kontrolna poprawna"}
+                {"level": "OK", "text": f"{kind} ({ocr_ean}) — cyfra kontrolna poprawna"}
             )
         else:
             result["ok"] = False
-            result["issues"].append(f"EAN-13 ({ocr_ean}): {v['error']}")
+            result["issues"].append(f"{kind} ({ocr_ean}): {v['error']}")
             result["details"].append(
-                {"level": "KRYTYCZNY", "text": f"EAN-13 ({ocr_ean}): {v['error']}"}
+                {"level": "KRYTYCZNY", "text": f"{kind} ({ocr_ean}): {v['error']}"}
             )
     else:
         result["details"].append({"level": "INFO", "text": "Nie znaleziono EAN-13 w tekście OCR"})
@@ -1188,11 +1210,10 @@ def deep_validate_printed_data(ocr_text: str, img_b64: Optional[str] = None) -> 
         # Data ważności
         bc_exp = gs1_data.get("exp_date")
         if bc_exp and ocr_exp:
-            # Porównaj znormalizowane 6 cyfr YYMMDD (ostatnie 6 z ciągu samych cyfr),
-            # a nie podciąg w obie strony — ten ostatni dawał fałszywe trafienia
-            # (np. "0510" mieści się w wielu datach).
-            bc_exp_n = re.sub(r"\D", "", bc_exp)[-6:]
-            oc_exp_n = re.sub(r"\D", "", ocr_exp)[-6:]
+            # Porównaj daty sprowadzone do RRMMDD (_exp_yymmdd), a nie podciąg w obie strony —
+            # ten dawał fałszywe trafienia (np. "0510" mieści się w wielu datach).
+            bc_exp_n = _exp_yymmdd(bc_exp)
+            oc_exp_n = _exp_yymmdd(ocr_exp)
             if bc_exp_n and oc_exp_n and bc_exp_n == oc_exp_n:
                 result["details"].append(
                     {

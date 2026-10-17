@@ -456,8 +456,17 @@ def _build_supplier_validation(field_report: list, barcode_rep: dict) -> list:
             # więc dyspozytujemy walidację po długości zamiast wymuszać EAN-13.
             invalid = [e for e in eans_b if not validate_barcode_number(e)["valid"]]
         except Exception:
-            invalid = []
-        if invalid:
+            invalid = None  # walidacja się nie wykonała — nie raportuj „poprawna” (US-025)
+        if invalid is None:
+            checks.append(
+                {
+                    "field": "EAN-13",
+                    "value": ", ".join(eans_b),
+                    "status": "warning",
+                    "note": "Nie udało się zweryfikować sumy kontrolnej — sprawdź ręcznie",
+                }
+            )
+        elif invalid:
             checks.append(
                 {
                     "field": "EAN-13",
@@ -910,10 +919,18 @@ def build_report_from_comparison(result) -> ArtworkReport:
     _fmap_list = [(row.get("field", "").lower(), row) for row in field_report]
     _fmap = dict(_fmap_list)  # kept for single-match lookups; duplicates resolved via _fmap_list
 
+    def _key_in(k: str, fk: str) -> bool:
+        # Klucz musi zaczynać słowo w nazwie pola, a klucze ≤ 3 znaków (ce, mdr, ref, lot…) — być
+        # całym słowem. Dopasowanie po podciągu dawało fałszywe trafienia: „produ-ce-nt” → „CE” (US-025).
+        import re
+
+        pat = r"(?<![^\W_])" + re.escape(k) + (r"(?![^\W_])" if len(k) <= 3 else "")
+        return re.search(pat, fk) is not None
+
     def _field_present(keys: list) -> bool:
         for k in keys:
             for fk, row in _fmap_list:
-                if k in fk:
+                if _key_in(k, fk):
                     _va = row.get("val_a")
                     _vb = row.get("val_b")
                     va = "—" if _va is None else (str(_va) or "—")
@@ -925,7 +942,7 @@ def build_report_from_comparison(result) -> ArtworkReport:
     def _field_ok(keys: list) -> bool:
         for k in keys:
             for fk, row in _fmap_list:
-                if k in fk:
+                if _key_in(k, fk):
                     return not row.get("changed", False)
         return False
 
