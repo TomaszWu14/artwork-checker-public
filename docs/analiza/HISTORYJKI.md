@@ -116,7 +116,7 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
 ### US-013 · Could · 📋 · Pomiar pokrycia i próg 80 % dla logiki domenowej (Z-05)
 ### US-014 · Could · 📋 · RODO: retencja `audit_log` (12 mies.), eksport i usunięcie danych konta
 ### US-015 · Could · 📋 · Kolejka RQ dla ciężkich zadań (plan: `docs/KOLEJKOWANIE.md`)
-### US-016 · Could · ✅ (decyzja PO 2026-10-17) · Archiwizacja nieaktualnych dokumentów (`docs/architektura.md`, `DOKUMENTACJA_IT.md`, `PROCES_*`) do `docs/archiwum/`
+### US-016 · Could · ✅ (#46; decyzja PO 2026-10-17) · Archiwizacja nieaktualnych dokumentów (`docs/architektura.md`, `DOKUMENTACJA_IT.md`, `PROCES_*`) do `docs/archiwum/`
 - Given dokumenty opisujące DocCompare, When przegląd `docs/`, Then są w `docs/archiwum/` z adnotacją „ARCHIWUM” na górze,
   opisane w `docs/archiwum/README.md` (co opisywały, aktualny odpowiednik); odnośniki w aktualnych dokumentach poprawione.
 ### US-017 · Could · ✅ (#30) · `POST /logout` z CSRF; kontrola dezaktywacji konta w ręcznych sprawdzeniach sesji
