@@ -121,9 +121,9 @@ def test_us013_refs_and_company_names():
     assert nz.normalize_ref("") == ""
     assert nz.normalize_ref("nl753–s 40") == "NL753S40"
     assert nz.refs_match("", "X") == (False, 0.0)
-    # Obecne zachowanie: tolerancja 1 znaku (literówka OCR) — czy to akceptowalne dla REF, zgłoszone PO (US-013).
-    ok, conf = nz.refs_match("ABCDEFGH12", "ABCDEFGX12")
-    assert ok is True and 0.85 <= conf < 1.0
+    # US-026 (decyzja PO): różnica jednego znaku = różne REF, bez dopasowania rozmytego.
+    assert nz.refs_match("ABCDEFGH12", "ABCDEFGX12") == (False, 0.0)
+    assert nz.refs_match("ABC12345X", "ABC12354X") == (False, 0.0)
     assert nz.refs_match("QWERTY", "ZXCVBN") == (False, 0.0)
     assert nz.normalize_company_name("") == ""
     assert nz.normalize_company_name("Acme  Sp. z o.o.") == "ACME SPZOO"
