@@ -144,9 +144,9 @@ def coverage(db, ref="", lvl1="", page=1, per_page=50) -> dict:
 
     total = db.execute(
         # Bandit B608: SQL złożony wyłącznie ze stałych fragmentów w kodzie; dane użytkownika idą jako parametry ?.
-        f"SELECT COUNT(*) FROM library_files{where_sql}",
+        f"SELECT COUNT(*) FROM library_files{where_sql}",  # nosec B608
         params,
-    ).fetchone()[0]  # nosec B608
+    ).fetchone()[0]
 
     offset = (page - 1) * per_page
     rows = [

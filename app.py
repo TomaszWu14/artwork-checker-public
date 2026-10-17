@@ -11322,9 +11322,10 @@ def api_materials_list():
             params + [limit, offset],
         ).fetchall()
         # Bandit B608: SQL złożony wyłącznie ze stałych fragmentów w kodzie; dane użytkownika idą jako parametry ?.
-        total = db.execute(f"SELECT COUNT(*) FROM material_master WHERE {wsql}", params).fetchone()[
-            0
-        ]  # nosec B608
+        total = db.execute(
+            f"SELECT COUNT(*) FROM material_master WHERE {wsql}",  # nosec B608
+            params,
+        ).fetchone()[0]
         families = [
             r[0]
             for r in db.execute(
