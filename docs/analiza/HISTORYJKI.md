@@ -113,7 +113,12 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
 - Tabele i dane w bazie bez zmian (bez migracji na danych); usunięcie tabel — osobna decyzja PO.
 - Given dowolny szablon, When test linków, Then brak linków do usuniętych tras; Given trasy reliktów, Then 404.
 
-### US-013 · Could · 📋 · Pomiar pokrycia i próg 80 % dla logiki domenowej (Z-05)
+### US-013 · Could · ✅ (#47; decyzja PO 2026-10-17) · Pomiar pokrycia i próg 80 % dla logiki domenowej (Z-05)
+- Zakres „logiki domenowej” (decyzja PO): `artwork_index`, `artwork_naming`, `artwork_report_engine`, `barcode_validator`,
+  `material_master`, `material_uom`, `normalizer`, `supplier_master`, `uom`; próg liczony łącznie dla zestawu.
+- Given push/PR, When CI „Składnia + testy”, Then `coverage report --fail-under=80` dla zestawu blokuje merge
+  przy pokryciu < 80 %; pokrycie całego repo pozostaje raportem informacyjnym.
+- Given zmiana listy modułów lub obniżenie progu w `ci.yml`, When pytest, Then test `test_us013_coverage_gate.py` czerwony.
 ### US-014 · Could · 📋 · RODO: retencja `audit_log` (12 mies.), eksport i usunięcie danych konta
 ### US-015 · Could · 📋 · Kolejka RQ dla ciężkich zadań (plan: `docs/KOLEJKOWANIE.md`)
 ### US-016 · Could · ✅ (#46; decyzja PO 2026-10-17) · Archiwizacja nieaktualnych dokumentów (`docs/architektura.md`, `DOKUMENTACJA_IT.md`, `PROCES_*`) do `docs/archiwum/`

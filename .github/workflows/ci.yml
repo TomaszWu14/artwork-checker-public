@@ -25,6 +25,10 @@ permissions:
 
 env:
   PYTHON_VERSION: "3.11"
+  # US-013 (decyzja PO 2026-10-17, Z-05): zestaw „logiki domenowej” objęty progiem pokrycia ≥ 80 % (łącznie).
+  # Zmiana listy lub progu = decyzja PO (docs/testy/STRATEGIA_TESTOW.md; pilnuje tests/test_us013_coverage_gate.py).
+  DOMAIN_COVERAGE_MODULES: "artwork_index.py,artwork_naming.py,artwork_report_engine.py,barcode_validator.py,material_master.py,material_uom.py,normalizer.py,supplier_master.py,uom.py"
+  DOMAIN_COVERAGE_MIN: "80"
 
 jobs:
   lint:
@@ -55,8 +59,10 @@ jobs:
         run: python -m compileall -q . -x 'static/design|\.git'
       - name: Instalacja zależności testowych (lekki zestaw, bez pakietów ML)
         run: pip install pytest pytest-cov python-dateutil dateparser babel flask werkzeug "rapidfuzz>=3.0,<4.0"
-      - name: "pytest + raport pokrycia (próg pokrycia - decyzja PO, Z-05)"
+      - name: pytest + raport pokrycia całego repo (informacyjny)
         run: python -m pytest tests/ -q --cov=. --cov-report=xml --cov-report=term
+      - name: "Pokrycie logiki domenowej ≥ 80 % — BLOKUJE od US-013 (Z-05)"
+        run: python -m coverage report -m --include="$DOMAIN_COVERAGE_MODULES" --fail-under="$DOMAIN_COVERAGE_MIN"
       - name: Artefakt — pokrycie
         if: always()
         uses: actions/upload-artifact@v7
