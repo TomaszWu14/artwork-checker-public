@@ -103,7 +103,7 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
 
 ## Could
 
-### US-010 · Could (decyzja PO 2026-10-17: Z-03) · ✅ · Usunięcie reliktów DocCompare (zakres „pewne relikty”)
+### US-010 · Could (decyzja PO 2026-10-17: Z-03) · ✅ (#44) · Usunięcie reliktów DocCompare (zakres „pewne relikty”)
 - Usunięte (trasy, szablony, blueprinty): checklisty dostaw (`/checklists` zwracało 500 — brak tabeli), typy
   dokumentów, szablony porównań (`/templates`; `/artwork/templates` zostaje), Incoterms, kraje tranzytu, słownik
   tłumaczeń, scorecard, wersje, duplikaty, `/api/search`; `DocType`, `TRACKING_PROVIDERS`, zmienne śledzenia
