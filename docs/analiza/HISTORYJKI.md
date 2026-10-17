@@ -132,6 +132,10 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
 - Given zalogowany użytkownik, When otwiera `/artwork/design-preview` w przeglądarce z egzekwowaną CSP, Then makiety
   renderują się (5 wariantów), 0 naruszeń CSP, 0 błędów JS; brak skryptów z CDN i Babel w przeglądarce.
 - Given zmiana źródeł `frontend/src/design_preview/*.jsx`, When CI „frontend”, Then zbudowany plik musi być aktualny.
+### US-026 · Should (decyzja PO 2026-10-17) · ✅ (#49) · Dokładne dopasowanie REF i wyłączenie komentarza AI w raporcie
+- Given dwa kody REF różniące się jednym znakiem (np. ABCDEFGH12 / ABCDEFGX12), When `refs_match`, Then „niezgodne”
+  (bez dopasowania rozmytego; separatory, spacje i wielkość liter nadal normalizowane).
+- Given budowanie raportu porównania, Then brak wywołania Claude API i brak sekcji „Komentarz” w HTML, DOCX i PDF.
 ### US-025 · Should (decyzja PO 2026-10-17: „napraw błędy znalezione przez testy”) · ✅ (#48) · Poprawki błędów wykrytych testami US-013
 - Given poprawny UPC-A/EAN-8 w tekście OCR, When weryfikacja danych drukowanych, Then brak błędu KRYTYCZNEGO (walidacja wg długości).
 - Given EXP w zapisie DD.MM.RRRR i kod (17)RRMMDD z tą samą datą, Then „zgodna”; inna data → nadal KRYTYCZNY.
@@ -142,7 +146,7 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
 - Given błąd wewnątrz walidacji EAN dostawcy, Then „ostrzeżenie: nie udało się zweryfikować”, nie „poprawna”.
 - Given wyszukiwanie w bibliotece samymi symbolami („%”, „---”), Then traktowane dosłownie (nie cała biblioteka);
   duplikat w pliku MARM liczony raz w statystyce importu.
-- Poza zakresem (do decyzji PO): tolerancja 1 znaku w `refs_match`, brak komentarza AI w raporcie HTML.
+- Poza zakresem: tolerancja 1 znaku w `refs_match` i komentarz AI — rozstrzygnięte w US-026.
 ### US-024 · Should · ✅ (#43; wznowione decyzją PO 2026-10-17) · CSP etap 2b: Alpine w wersji CSP (`Alpine.data`) — zdjęcie `unsafe-eval` (ADR-0004)
 - Given odpowiedź HTML, When sprawdzam nagłówek, Then egzekwowane `script-src` nie zawiera `'unsafe-eval'` ani
   `'unsafe-inline'`; naruszenia trafiają do `/csp-report`.
