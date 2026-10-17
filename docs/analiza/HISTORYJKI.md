@@ -79,7 +79,7 @@ omijała ochrony.
   pokazuje różnice wykryte deterministycznie, a sekcja AI jest oznaczona „doradcza".
 - Test z fixture „złośliwy PDF" bez wywołania sieci (mock). Ryzyko: R-02 (SEC-004).
 
-### US-008 · Should · ✅ (etap 1 #28; etap 2a #33 (US-022); etapy 3–4 #42 (US-023); etap 2b US-024 — ADR-0004) · CSP bez `unsafe-eval`, nonce dla skryptów inline
+### US-008 · Should · ✅ (etap 1 #28; etap 2a #33 (US-022); etapy 3–4 #42 (US-023); etap 2b #43 (US-024) — ADR-0004) · CSP bez `unsafe-eval`, nonce dla skryptów inline
 - Given odpowiedź HTML, When sprawdzam nagłówek, Then `script-src` nie zawiera `unsafe-eval`; `unsafe-inline`
   zastąpione `nonce-…` (lub hash) — Alpine w wariancie CSP.
 - Given 199 użyć `innerHTML`, When przegląd, Then każde użycie z danymi użytkownika przechodzi przez jeden
@@ -115,7 +115,7 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
 ### US-019 · Could · ✅ (#31) · Limit stron/DPI dla OCR (ochrona przed wyczerpaniem zasobów)
 ### US-021 · Could · ✅ (#38; obraz z locka zbudowany i przetestowany na `main`; `transformers` 5 poza zakresem — limit <5, decyzja PO) · Lockfile z hashami dla pełnego obrazu ML (`requirements.txt`, torch CPU z osobnego indeksu) i użycie go w `Dockerfile`/`Dockerfile.base`
 ### US-022 · Should · ✅ (#33) · CSP etap 2a: raport bez Babel w przeglądarce, Tailwind zbudowany, biblioteki z `static/vendor` — CSP bez CDN (ADR-0004)
-### US-024 · Should · ✅ (wznowione decyzją PO 2026-10-17) · CSP etap 2b: Alpine w wersji CSP (`Alpine.data`) — zdjęcie `unsafe-eval` (ADR-0004)
+### US-024 · Should · ✅ (#43; wznowione decyzją PO 2026-10-17) · CSP etap 2b: Alpine w wersji CSP (`Alpine.data`) — zdjęcie `unsafe-eval` (ADR-0004)
 - Given odpowiedź HTML, When sprawdzam nagłówek, Then egzekwowane `script-src` nie zawiera `'unsafe-eval'` ani
   `'unsafe-inline'`; naruszenia trafiają do `/csp-report`.
 - Given dowolne wyrażenie Alpine w szablonie, When CI („frontend”), Then parsuje się parserem `@alpinejs/csp`
