@@ -154,9 +154,9 @@ artwork_material_level, artwork_pkg_level_type, artwork_profile_history, async_j
 currency_rates, notifications, password_reset_tokens, products, sad_field_mapping, supplier_checklists,
 translation_dictionary, webhooks.
 `artwork_index.py`: artwork_alias, artwork_confirmed, artwork_index. `artwork_manage.py`: artwork_file_status.
-`material_master.py`: material_master. `blueprints/palviz.py`: dieline_templates. `blueprints/incoterms.py`:
-incoterms_dictionary.
+`material_master.py`: material_master. `blueprints/palviz.py`: dieline_templates. Usunięty w US-010 `blueprints/incoterms.py`
+tworzył incoterms_dictionary (tabela w istniejących bazach zostaje).
 
-**Relikty DocCompare (kandydaci do usunięcia, US-010):** customs_agencies, kolejka_*, zlecenia_*, warehouse_*,
+**Relikty DocCompare — tabele bez kodu aplikacji** (US-010 usunął trasy; decyzja PO 2026-10-17: tabele i dane zostają, ich usunięcie to osobna decyzja): customs_agencies, kolejka_*, zlecenia_*, warehouse_*,
 tickets, po_line_items, sad_field_mapping, cn_reference, currency_rates, supplier_checklists, comparison_templates,
 doc_types, products, transit_countries, incoterms_dictionary, translation_dictionary, email_queue.

@@ -21,51 +21,47 @@ def _set_csrf(client, token=CSRF_TOKEN):
 
 
 # ── Lekki endpoint listujący (login_required) ─────────────────────────────────
-def test_doc_types_requires_auth(client):
-    resp = client.get("/api/doc-types")
+# US-010: wcześniej na /api/doc-types (relikt DocCompare, usunięty) — te same mechanizmy
+# sprawdzane na tabeli materiałów i limicie dysku w panelu admina.
+def test_list_endpoint_requires_auth(client):
+    resp = client.get("/api/materials")
     assert resp.status_code == 302
     assert "/login" in resp.headers.get("Location", "")
 
 
-def test_doc_types_list_for_authenticated_user(manager_client):
-    resp = manager_client.get("/api/doc-types")
+def test_list_endpoint_for_authenticated_user(manager_client):
+    resp = manager_client.get("/api/materials")
     assert resp.status_code == 200
-    assert isinstance(resp.get_json(), list)
+    assert resp.is_json
 
 
 # ── Pełny flow chronionego POST: CSRF (nagłówek) + require_role + DB write ─────
-def test_admin_create_doc_type_end_to_end(admin_client):
+def test_admin_post_end_to_end(admin_client):
     _set_csrf(admin_client)
     resp = admin_client.post(
-        "/api/doc-types",
-        json={"code": "ITTEST", "label": "Test integracyjny", "icon": "🧪"},
+        "/api/admin/db-limit",
+        json={"limit_gb": "123"},
         headers={"X-CSRF-Token": CSRF_TOKEN},
     )
     assert resp.status_code == 200, resp.data
-    body = resp.get_json()
-    assert body.get("ok") is True
-    assert body["type"]["code"] == "ITTEST"
-    # Odczyt zwrotny — nowy typ jest na liście wszystkich.
-    all_types = admin_client.get("/api/doc-types/all").get_json()
-    assert any(t["code"] == "ITTEST" for t in all_types)
+    # Odczyt zwrotny — zapisana wartość wraca w zużyciu bazy.
+    usage = admin_client.get("/api/admin/db-usage").get_json()
+    assert usage.get("limit_gb") == 123.0
 
 
-def test_create_doc_type_without_csrf_rejected(admin_client):
+def test_admin_post_without_csrf_rejected(admin_client):
     # Admin (rola OK), ale brak nagłówka X-CSRF-Token → csrf_protect zwraca 403.
     _set_csrf(admin_client)
-    resp = admin_client.post(
-        "/api/doc-types",
-        json={"code": "NOCSRF", "label": "x"},
-    )
+    resp = admin_client.post("/api/admin/db-limit", json={"limit_gb": "1"})
     assert resp.status_code == 403
 
 
-def test_create_doc_type_forbidden_for_manager(manager_client):
+def test_admin_post_forbidden_for_manager(manager_client):
     # require_role('admin') odrzuca managera ZANIM dojdzie do CSRF — 403 JSON.
     _set_csrf(manager_client)
     resp = manager_client.post(
-        "/api/doc-types",
-        json={"code": "MGR", "label": "x"},
+        "/api/admin/db-limit",
+        json={"limit_gb": "1"},
         headers={"X-CSRF-Token": CSRF_TOKEN},
     )
     assert resp.status_code == 403

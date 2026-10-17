@@ -26,7 +26,17 @@ Wersja aplikacji: `constants.APP_VERSION`.
   Semgrep (doradczo), pip-audit (blokujący), gitleaks (blokujący), Trivy fs/config (doradczo); artefakty raportów.
 - `.gitleaks.toml` z udokumentowaną allowlistą danych testowych; pre-commit z gitleaks i hookami porządkowymi.
 
+### Removed
+- US-010 (Z-03, decyzja PO 2026-10-17): relikty DocCompare — checklisty dostaw (strona zwracała 500, brak tabeli),
+  typy dokumentów, szablony porównań, słowniki Incoterms / krajów tranzytu / tłumaczeń (blueprinty), scorecard,
+  wersje, duplikaty porównań, nieużywane `/api/search`, stałe `DocType`/`TRACKING_PROVIDERS`, zmienne śledzenia
+  przesyłek w `.env.example`. Tabele i dane w bazie bez zmian.
+
 ### Changed
+- Globalna wyszukiwarka: wyniki porównań artwork prowadzą do `/artwork/history`, dostawcy do `/suppliers/master`
+  (wcześniej do starej historii, która ukrywa artwork, i do profili dostawców).
+- Testy mechanizmów login/CSRF/ról z usuniętego API typów dokumentów przeniesione na `/api/materials` i
+  `/api/admin/db-limit`.
 - US-024 (CSP etap 2b, ADR-0004): Alpine w buildzie CSP (`@alpinejs/csp` 3.17.4) — egzekwowana CSP bez
   `'unsafe-eval'` i `'unsafe-inline'` dla skryptów, z `report-uri /csp-report`; osobna polityka Report-Only usunięta.
   24 wyrażenia spoza gramatyki i 14 odwołań do globali przeniesione do metod komponentów, 15 komponentów

@@ -103,9 +103,15 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
 
 ## Could
 
-### US-010 · Could (decyzja PO: Z-03) · 📋 · Usunięcie reliktów DocCompare
-- 55 tras, ~20 tabel, szablony, `DocType`, `TRACKING_PROVIDERS`, zmienne tracking w `.env.example`;
-  po każdej grupie: `pytest` + boot; `help.html` aktualny.
+### US-010 · Could (decyzja PO 2026-10-17: Z-03) · ✅ (#44) · Usunięcie reliktów DocCompare (zakres „pewne relikty”)
+- Usunięte (trasy, szablony, blueprinty): checklisty dostaw (`/checklists` zwracało 500 — brak tabeli), typy
+  dokumentów, szablony porównań (`/templates`; `/artwork/templates` zostaje), Incoterms, kraje tranzytu, słownik
+  tłumaczeń, scorecard, wersje, duplikaty, `/api/search`; `DocType`, `TRACKING_PROVIDERS`, zmienne śledzenia
+  przesyłek w `.env.example`.
+- Zostają (decyzja PO): profile dostawców i kreator, stara historia porównań (`/history`), webhooki; globalna
+  wyszukiwarka `/search` z linkami do `/artwork/history` (wyniki artwork) i `/suppliers/master`.
+- Tabele i dane w bazie bez zmian (bez migracji na danych); usunięcie tabel — osobna decyzja PO.
+- Given dowolny szablon, When test linków, Then brak linków do usuniętych tras; Given trasy reliktów, Then 404.
 
 ### US-013 · Could · 📋 · Pomiar pokrycia i próg 80 % dla logiki domenowej (Z-05)
 ### US-014 · Could · 📋 · RODO: retencja `audit_log` (12 mies.), eksport i usunięcie danych konta

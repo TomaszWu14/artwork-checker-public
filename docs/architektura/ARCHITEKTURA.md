@@ -56,7 +56,7 @@ flowchart TB
 
 | Warstwa | Moduły | Uwagi |
 |---|---|---|
-| Trasy | `app.py` (272), `blueprints/{incoterms,translation_dict,transit_countries,palviz}.py` (25) | kierunek: blueprint → core/db, nigdy → app |
+| Trasy | `app.py` (272), `blueprints/{palviz,users}.py` (słowniki DocCompare usunięte w US-010) | kierunek: blueprint → core/db, nigdy → app |
 | Bezpieczeństwo | `core/security.py` (role, `login_required`, `require_role`, CSRF), `core/audit.py` | |
 | Domena artwork | `artwork_comparator.py`, `artwork_zone_comparator.py`, `artwork_report_engine.py`, `artwork_batch_processor.py`, `barcode_validator.py`, `artwork_text_layer.py` | ML/OCR importowane leniwie |
 | Biblioteka | `artwork_index.py`, `artwork_naming.py`, `artwork_manage.py`, `artwork_card.py`, `artwork_marm_link.py`, `library_sync.py` (agent) | |

@@ -167,23 +167,7 @@
 
 | Ścieżka | Metody | Dostęp | CSRF | Plik:linia |
 |---|---|---|---|---|
-| `/scorecard` | GET | zalogowany | — | `app.py:1867` |
-| `/versions` | GET | zalogowany | — | `app.py:1990` |
-| `/duplicates` | GET | zalogowany | — | `app.py:2114` |
-| `/doc-types` | GET | zalogowany | — | `app.py:3023` |
-| `/api/doc-types` | GET | zalogowany | — | `app.py:3039` |
-| `/api/doc-types/all` | GET | zalogowany | — | `app.py:3053` |
-| `/api/doc-types` | POST | rola≥admin | tak | `app.py:3065` |
-| `/api/doc-types/<int:tid>` | PATCH | rola≥admin | tak | `app.py:3095` |
-| `/api/doc-types/<int:tid>` | DELETE | rola≥admin | tak | `app.py:3137` |
-| `/api/doc-types/reorder` | POST | rola≥admin | tak | `app.py:3158` |
 | `/suppliers` | GET | zalogowany | — | `app.py:3205` |
-| `/checklists` | GET | zalogowany | — | `app.py:3283` |
-| `/api/checklists/delivery` | POST | zalogowany | tak | `app.py:3333` |
-| `/api/checklists/delivery/<po>` | GET | zalogowany | — | `app.py:3364` |
-| `/api/checklists/delivery/<int:did>` | PATCH | rola≥manager | tak | `app.py:3378` |
-| `/api/checklists/templates` | POST | rola≥manager | tak | `app.py:3418` |
-| `/api/checklists/templates/<int:tid>` | DELETE | rola≥manager | tak | `app.py:3444` |
 | `/api/suppliers` | GET | zalogowany | — | `app.py:3457` |
 | `/api/suppliers` | POST | rola≥admin | tak | `app.py:3464` |
 | `/api/suppliers/<int:sid>` | PATCH | rola≥admin | tak | `app.py:3480` |
@@ -196,29 +180,6 @@
 | `/api/suppliers/<int:sid>/stats` | GET | zalogowany | — | `app.py:3663` |
 | `/api/suppliers/<int:sid>/rules` | GET | zalogowany | — | `app.py:7066` |
 | `/api/suppliers/<int:sid>/rules` | POST | rola≥admin | tak | `app.py:7083` |
-| `/templates` | GET | rola≥admin | — | `app.py:7213` |
-| `/api/templates` | GET | zalogowany | — | `app.py:7231` |
-| `/api/templates` | POST | rola≥admin | tak | `app.py:7255` |
-| `/api/templates/<int:tid>` | PATCH | rola≥admin | tak | `app.py:7304` |
-| `/api/templates/<int:tid>` | DELETE | rola≥admin | tak | `app.py:7350` |
-| `/api/templates/<int:tid>/use` | POST | zalogowany | tak | `app.py:7363` |
-| `/api/templates/export` | GET | rola≥admin | — | `app.py:7376` |
-| `/api/templates/import` | POST | rola≥admin | tak | `app.py:7391` |
-| `/incoterms` | GET | zalogowany | — | `blueprints/incoterms.py:63` |
-| `/api/incoterms` | GET | zalogowany | — | `blueprints/incoterms.py:70` |
-| `/api/incoterms` | POST | rola≥manager | tak | `blueprints/incoterms.py:85` |
-| `/api/incoterms/<int:iid>` | PUT | rola≥manager | tak | `blueprints/incoterms.py:111` |
-| `/api/incoterms/<int:iid>` | DELETE | rola≥manager | tak | `blueprints/incoterms.py:131` |
-| `/transit-countries` | GET | zalogowany | — | `blueprints/transit_countries.py:52` |
-| `/api/transit-countries` | GET | zalogowany | — | `blueprints/transit_countries.py:59` |
-| `/api/transit-countries` | POST | rola≥manager | tak | `blueprints/transit_countries.py:69` |
-| `/api/transit-countries/<int:cid>` | DELETE | rola≥manager | tak | `blueprints/transit_countries.py:92` |
-| `/translation-dictionary` | GET | zalogowany | — | `blueprints/translation_dict.py:21` |
-| `/api/translation-dictionary` | GET | zalogowany | — | `blueprints/translation_dict.py:29` |
-| `/api/translation-dictionary` | POST | rola≥manager | tak | `blueprints/translation_dict.py:43` |
-| `/api/translation-dictionary/<int:tid>` | PUT | rola≥manager | tak | `blueprints/translation_dict.py:76` |
-| `/api/translation-dictionary/<int:tid>` | DELETE | rola≥manager | tak | `blueprints/translation_dict.py:102` |
-| `/api/translation-dictionary/apply` | POST | zalogowany | tak | `blueprints/translation_dict.py:115` |
 
 ### 3D / PalViz
 
@@ -355,7 +316,6 @@
 | `/api/notifications/<int:nid>` | DELETE | zalogowany | tak | `app.py:3005` |
 | `/api/comparison/<int:cid>/comment` | POST | zalogowany | tak | `app.py:6845` |
 | `/api/comparison/<int:cid>/comments` | GET | zalogowany | — | `app.py:6882` |
-| `/api/search` | GET | zalogowany | — | `app.py:6909` |
 | `/help` | GET | zalogowany | — | `app.py:7447` |
 | `/data` | GET | zalogowany | — | `app.py:12603` |
 
