@@ -4,6 +4,7 @@ core/audit.py — zapis zdarzeń do tabeli audit_log.
 Wydzielone z app.py (helper używany w ~setkach miejsc), by blueprinty mogły go
 importować bez cyklu. Zależy tylko od warstwy db i flask.session/request.
 """
+
 from __future__ import annotations
 
 import json as _json
@@ -16,8 +17,9 @@ from db import get_db
 logger = logging.getLogger("doccompare")
 
 
-def log_audit(event: str, username: str = None, detail: str = "",
-              duration_ms: int = None, extra: dict = None):
+def log_audit(
+    event: str, username: str = None, detail: str = "", duration_ms: int = None, extra: dict = None
+):
     """Zapisuje zdarzenie do audit_log (event + opcjonalnie czas i dane JSON).
 
     Parametry:
@@ -45,12 +47,14 @@ def log_audit(event: str, username: str = None, detail: str = "",
             db.execute(
                 "INSERT INTO audit_log(event,username,detail,ip,duration_ms,extra,created_at) "
                 "VALUES(?,?,?,?,?,?,datetime('now'))",
-                (event,
-                 _user,
-                 detail,
-                 _ip,
-                 duration_ms,
-                 _json.dumps(extra, ensure_ascii=False, default=str) if extra else None)
+                (
+                    event,
+                    _user,
+                    detail,
+                    _ip,
+                    duration_ms,
+                    _json.dumps(extra, ensure_ascii=False, default=str) if extra else None,
+                ),
             )
             db.commit()
         finally:

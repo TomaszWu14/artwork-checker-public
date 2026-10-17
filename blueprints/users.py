@@ -11,6 +11,7 @@ aktywnego administratora, admin nie dezaktywuje i nie degraduje samego siebie.
 Blueprint → core/db (nigdy → app); wysyłkę e-maila wstrzykuje app przez
 current_app.config["SEND_PASSWORD_LINK"] (callable: to_email, username, url → bool).
 """
+
 from __future__ import annotations
 
 import os
@@ -41,7 +42,8 @@ def _row(db, uid: int):
 def _active_admins_except(db, uid: int) -> int:
     return db.execute(
         "SELECT COUNT(*) FROM users WHERE role='admin' AND COALESCE(is_active,1)=1 AND id<>?",
-        (uid,)).fetchone()[0]
+        (uid,),
+    ).fetchone()[0]
 
 
 def _send_link(db, user_id: int, username: str, email: str) -> dict:
@@ -86,14 +88,22 @@ def api_users_create():
     try:
         dup = db.execute(
             "SELECT 1 FROM users WHERE LOWER(username)=LOWER(?) OR (?<>'' AND LOWER(email)=LOWER(?))",
-            (username, email, email)).fetchone()
+            (username, email, email),
+        ).fetchone()
         if dup:
             return jsonify({"error": "Konto o tej nazwie lub adresie e-mail już istnieje."}), 409
         # Hasło losowe i nieznane nikomu — użytkownik ustawia własne przez link (US-009).
         cur = db.execute(
             "INSERT INTO users(username, email, password_hash, role, department, is_active) "
             "VALUES (?,?,?,?,?,1)",
-            (username, email or None, generate_password_hash(secrets.token_urlsafe(32)), role, department))
+            (
+                username,
+                email or None,
+                generate_password_hash(secrets.token_urlsafe(32)),
+                role,
+                department,
+            ),
+        )
         db.commit()
         uid = cur.lastrowid or _row_id(db, username)
         link = _send_link(db, uid, username, email)
@@ -131,25 +141,35 @@ def api_users_update(uid):
                 if uid == me:
                     return jsonify({"error": "Nie możesz zmienić własnej roli."}), 400
                 if user["role"] == "admin" and _active_admins_except(db, uid) == 0:
-                    return jsonify({"error": "To ostatni aktywny administrator — nie można zmienić roli."}), 409
-                sets.append("role=?"); params.append(role); changes.append(f"rola {user['role']}→{role}")
+                    return jsonify(
+                        {"error": "To ostatni aktywny administrator — nie można zmienić roli."}
+                    ), 409
+                sets.append("role=?")
+                params.append(role)
+                changes.append(f"rola {user['role']}→{role}")
         if "is_active" in data:
             active = 1 if data.get("is_active") in (True, 1, "1", "true") else 0
             if active != int(user["is_active"]):
                 if uid == me:
                     return jsonify({"error": "Nie możesz dezaktywować własnego konta."}), 400
                 if not active and user["role"] == "admin" and _active_admins_except(db, uid) == 0:
-                    return jsonify({"error": "To ostatni aktywny administrator — nie można go dezaktywować."}), 409
-                sets.append("is_active=?"); params.append(active)
+                    return jsonify(
+                        {"error": "To ostatni aktywny administrator — nie można go dezaktywować."}
+                    ), 409
+                sets.append("is_active=?")
+                params.append(active)
                 changes.append("aktywowane" if active else "dezaktywowane")
         if "department" in data:
-            sets.append("department=?"); params.append(str(data.get("department") or "").strip()[:100])
+            sets.append("department=?")
+            params.append(str(data.get("department") or "").strip()[:100])
             changes.append("dział")
         if "email" in data:
             email = str(data.get("email") or "").strip().lower()
             if email and not _EMAIL_RE.match(email):
                 return jsonify({"error": "Nieprawidłowy adres e-mail."}), 400
-            sets.append("email=?"); params.append(email or None); changes.append("e-mail")
+            sets.append("email=?")
+            params.append(email or None)
+            changes.append("e-mail")
         if not sets:
             return jsonify({"ok": True, "user": dict(user)})
         params.append(uid)
@@ -180,5 +200,7 @@ def api_users_invite(uid):
         link = _send_link(db, uid, user["username"], user["email"] or "")
     finally:
         db.close()
-    log_audit("user_invite", session.get("username"), f"link ustawienia hasła dla {user['username']}")
+    log_audit(
+        "user_invite", session.get("username"), f"link ustawienia hasła dla {user['username']}"
+    )
     return jsonify({"ok": True, **link})

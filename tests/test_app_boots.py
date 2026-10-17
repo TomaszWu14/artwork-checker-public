@@ -10,6 +10,7 @@ blueprinty nazwy dostają prefiks (np. `auth.login`), ale ścieżki się nie zmi
 
 Test pomija się, gdy Flask nie jest zainstalowany (np. minimalne środowisko).
 """
+
 import os
 import tempfile
 
@@ -30,9 +31,15 @@ import app as _app_mod  # noqa: E402
 # Po przeniesieniu danej grupy tras do blueprintu jej ścieżki nadal tu są —
 # jeśli rejestracja się urwie, znikną i test padnie.
 _KEY_PATHS = [
-    "/login", "/logout", "/",
-    "/materials", "/suppliers", "/admin",
-    "/artwork", "/artwork/kpi", "/artwork/card/<ref>",
+    "/login",
+    "/logout",
+    "/",
+    "/materials",
+    "/suppliers",
+    "/admin",
+    "/artwork",
+    "/artwork/kpi",
+    "/artwork/card/<ref>",
 ]
 
 
@@ -68,13 +75,15 @@ def test_artwork_cache_cleanup_handles_3tuple_entries():
     # → ValueError zabijał po cichu wątek daemon przy pierwszym niepustym
     # przebiegu. Sprawdzamy kształt wpisu i że wyrażenie eksmisji nie rzuca.
     import time as _t
+
     _app_mod._cache_put("regr-cleanup-key", {"x": 1}, owner_id=42)
     entry = _app_mod._artwork_cache["regr-cleanup-key"]
     assert len(entry) == 3 and entry[2] == 42
     now = _t.time()
     # Identyczne wyrażenie jak w _cache_cleanup — nie może rzucić ValueError.
-    expired = [k for k, v in list(_app_mod._artwork_cache.items())
-               if (now - v[1]) >= _app_mod._CACHE_TTL]
+    expired = [
+        k for k, v in list(_app_mod._artwork_cache.items()) if (now - v[1]) >= _app_mod._CACHE_TTL
+    ]
     assert isinstance(expired, list)
     _app_mod._cache_evict("regr-cleanup-key")
     assert "regr-cleanup-key" not in _app_mod._artwork_cache
@@ -110,6 +119,5 @@ def test_first_run_seeds_exactly_one_admin_account():
         rows = db.execute("SELECT username, role FROM users").fetchall()
     finally:
         db.close()
-    seeded = [(r["username"], r["role"]) for r in rows
-              if not r["username"].startswith("it_")]
+    seeded = [(r["username"], r["role"]) for r in rows if not r["username"].startswith("it_")]
     assert seeded == [("admin", "admin")], f"seedowanie utworzyło konta-widma: {seeded}"

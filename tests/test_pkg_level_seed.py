@@ -1,5 +1,6 @@
 """Seed jednostek opakowaniowych flow (SZT<JU<OP<OPZ<KAR) — idempotentny upsert + migracja
 starego seeda (JED→SZT, dodanie JU) bez klobrowania edycji admina."""
+
 import app as _app_mod
 
 
@@ -7,18 +8,22 @@ def _old_seed(db):
     db.execute("DELETE FROM artwork_pkg_level_type")
     for code, label, so, color in [
         ("sztuka", "Sztuka (JED)", 1, "#10b981"),
-        ("op",     "Opakowanie (OP)", 2, "#3b82f6"),
-        ("opz",    "OPZ",         3, "#8b5cf6"),
+        ("op", "Opakowanie (OP)", 2, "#3b82f6"),
+        ("opz", "OPZ", 3, "#8b5cf6"),
         ("karton", "Karton (KAR)", 4, "#f59e0b"),
     ]:
-        db.execute("INSERT INTO artwork_pkg_level_type (code,label,sort_order,color) "
-                   "VALUES (?,?,?,?)", (code, label, so, color))
+        db.execute(
+            "INSERT INTO artwork_pkg_level_type (code,label,sort_order,color) VALUES (?,?,?,?)",
+            (code, label, so, color),
+        )
     db.commit()
 
 
 def _rows(db):
-    return {r["code"]: dict(r) for r in db.execute(
-        "SELECT code,label,sort_order FROM artwork_pkg_level_type").fetchall()}
+    return {
+        r["code"]: dict(r)
+        for r in db.execute("SELECT code,label,sort_order FROM artwork_pkg_level_type").fetchall()
+    }
 
 
 def _reseed(db):
@@ -31,9 +36,9 @@ def _reseed(db):
 def test_migrates_old_seed_to_flow_units():
     db = _app_mod.get_db()
     try:
-        _reseed(db)                                   # tabela istnieje
+        _reseed(db)  # tabela istnieje
         _old_seed(db)
-        _reseed(db)                                   # migracja
+        _reseed(db)  # migracja
         r = _rows(db)
         assert set(r) == {"sztuka", "ju", "op", "opz", "karton"}
         assert r["sztuka"]["label"] == "Sztuka (SZT)"
@@ -64,8 +69,9 @@ def test_preserves_admin_edits():
     db = _app_mod.get_db()
     try:
         _reseed(db)
-        db.execute("UPDATE artwork_pkg_level_type SET label=? WHERE code=?",
-                   ("Moja etykieta", "op"))
+        db.execute(
+            "UPDATE artwork_pkg_level_type SET label=? WHERE code=?", ("Moja etykieta", "op")
+        )
         db.commit()
         _reseed(db)
         r = _rows(db)

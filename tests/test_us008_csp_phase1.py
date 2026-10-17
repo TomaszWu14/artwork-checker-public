@@ -1,4 +1,5 @@
 """US-008 etap 1 — CSP report-only, jedno escapowanie HTML (SEC-005, R-05, ADR-0004)."""
+
 import re
 from pathlib import Path
 
@@ -14,7 +15,12 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_enforced_csp_keeps_ui_working_and_adds_safe_directives(client):
     r = client.get("/login")
     csp = r.headers["Content-Security-Policy"]
-    for d in ("object-src 'none'", "base-uri 'self'", "form-action 'self'", "frame-ancestors 'self'"):
+    for d in (
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'self'",
+    ):
         assert d in csp
     assert r.headers["X-XSS-Protection"] == "0"
 
@@ -25,7 +31,10 @@ def test_enforced_policy_is_strict_and_uses_per_request_nonce(client):
     r2 = client.get("/login")
     p1 = r1.headers["Content-Security-Policy"]
     p2 = r2.headers["Content-Security-Policy"]
-    assert "'unsafe-eval'" not in p1 and "'unsafe-inline'" not in p1.split("script-src")[1].split(";")[0]
+    assert (
+        "'unsafe-eval'" not in p1
+        and "'unsafe-inline'" not in p1.split("script-src")[1].split(";")[0]
+    )
     assert "script-src 'self' 'nonce-" in p1 and "report-uri /csp-report" in p1
     n1 = re.search(r"'nonce-([^']+)'", p1).group(1)
     n2 = re.search(r"'nonce-([^']+)'", p2).group(1)
@@ -39,8 +48,13 @@ def test_no_separate_report_only_policy(client):
 
 def test_csp_report_endpoint_accepts_and_limits(client):
     _app_mod._csp_report_times.clear()
-    body = {"csp-report": {"violated-directive": "script-src", "blocked-uri": "inline",
-                           "document-uri": "https://x/artwork?token=secret"}}
+    body = {
+        "csp-report": {
+            "violated-directive": "script-src",
+            "blocked-uri": "inline",
+            "document-uri": "https://x/artwork?token=secret",
+        }
+    }
     r = client.post("/csp-report", json=body, content_type="application/csp-report")
     assert r.status_code == 204
     big = client.post("/csp-report", data="x" * 20000, content_type="application/csp-report")

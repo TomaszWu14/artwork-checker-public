@@ -5,6 +5,7 @@
   w base.html albo wbudowane w static/js/csp_actions.js),
 - egzekwowana polityka: script-src bez 'unsafe-inline', z nonce zgodnym z tym w znacznikach <script>.
 """
+
 import pathlib
 import re
 
@@ -51,7 +52,9 @@ BASE_ALLOWED = _allowed_in((ROOT / "templates/base.html").read_text(encoding="ut
 def test_no_inline_event_handlers(tpl):
     text = tpl.read_text(encoding="utf-8")
     found = [text.count("\n", 0, m.start()) + 1 for m in HANDLER_RE.finditer(text)]
-    assert found == [], f"atrybuty on*= w liniach {found} — użyj data-on-* (static/js/csp_actions.js)"
+    assert found == [], (
+        f"atrybuty on*= w liniach {found} — użyj data-on-* (static/js/csp_actions.js)"
+    )
 
 
 @pytest.mark.parametrize("tpl", TEMPLATES, ids=lambda p: p.name)
@@ -81,7 +84,8 @@ def test_allowlisted_functions_exist(tpl):
     text = tpl.read_text(encoding="utf-8")
     for name in _allowed_in(text):
         assert re.search(
-            rf"(function\s+{name}\s*\(|\b(?:window\.)?{name}\s*=\s*(?:async\s*)?(?:function|\())", text
+            rf"(function\s+{name}\s*\(|\b(?:window\.)?{name}\s*=\s*(?:async\s*)?(?:function|\())",
+            text,
         ), f"{tpl.name}: {name} nie jest zdefiniowana"
 
 
@@ -96,7 +100,7 @@ def test_pages_with_actions_load_the_dispatcher():
 def test_dispatcher_has_no_eval():
     code = re.sub(r"/\*.*?\*/|//[^\n]*", "", ACTIONS_JS, flags=re.S)
     assert not re.search(r"\beval\s*\(|new\s+Function\s*\(|setTimeout\s*\(\s*['\"]", code)
-    assert "window[name]" in code and "allowed[name]" in code   # wywołanie tylko z białej listy
+    assert "window[name]" in code and "allowed[name]" in code  # wywołanie tylko z białej listy
 
 
 def test_enforced_policy_is_strict_and_matches_nonce(admin_client):
@@ -107,7 +111,7 @@ def test_enforced_policy_is_strict_and_matches_nonce(admin_client):
     assert "'unsafe-inline'" not in script_src
     nonce = [s for s in script_src if s.startswith("'nonce-")]
     assert len(nonce) == 1
-    value = nonce[0][len("'nonce-"):-1]
+    value = nonce[0][len("'nonce-") : -1]
     inline = [t for t in SCRIPT_TAG_RE.findall(resp.get_data(as_text=True)) if "src=" not in t]
     assert inline and all(f'nonce="{value}"' in t for t in inline)
     # nowy nonce przy każdej odpowiedzi; od US-024 także bez 'unsafe-eval'
@@ -166,7 +170,7 @@ class _P:
 
     def value(self):
         self.ws()
-        c = self.s[self.i:self.i + 1]
+        c = self.s[self.i : self.i + 1]
         if c in ("'", '"'):
             return self.string()
         if c == "[":
@@ -193,11 +197,17 @@ class _P:
             return
         assert name in ("this", "event"), f"niedozwolona wartość {name!r} w {self.s!r}"
         path = []
-        while self.s[self.i:self.i + 1] == ".":
+        while self.s[self.i : self.i + 1] == ".":
             self.i += 1
             path.append(self.ident())
-        ok = r"(|value|checked|src|files|parentElement|dataset\.[\w$]+)" if name == "this" else r"(|target|key)"
-        assert re.fullmatch(ok, ".".join(path)), f"niedozwolone {name}.{'.'.join(path)} w {self.s!r}"
+        ok = (
+            r"(|value|checked|src|files|parentElement|dataset\.[\w$]+)"
+            if name == "this"
+            else r"(|target|key)"
+        )
+        assert re.fullmatch(ok, ".".join(path)), (
+            f"niedozwolone {name}.{'.'.join(path)} w {self.s!r}"
+        )
 
     def program(self):
         while True:
@@ -226,7 +236,7 @@ def _concrete(body: str) -> str:
     """Wstawki szablonu/JS zastępujemy przykładowymi wartościami (liczba lub napis)."""
     body = re.sub(r"\{\{.*?\}\}", "0", body)
     body = re.sub(r"\$\{(?:[^{}]|\{[^{}]*\})*\}", "0", body)
-    body = re.sub(r"'\s*\+[^']*\+\s*'", "0", body)          # '+expr+' w napisach JS
+    body = re.sub(r"'\s*\+[^']*\+\s*'", "0", body)  # '+expr+' w napisach JS
     body = re.sub(r'"\s*\+[^"]*\+\s*"', "0", body)
     return body.replace("\\'", "'").replace('\\"', '"')
 
@@ -273,7 +283,12 @@ def test_alpine_expressions_pass_csp_parser():
     import shutil
     import subprocess
 
-    if not shutil.which("node") or not (ROOT / "node_modules/@alpinejs/csp/src/parser.js").is_file():
+    if (
+        not shutil.which("node")
+        or not (ROOT / "node_modules/@alpinejs/csp/src/parser.js").is_file()
+    ):
         pytest.skip("brak node lub node_modules — sprawdza job CI frontend")
-    r = subprocess.run(["node", "tools/check_alpine_csp.mjs"], cwd=ROOT, capture_output=True, text=True)
+    r = subprocess.run(
+        ["node", "tools/check_alpine_csp.mjs"], cwd=ROOT, capture_output=True, text=True
+    )
     assert r.returncode == 0, r.stderr[-2000:]

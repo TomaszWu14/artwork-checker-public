@@ -1,8 +1,15 @@
 """tests/test_artwork_naming.py — parser nazw masterów ACME."""
+
 import sys, os
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from artwork_naming import (parse_master_filename as P, revision_sort_key,
-                            pick_current_revisions, format_master_label, _roman_to_int)
+from artwork_naming import (
+    parse_master_filename as P,
+    revision_sort_key,
+    pick_current_revisions,
+    format_master_label,
+    _roman_to_int,
+)
 
 
 def test_format_label():
@@ -48,7 +55,7 @@ def test_copy_counter_stripped():
 
 def test_no_type_still_ref():
     r = P("Poly Spike V Plus_B & G.pdf")
-    assert r["ref"]                      # niepuste
+    assert r["ref"]  # niepuste
     assert r["packaging_type"] == ""
 
 
@@ -59,11 +66,13 @@ def test_roman_helper():
 
 
 def test_revision_sort_picks_highest():
-    a = P("REF1_box Rev.00.pdf"); b = P("REF1_box Rev.02.pdf")
+    a = P("REF1_box Rev.00.pdf")
+    b = P("REF1_box Rev.02.pdf")
     chosen = max([a, b], key=lambda p: revision_sort_key(p))
     assert chosen["revision_rank"] == 2
     # fallback po dacie gdy brak znacznika
-    c = P("REF2_box.pdf"); d = P("REF2_box.pdf")
+    c = P("REF2_box.pdf")
+    d = P("REF2_box.pdf")
     assert revision_sort_key(c, "2026-01-01") > revision_sort_key(d, "2025-01-01")
 
 
@@ -94,16 +103,17 @@ def test_pick_current_separates_packaging_and_drops_refless():
         {"id": 3, "filename": "_.pdf", "modified_at": "2024-01-01"},  # bez REF → pomiń
     ]
     out = pick_current_revisions(files)
-    assert len(out) == 2                     # carton i pouch osobno; szum odrzucony
+    assert len(out) == 2  # carton i pouch osobno; szum odrzucony
     assert {o["packaging_type"] for o in out} == {"carton", "pouch"}
 
 
 # --- słownik poziomów: bag + warianty z myślnikiem ------------------------
 
+
 def test_bag_recognised_after_underscore():
     r = P("BQES24080_bag.pdf")
     assert r["packaging_type"] == "bag"
-    assert r["ref"] == "BQES24080"        # "bag" nie zostaje w REF-ie
+    assert r["ref"] == "BQES24080"  # "bag" nie zostaje w REF-ie
 
 
 def test_bag_not_matched_inside_product_name():
@@ -178,7 +188,7 @@ def test_validator_reports_invisible_and_special_chars():
     codes = _codes("Acme Medicare PF•L.pdf")
     assert "chars" in codes and "fields" in codes
     msg = " ".join(p["msg"] for p in V("805016_pouch x_noEAN_Rev.02_2026-05-14.pdf")["problems"])
-    assert "U+00A0" in msg          # twarda spacja nazwana wprost
+    assert "U+00A0" in msg  # twarda spacja nazwana wprost
 
 
 def test_validator_counts_fields():

@@ -13,7 +13,7 @@ import json
 from typing import Generator, Optional
 
 # Słowa kluczowe identyfikujące Master vs Supplier
-_MASTER_KEYS   = {"master", "wzorzec", "acme", "original"}
+_MASTER_KEYS = {"master", "wzorzec", "acme", "original"}
 _SUPPLIER_KEYS = {"supplier", "dostawca", "factory", "od_dostawcy", "fabryczny"}
 
 
@@ -23,7 +23,9 @@ def _strip_role(name: str) -> str:
     n = re.sub(
         r'[_\-\s]*(master|wzorzec|acme|supplier|dostawca|factory|od_dostawcy|'
         r'fabryczny|original|ref|_a|_b)$',
-        '', n, flags=re.IGNORECASE
+        '',
+        n,
+        flags=re.IGNORECASE,
     )
     return n.strip('_- ')
 
@@ -47,7 +49,7 @@ def auto_pair_artwork_files(filenames: list) -> list:
     Zwraca [{file_a (master), file_b (supplier), prefix, confidence}]
     """
     pdfs = [f for f in filenames if f.lower().endswith(".pdf")]
-    masters   = {f: _strip_role(f) for f in pdfs if _role(f) == "master"}
+    masters = {f: _strip_role(f) for f in pdfs if _role(f) == "master"}
     suppliers = {f: _strip_role(f) for f in pdfs if _role(f) == "supplier"}
 
     pairs = []
@@ -63,12 +65,14 @@ def auto_pair_artwork_files(filenames: list) -> list:
             if score > best_score:
                 best, best_score = sf, score
         if best and best_score > 0.5:
-            pairs.append({
-                "file_a": mf,
-                "file_b": best,
-                "prefix": mp,
-                "confidence": round(best_score, 2),
-            })
+            pairs.append(
+                {
+                    "file_a": mf,
+                    "file_b": best,
+                    "prefix": mp,
+                    "confidence": round(best_score, 2),
+                }
+            )
             used_s.add(best)
 
     # Fallback: jeśli brak roli — paruj po PODOBIEŃSTWIE nazwy (greedy), a nie po
@@ -87,18 +91,22 @@ def auto_pair_artwork_files(filenames: list) -> list:
             if score > best_score:
                 best, best_score = b, score
         if best is not None:
-            used_u.add(a); used_u.add(best)
-            pairs.append({
-                "file_a": a,
-                "file_b": best,
-                "prefix": ap,
-                "confidence": round(max(best_score, 0.5), 2),
-            })
+            used_u.add(a)
+            used_u.add(best)
+            pairs.append(
+                {
+                    "file_a": a,
+                    "file_b": best,
+                    "prefix": ap,
+                    "confidence": round(max(best_score, 0.5), 2),
+                }
+            )
     # Nieparzysta liczba plików bez roli → ostatni zostaje bez pary. Zgłoś to w
     # logu, zamiast po cichu pomijać (operator dostaje mniej porównań niż wgrał).
     if len(unmatched) % 2 == 1:
         try:
             import logging
+
             logging.getLogger("artwork_batch").warning(
                 "auto_pair: nieparzysta liczba plików bez roli — bez pary został: %s",
                 unmatched[-1],
@@ -120,6 +128,7 @@ def _prefix_score(a: str, b: str) -> float:
 def _secure_uploaded_name(filename: str) -> str:
     try:
         from werkzeug.utils import secure_filename
+
         return secure_filename(filename) or "file"
     except Exception:
         return os.path.basename(filename) or "file"
@@ -193,24 +202,24 @@ def run_artwork_batch(
     try:
         for i, pair in enumerate(pairs):
             result = {
-                "index":    i,
-                "total":    total,
-                "file_a":   pair["file_a"],
-                "file_b":   pair["file_b"],
-                "prefix":   pair.get("prefix", ""),
-                "status":   "processing",
-                "error":    None,
+                "index": i,
+                "total": total,
+                "file_a": pair["file_a"],
+                "file_b": pair["file_b"],
+                "prefix": pair.get("prefix", ""),
+                "status": "processing",
+                "error": None,
                 "critical": 0,
                 "warnings": 0,
                 "ok_count": 0,
-                "risk":     "ok",
+                "risk": "ok",
                 "cache_id": None,
                 "report_obj": None,
                 "docx_bytes": None,
                 "elapsed_ms": 0,
                 "group_id": pair.get("group_id"),
-                "seq_idx":  pair.get("seq_idx"),
-                "page_b":   pair.get("page_b"),
+                "seq_idx": pair.get("seq_idx"),
+                "page_b": pair.get("page_b"),
             }
 
             if progress_cb:
@@ -234,25 +243,33 @@ def run_artwork_batch(
             pb = pair.get("page_b")
             extracted = _page_cache.get((pair["file_b"], pb)) if pb is not None else None
             actual_path_b = extracted if extracted else path_b
-            page_b_arg    = None if extracted else pb
+            page_b_arg = None if extracted else pb
 
             try:
-                cmp = compare_artworks(path_a, actual_path_b, use_ai=use_ai,
-                                       use_ai_sections=use_ai, max_pages=6,
-                                       page_a=pair.get("page_a"),
-                                       page_b=page_b_arg)
+                cmp = compare_artworks(
+                    path_a,
+                    actual_path_b,
+                    use_ai=use_ai,
+                    use_ai_sections=use_ai,
+                    max_pages=6,
+                    page_a=pair.get("page_a"),
+                    page_b=page_b_arg,
+                )
                 report = build_report_from_comparison(cmp)
 
-                result["critical"]   = cmp.critical_count
-                result["warnings"]   = cmp.important_count
-                result["ok_count"]   = cmp.ok_count
-                result["risk"]       = (
-                    "critical" if cmp.critical_count > 0 else
-                    "warning"  if cmp.important_count > 0 else "ok"
+                result["critical"] = cmp.critical_count
+                result["warnings"] = cmp.important_count
+                result["ok_count"] = cmp.ok_count
+                result["risk"] = (
+                    "critical"
+                    if cmp.critical_count > 0
+                    else "warning"
+                    if cmp.important_count > 0
+                    else "ok"
                 )
-                result["status"]     = "done"
+                result["status"] = "done"
                 result["report_obj"] = report
-                result["cmp_data"]   = cmp.to_dict(include_images=False)
+                result["cmp_data"] = cmp.to_dict(include_images=False)
                 try:
                     result["docx_bytes"] = export_to_docx(report)
                 except Exception:
@@ -261,6 +278,7 @@ def run_artwork_batch(
                 # Barcode deep check on supplier file
                 try:
                     from barcode_validator import deep_validate_printed_data
+
                     _pd0 = cmp.page_diffs[0] if cmp.page_diffs else None
                     result["barcode_check"] = deep_validate_printed_data(
                         getattr(_pd0, "text_b", None) or "",
@@ -271,8 +289,9 @@ def run_artwork_batch(
 
             except Exception as e:
                 import traceback as _tb
+
                 result["status"] = "error"
-                result["error"]  = str(e)[:200]
+                result["error"] = str(e)[:200]
                 result["traceback"] = _tb.format_exc()[-1000:]
 
             result["elapsed_ms"] = int((time.time() - t0) * 1000)
@@ -297,15 +316,17 @@ def build_artwork_batch_zip(results: list) -> bytes:
         # Summary JSON
         summary = []
         for r in results:
-            summary.append({
-                "file_a":   r.get("file_a"),
-                "file_b":   r.get("file_b"),
-                "status":   r.get("status"),
-                "critical": r.get("critical", 0),
-                "warnings": r.get("warnings", 0),
-                "risk":     r.get("risk", "ok"),
-                "error":    r.get("error"),
-            })
+            summary.append(
+                {
+                    "file_a": r.get("file_a"),
+                    "file_b": r.get("file_b"),
+                    "status": r.get("status"),
+                    "critical": r.get("critical", 0),
+                    "warnings": r.get("warnings", 0),
+                    "risk": r.get("risk", "ok"),
+                    "error": r.get("error"),
+                }
+            )
         zf.writestr("_podsumowanie.json", json.dumps(summary, ensure_ascii=False, indent=2))
 
         for idx, r in enumerate(results, 1):

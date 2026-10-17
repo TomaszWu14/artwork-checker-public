@@ -6,6 +6,7 @@ Testujemy czysty rdzeń — bez PyMuPDF. Uruchom: pytest tests/
 """
 
 import sys, os
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from artwork_text_layer import find_text_as_graphic, _overlap_ratio

@@ -36,6 +36,7 @@ logger = logging.getLogger("artwork_comparator")
 # provides each request its own copy while reading the module default as fallback.
 from contextlib import contextmanager
 from contextvars import ContextVar as _ContextVar
+
 _DEFAULT_AI_MODEL = "claude-sonnet-4-6"
 _AI_MODEL_VAR: _ContextVar[str] = _ContextVar("artwork_ai_model", default=_DEFAULT_AI_MODEL)
 # Public name kept for callers that read _AI_MODEL directly (e.g. logging).
@@ -43,9 +44,10 @@ _AI_MODEL = _DEFAULT_AI_MODEL
 
 AVAILABLE_MODELS = [
     ("claude-haiku-4-5-20251001", "Haiku 4.5 — szybki, tani"),
-    ("claude-sonnet-4-6",         "Sonnet 4.6 — domyślny (balans)"),
-    ("claude-opus-4-7",           "Opus 4.7 — najdokładniejszy"),
+    ("claude-sonnet-4-6", "Sonnet 4.6 — domyślny (balans)"),
+    ("claude-opus-4-7", "Opus 4.7 — najdokładniejszy"),
 ]
+
 
 def set_ai_model(model: str):
     _AI_MODEL_VAR.set(model)
@@ -59,8 +61,7 @@ def _risk_model() -> str:
     """Model do raportu RYZYKA (_ai_analyze). Scoring ryzyka nie wymaga
     najmocniejszego modelu, więc domyślnie szybki Haiku (≈3–5× szybciej niż
     Sonnet/Opus). Override: ARTWORK_RISK_MODEL (np. analizy-grade na życzenie)."""
-    return (os.environ.get("ARTWORK_RISK_MODEL", "").strip()
-            or "claude-haiku-4-5-20251001")
+    return os.environ.get("ARTWORK_RISK_MODEL", "").strip() or "claude-haiku-4-5-20251001"
 
 
 # OCR (verbatim text read of each crop) is the per-field bottleneck and runs once
@@ -72,10 +73,12 @@ _DEFAULT_OCR_MODEL = "claude-haiku-4-5-20251001"
 
 
 def _current_ocr_model() -> str:
-    return (os.environ.get("ARTWORK_OCR_MODEL", "").strip() or _DEFAULT_OCR_MODEL)
+    return os.environ.get("ARTWORK_OCR_MODEL", "").strip() or _DEFAULT_OCR_MODEL
+
 
 try:
     import fitz
+
     HAS_FITZ = True
 except ImportError:
     HAS_FITZ = False
@@ -83,48 +86,59 @@ except ImportError:
 try:
     from PIL import Image, ImageChops, ImageDraw
     import numpy as np
+
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
 
 try:
     from scipy import ndimage
+
     HAS_SCIPY = True
 except ImportError:
     HAS_SCIPY = False
 
 try:
     import pytesseract as _tess_probe
+
     _tess_probe.get_tesseract_version()
     _TESSERACT_AVAILABLE = True
 except Exception:
     _TESSERACT_AVAILABLE = False
 
-RENDER_DPI    = 150   # ↑ z 96 — lepsza jakość przy zoomie w split-screen
+RENDER_DPI = 150  # ↑ z 96 — lepsza jakość przy zoomie w split-screen
 # OCR_DPI ↑ 150→300: small medical-label print (<5 pt) needs ~300 DPI for reliable
 # OCR. Neural engines downscale to ≤2048 px internally, Tesseract benefits directly.
 # Tunable via ARTWORK_OCR_DPI; set back to 150 on memory-constrained deployments.
 # US-019: wartość z env ograniczona do [72, 400] (śmieci → 300) — błędna konfiguracja
 # nie może wysadzić pamięci ani startu modułu.
-OCR_DPI       = clamp_dpi(os.environ.get("ARTWORK_OCR_DPI", "300"), 300)
-BADGE_DPI     = 200
-THUMB_W       = 700   # rozmiar miniaturki w raportach (małe pliki)
-HIRES_W       = 1200  # rozmiar hires w split-screen viewerze (dobry zoom)
-DIFF_THRESH   = int(os.environ.get("ARTWORK_DIFF_THRESH", "22"))   # pixel difference threshold (raised from 15 to suppress mild rendering noise)
+OCR_DPI = clamp_dpi(os.environ.get("ARTWORK_OCR_DPI", "300"), 300)
+BADGE_DPI = 200
+THUMB_W = 700  # rozmiar miniaturki w raportach (małe pliki)
+HIRES_W = 1200  # rozmiar hires w split-screen viewerze (dobry zoom)
+DIFF_THRESH = int(
+    os.environ.get("ARTWORK_DIFF_THRESH", "22")
+)  # pixel difference threshold (raised from 15 to suppress mild rendering noise)
 OCR_MIN_CHARS = 5
-MIN_REGION_PX = int(os.environ.get("ARTWORK_MIN_REGION_PX", "100"))  # min connected-component area px² — filters 5px shift strips (~75px²) but keeps char diffs (~150px²)
-STRIP_RATIO   = 8    # reject regions whose bounding box is more elongated than this (thin layout-shift strips)
+MIN_REGION_PX = int(
+    os.environ.get("ARTWORK_MIN_REGION_PX", "100")
+)  # min connected-component area px² — filters 5px shift strips (~75px²) but keeps char diffs (~150px²)
+STRIP_RATIO = (
+    8  # reject regions whose bounding box is more elongated than this (thin layout-shift strips)
+)
 _TESSERACT_TIMEOUT = int(os.environ.get("TESSERACT_TIMEOUT", "30"))
+
 
 def _env_flag(name: str, default: str = "1") -> bool:
     return os.environ.get(name, default).strip().lower() not in ("0", "false", "no", "off", "")
 
+
 # Full-page image registration before pixel diff. Without it a 1-2 mm print shift
 # lights up the whole page as "different" (the #1 source of false positives).
-_ALIGN_ENABLED    = _env_flag("ARTWORK_ALIGN")
+_ALIGN_ENABLED = _env_flag("ARTWORK_ALIGN")
 # Lift the fixed DIFF_THRESH by the measured per-page noise floor so anti-alias /
 # print noise never registers as a region.
-_ADAPTIVE_THRESH  = _env_flag("ARTWORK_ADAPTIVE_THRESH")
+_ADAPTIVE_THRESH = _env_flag("ARTWORK_ADAPTIVE_THRESH")
 # Run the slow local OCR models (Qwen/Paddle/EasyOCR/Surya/DocTR). When off, the
 # cascade is API engines (Claude/Mistral) → Tesseract only, avoiding the chain of
 # 30 s timeouts when no API key is configured. Default on.
@@ -132,6 +146,7 @@ _OCR_LOCAL_ENGINES = _env_flag("ARTWORK_OCR_LOCAL", "0")
 
 
 # ─── PERFORMANCE PROFILER ─────────────────────────────────────────────────────
+
 
 class _PerfProfiler:
     """Lightweight, thread-safe stopwatch for one artwork comparison.
@@ -147,18 +162,18 @@ class _PerfProfiler:
 
     # Human-readable Polish labels for known stage keys (template fallback: raw key).
     STAGE_LABELS = {
-        "render_pages":   "Renderowanie stron (PDF→obraz)",
-        "pdf_text":       "Ekstrakcja tekstu z PDF",
-        "ocr_fullpage":   "OCR pełnych stron",
-        "field_compare":  "Porównanie pól szablonu",
-        "pixel_diff":     "Diff pikselowy + wyrównanie",
-        "barcode":        "Walidacja kodów kreskowych",
-        "icons":          "Porównanie ikon / piktogramów",
-        "colorimetry":    "Kolorymetria",
-        "ai_sections":    "Analiza sekcji AI",
-        "ai_report":      "Raport ryzyka AI",
-        "size_table":     "Analiza tabeli rozmiarów",
-        "zones":          "Analiza strefowa OCR",
+        "render_pages": "Renderowanie stron (PDF→obraz)",
+        "pdf_text": "Ekstrakcja tekstu z PDF",
+        "ocr_fullpage": "OCR pełnych stron",
+        "field_compare": "Porównanie pól szablonu",
+        "pixel_diff": "Diff pikselowy + wyrównanie",
+        "barcode": "Walidacja kodów kreskowych",
+        "icons": "Porównanie ikon / piktogramów",
+        "colorimetry": "Kolorymetria",
+        "ai_sections": "Analiza sekcji AI",
+        "ai_report": "Raport ryzyka AI",
+        "size_table": "Analiza tabeli rozmiarów",
+        "zones": "Analiza strefowa OCR",
     }
 
     def __init__(self):
@@ -198,41 +213,63 @@ class _PerfProfiler:
         total = (time.perf_counter() - self._t_start) * 1000.0
         with self._lock:
             stages = sorted(
-                ({"key": k,
-                  "label": self.STAGE_LABELS.get(k, k),
-                  "ms": round(v, 1),
-                  "pct": round(v / total * 100.0, 1) if total > 0 else 0.0}
-                 for k, v in self.stages.items()),
-                key=lambda x: x["ms"], reverse=True,
+                (
+                    {
+                        "key": k,
+                        "label": self.STAGE_LABELS.get(k, k),
+                        "ms": round(v, 1),
+                        "pct": round(v / total * 100.0, 1) if total > 0 else 0.0,
+                    }
+                    for k, v in self.stages.items()
+                ),
+                key=lambda x: x["ms"],
+                reverse=True,
             )
             fields = sorted(
-                ({"name": k, "ms": round(v, 1),
-                  "pct": round(v / total * 100.0, 1) if total > 0 else 0.0}
-                 for k, v in self.fields.items()),
-                key=lambda x: x["ms"], reverse=True,
+                (
+                    {
+                        "name": k,
+                        "ms": round(v, 1),
+                        "pct": round(v / total * 100.0, 1) if total > 0 else 0.0,
+                    }
+                    for k, v in self.fields.items()
+                ),
+                key=lambda x: x["ms"],
+                reverse=True,
             )
             pages = list(self.pages)
             meta = dict(self.meta)
         return {
-            "enabled":  True,
+            "enabled": True,
             "total_ms": round(total, 1),
-            "stages":   stages,
-            "fields":   fields,
-            "pages":    pages,
-            "meta":     meta,
+            "stages": stages,
+            "fields": fields,
+            "pages": pages,
+            "meta": meta,
         }
 
 
 class _NullProfiler:
     """No-op profiler used when profiling is disabled — zero overhead, same API."""
+
     @contextmanager
     def stage(self, name: str):
         yield
-    def add(self, *a, **k):    pass
-    def field(self, *a, **k):  pass
-    def page(self, *a, **k):   pass
-    def set_meta(self, *a, **k): pass
-    def to_dict(self) -> dict: return {"enabled": False}
+
+    def add(self, *a, **k):
+        pass
+
+    def field(self, *a, **k):
+        pass
+
+    def page(self, *a, **k):
+        pass
+
+    def set_meta(self, *a, **k):
+        pass
+
+    def to_dict(self) -> dict:
+        return {"enabled": False}
 
 
 # ─── LIVE PROGRESS (for the compare progress bar) ─────────────────────────────
@@ -241,7 +278,7 @@ class _NullProfiler:
 # JSON file on shared disk so the progress POLL (which may land on a different
 # gunicorn worker than the one running the comparison) still sees it.
 _PROGRESS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "instance", "progress")
-_PROGRESS_TTL = 900   # seconds — stale files are ignored / swept
+_PROGRESS_TTL = 900  # seconds — stale files are ignored / swept
 
 
 def _progress_path(progress_id) -> str:
@@ -258,7 +295,7 @@ def set_progress(progress_id, pct, label) -> None:
         tmp = _progress_path(progress_id) + ".tmp"
         with open(tmp, "w") as f:
             json.dump(payload, f)
-        os.replace(tmp, _progress_path(progress_id))   # atomic
+        os.replace(tmp, _progress_path(progress_id))  # atomic
         # Opportunistic sweep of stale files (cheap, bounded).
         if int(payload["ts"]) % 30 == 0:
             _sweep_progress()
@@ -303,6 +340,8 @@ def _sweep_progress() -> None:
 
 
 _OSD_WARNED = False
+
+
 def _warn_osd_once(err) -> None:
     """Loguje JEDEN raz ostrzeżenie, gdy OSD (auto-orientacja) jest niedostępne —
     najczęściej brak osd.traineddata. Bez tego strony obrócone o 90/180° nie są
@@ -316,98 +355,118 @@ def _warn_osd_once(err) -> None:
         logger.warning(
             "OSD auto-orientacja niedostępna (prawdopodobnie brak osd.traineddata) — "
             "strony obrócone o 90/180° nie będą automatycznie prostowane. "
-            "Zainstaluj pakiet z osd.traineddata. Szczegóły: %s", err
+            "Zainstaluj pakiet z osd.traineddata. Szczegóły: %s",
+            err,
         )
 
 
 # ─── DATACLASSES ──────────────────────────────────────────────────────────────
 
+
 @dataclass
 class PageDiff:
-    page_num:        int
-    pixel_diff_pct:  float
-    diff_regions:    list
-    text_diffs:      list
-    field_diffs:     list
-    img_a_b64:       Optional[str]   # miniaturka (THUMB_W) — do raportów
-    img_b_b64:       Optional[str]
+    page_num: int
+    pixel_diff_pct: float
+    diff_regions: list
+    text_diffs: list
+    field_diffs: list
+    img_a_b64: Optional[str]  # miniaturka (THUMB_W) — do raportów
+    img_b_b64: Optional[str]
     img_a_annot_b64: Optional[str]
     img_b_annot_b64: Optional[str]
-    img_diff_b64:    Optional[str]
-    img_a_hires_b64:       Optional[str] = None   # hires (HIRES_W) — do split-screen
-    img_b_hires_b64:       Optional[str] = None
+    img_diff_b64: Optional[str]
+    img_a_hires_b64: Optional[str] = None  # hires (HIRES_W) — do split-screen
+    img_b_hires_b64: Optional[str] = None
     img_a_annot_hires_b64: Optional[str] = None
     img_b_annot_hires_b64: Optional[str] = None
-    has_critical:    bool = False
-    has_important:   bool = False
-    summary:         str  = ""
-    size_mismatch:   bool = False
-    section_diffs:   list = field(default_factory=list)
+    has_critical: bool = False
+    has_important: bool = False
+    summary: str = ""
+    size_mismatch: bool = False
+    section_diffs: list = field(default_factory=list)
 
 
 @dataclass
 class ArtworkCompareResult:
-    file_a:           str
-    file_b:           str
-    pages_a:          int
-    pages_b:          int
-    dims_a:           str = ""
-    dims_b:           str = ""
-    page_diffs:       list = field(default_factory=list)
+    file_a: str
+    file_b: str
+    pages_a: int
+    pages_b: int
+    dims_a: str = ""
+    dims_b: str = ""
+    page_diffs: list = field(default_factory=list)
     total_pixel_diff: float = 0.0
-    identical:        bool  = False
-    critical_count:   int   = 0
-    important_count:  int   = 0
-    info_count:       int   = 0
-    ok_count:         int   = 0
-    risk_level:       str   = "ok"
-    summary:          str   = ""
-    field_report:     list  = field(default_factory=list)
-    barcode_report:   dict  = field(default_factory=dict)
-    icon_comparison:  list  = field(default_factory=list)
-    ai_report:        Optional[dict] = None
-    ocr_failed:       bool  = False
+    identical: bool = False
+    critical_count: int = 0
+    important_count: int = 0
+    info_count: int = 0
+    ok_count: int = 0
+    risk_level: str = "ok"
+    summary: str = ""
+    field_report: list = field(default_factory=list)
+    barcode_report: dict = field(default_factory=dict)
+    icon_comparison: list = field(default_factory=list)
+    ai_report: Optional[dict] = None
+    ocr_failed: bool = False
     # Profile / mapped fields mode
-    profile_active:     bool = False
-    profile_name:       str  = ""
-    mapped_field_count: int  = 0
+    profile_active: bool = False
+    profile_name: str = ""
+    mapped_field_count: int = 0
     # File sizes (bytes)
-    file_size_a:        int  = 0
-    file_size_b:        int  = 0
+    file_size_a: int = 0
+    file_size_b: int = 0
     # Colorimetry: dominant colors per file
-    colorimetry:        dict = field(default_factory=dict)
+    colorimetry: dict = field(default_factory=dict)
     # Detailed performance breakdown (only populated when profiling requested)
-    performance:        dict = field(default_factory=dict)
+    performance: dict = field(default_factory=dict)
 
     def to_dict(self, include_images: bool = False) -> dict:
         def pd(p):
             d = {
-                "page_num": p.page_num, "pixel_diff_pct": round(p.pixel_diff_pct, 2),
-                "diff_regions": p.diff_regions, "text_diffs": p.text_diffs,
+                "page_num": p.page_num,
+                "pixel_diff_pct": round(p.pixel_diff_pct, 2),
+                "diff_regions": p.diff_regions,
+                "text_diffs": p.text_diffs,
                 "field_diffs": p.field_diffs,
-                "has_critical": p.has_critical, "has_important": p.has_important,
-                "summary": p.summary, "size_mismatch": p.size_mismatch,
+                "has_critical": p.has_critical,
+                "has_important": p.has_important,
+                "summary": p.summary,
+                "size_mismatch": p.size_mismatch,
                 "section_diffs": p.section_diffs,
-                "img_a_b64": None, "img_b_b64": None,
-                "img_a_annot_b64": None, "img_b_annot_b64": None, "img_diff_b64": None,
+                "img_a_b64": None,
+                "img_b_b64": None,
+                "img_a_annot_b64": None,
+                "img_b_annot_b64": None,
+                "img_diff_b64": None,
             }
             if include_images:
-                d.update({"img_a_b64": p.img_a_b64, "img_b_b64": p.img_b_b64,
-                           "img_a_annot_b64": p.img_a_annot_b64,
-                           "img_b_annot_b64": p.img_b_annot_b64,
-                           "img_diff_b64": p.img_diff_b64})
+                d.update(
+                    {
+                        "img_a_b64": p.img_a_b64,
+                        "img_b_b64": p.img_b_b64,
+                        "img_a_annot_b64": p.img_a_annot_b64,
+                        "img_b_annot_b64": p.img_b_annot_b64,
+                        "img_diff_b64": p.img_diff_b64,
+                    }
+                )
             return d
+
         return {
-            "file_a": self.file_a, "file_b": self.file_b,
-            "pages_a": self.pages_a, "pages_b": self.pages_b,
-            "dims_a": self.dims_a, "dims_b": self.dims_b,
+            "file_a": self.file_a,
+            "file_b": self.file_b,
+            "pages_a": self.pages_a,
+            "pages_b": self.pages_b,
+            "dims_a": self.dims_a,
+            "dims_b": self.dims_b,
             "total_pixel_diff": round(self.total_pixel_diff, 2),
             "identical": self.identical,
             "ocr_failed": self.ocr_failed,
             "critical_count": self.critical_count,
             "important_count": self.important_count,
-            "info_count": self.info_count, "ok_count": self.ok_count,
-            "risk_level": self.risk_level, "summary": self.summary,
+            "info_count": self.info_count,
+            "ok_count": self.ok_count,
+            "risk_level": self.risk_level,
+            "summary": self.summary,
             "field_report": self.field_report,
             "barcode_report": self.barcode_report,
             "icon_comparison": self.icon_comparison,
@@ -428,8 +487,8 @@ class ArtworkCompareResult:
         p = self.page_diffs[page_idx]
         return {
             "page_num": p.page_num,
-            "img_a_b64":       p.img_a_hires_b64       or p.img_a_b64,
-            "img_b_b64":       p.img_b_hires_b64       or p.img_b_b64,
+            "img_a_b64": p.img_a_hires_b64 or p.img_a_b64,
+            "img_b_b64": p.img_b_hires_b64 or p.img_b_b64,
             "img_a_annot_b64": p.img_a_annot_hires_b64 or p.img_a_annot_b64,
             "img_b_annot_b64": p.img_b_annot_hires_b64 or p.img_b_annot_b64,
             "img_diff_b64": p.img_diff_b64,
@@ -478,17 +537,17 @@ def _pdf_to_images(path: str, dpi: int, max_pages: int = 50) -> list:
         raise RuntimeError("Zainstaluj pymupdf: pip install pymupdf")
     doc = fitz.open(path)
     try:
-        max_pages = min(max_pages, max_pdf_pages())   # US-019: twardy limit z konfiguracji
+        max_pages = min(max_pages, max_pdf_pages())  # US-019: twardy limit z konfiguracji
         imgs = []
         for pno, page in enumerate(doc):
-            if pno >= max_pages:   # limit stron — chroni przed OOM na wielkich PDF
+            if pno >= max_pages:  # limit stron — chroni przed OOM na wielkich PDF
                 break
             # US-019: powiększenie liczone tak, by bitmapa od razu miała ≤ _MAX_IMG_PX
             # (wcześniej render w pełnym DPI, a dopiero potem zmniejszanie).
             z = capped_zoom(page.rect.width, page.rect.height, dpi / 72.0, _MAX_IMG_PX)
             pix = page.get_pixmap(matrix=fitz.Matrix(z, z), alpha=False)
             img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-            pix = None             # zwolnij bufor C pixmapy od razu
+            pix = None  # zwolnij bufor C pixmapy od razu
             # Downscale if either dimension exceeds cap (mirror _load_pages) —
             # chroni przed OOM na wielkoformatowych arkuszach.
             if img.width > _MAX_IMG_PX or img.height > _MAX_IMG_PX:
@@ -501,6 +560,7 @@ def _pdf_to_images(path: str, dpi: int, max_pages: int = 50) -> list:
 
 
 _MAX_IMG_PX = 3500  # cap longest side to avoid OOM on large-format packaging sheets
+
 
 def _fitz_page_needs_rotation(page) -> int:
     """Return 0, 90, 180 or 270 — the extra rotation needed to make the page
@@ -519,8 +579,8 @@ def _fitz_page_needs_rotation(page) -> int:
         for b in blocks:
             for ln in b.get("lines", []):
                 for sp in ln.get("spans", []):
-                    if (sp.get("text", "").strip()):
-                        ys.append(sp["origin"][1])   # y of text baseline
+                    if sp.get("text", "").strip():
+                        ys.append(sp["origin"][1])  # y of text baseline
                         if len(ys) >= 60:
                             break
                 if len(ys) >= 60:
@@ -555,7 +615,11 @@ def _load_pages(path: str, dpi: int, page_idx: int = None) -> list:
         try:
             imgs = []
             # US-019: bez wskazanej strony renderujemy najwyżej ARTWORK_MAX_PDF_PAGES stron.
-            indices = [page_idx] if (page_idx is not None and 0 <= page_idx < len(doc)) else page_indices(len(doc))
+            indices = (
+                [page_idx]
+                if (page_idx is not None and 0 <= page_idx < len(doc))
+                else page_indices(len(doc))
+            )
             for i in indices:
                 key = _page_cache_key(path, dpi, i)
                 cached = _page_cache_get(key)
@@ -569,7 +633,9 @@ def _load_pages(path: str, dpi: int, page_idx: int = None) -> list:
                 # Downscale if either dimension exceeds cap
                 if img.width > _MAX_IMG_PX or img.height > _MAX_IMG_PX:
                     scale = _MAX_IMG_PX / max(img.width, img.height)
-                    img = img.resize((int(img.width * scale), int(img.height * scale)), Image.LANCZOS)
+                    img = img.resize(
+                        (int(img.width * scale), int(img.height * scale)), Image.LANCZOS
+                    )
                 _page_cache_put(key, img)
                 imgs.append(img)
             return imgs
@@ -611,6 +677,7 @@ def _get_dims_mm(path: str, page_idx: int = None) -> tuple:
 
 # ─── OCR ──────────────────────────────────────────────────────────────────────
 
+
 def _extract_text_from_pdf(path: str) -> list:
     if not HAS_FITZ:
         return []
@@ -629,6 +696,7 @@ def _orient_for_ocr(img, min_confidence: float = 1.5) -> "Image.Image":
     """
     try:
         import pytesseract
+
         w, h = img.size
         if w == 0 or h == 0:
             return img
@@ -636,18 +704,17 @@ def _orient_for_ocr(img, min_confidence: float = 1.5) -> "Image.Image":
         probe = img.resize((w * scale, h * scale), Image.LANCZOS) if scale > 1 else img
         osd = pytesseract.image_to_osd(probe, config="--psm 0 -c min_characters_to_try=5")
         m_angle = re.search(r"Rotate:\s*(\d+)", osd)
-        m_conf  = re.search(r"Orientation confidence:\s*([\d.]+)", osd)
+        m_conf = re.search(r"Orientation confidence:\s*([\d.]+)", osd)
         if not m_angle:
             return img
         if m_conf and float(m_conf.group(1)) < min_confidence:
-            return img   # Untrustworthy reading — better leave as-is than spin it wrong
+            return img  # Untrustworthy reading — better leave as-is than spin it wrong
         angle = int(m_angle.group(1))
         if angle == 0:
             return img
         # PIL rotate is counter-clockwise; OSD angle is clockwise
         rotated = img.rotate(-angle, expand=True)
-        logger.debug("OSD auto-rotate: %d° (conf=%s)",
-                     angle, m_conf.group(1) if m_conf else "?")
+        logger.debug("OSD auto-rotate: %d° (conf=%s)", angle, m_conf.group(1) if m_conf else "?")
         return rotated
     except Exception as _osd_err:
         _warn_osd_once(_osd_err)
@@ -656,84 +723,498 @@ def _orient_for_ocr(img, min_confidence: float = 1.5) -> "Image.Image":
 
 _PL_EN_STOPWORDS = {
     # Polish high-frequency
-    "i", "w", "z", "ze", "na", "do", "od", "po", "za", "u", "o", "lub", "oraz",
-    "jak", "to", "co", "się", "sie", "nie", "tak", "lub", "dla", "przed", "tylko",
-    "może", "moze", "być", "byc", "jest", "są", "sa", "ich", "tym", "tej", "te",
-    "ten", "ta", "by", "iż", "iz", "że", "ze", "który", "ktory", "która", "ktora",
-    "więcej", "wiecej", "mniej", "każdy", "kazdy", "wszystkie", "wszystkich",
-    "produkt", "produkty", "przed", "użycia", "uzycia", "przechowywać", "acme",
+    "i",
+    "w",
+    "z",
+    "ze",
+    "na",
+    "do",
+    "od",
+    "po",
+    "za",
+    "u",
+    "o",
+    "lub",
+    "oraz",
+    "jak",
+    "to",
+    "co",
+    "się",
+    "sie",
+    "nie",
+    "tak",
+    "lub",
+    "dla",
+    "przed",
+    "tylko",
+    "może",
+    "moze",
+    "być",
+    "byc",
+    "jest",
+    "są",
+    "sa",
+    "ich",
+    "tym",
+    "tej",
+    "te",
+    "ten",
+    "ta",
+    "by",
+    "iż",
+    "iz",
+    "że",
+    "ze",
+    "który",
+    "ktory",
+    "która",
+    "ktora",
+    "więcej",
+    "wiecej",
+    "mniej",
+    "każdy",
+    "kazdy",
+    "wszystkie",
+    "wszystkich",
+    "produkt",
+    "produkty",
+    "przed",
+    "użycia",
+    "uzycia",
+    "przechowywać",
+    "acme",
     # English high-frequency
-    "the", "and", "or", "for", "in", "of", "with", "on", "to", "from", "by",
-    "this", "that", "all", "any", "more", "less", "each", "if", "when",
-    "before", "after", "use", "store", "open", "non", "product", "made",
+    "the",
+    "and",
+    "or",
+    "for",
+    "in",
+    "of",
+    "with",
+    "on",
+    "to",
+    "from",
+    "by",
+    "this",
+    "that",
+    "all",
+    "any",
+    "more",
+    "less",
+    "each",
+    "if",
+    "when",
+    "before",
+    "after",
+    "use",
+    "store",
+    "open",
+    "non",
+    "product",
+    "made",
     # Ukrainian high-frequency (Cyrillic)
-    "і", "та", "не", "він", "вона", "вони", "ми", "ви", "ти", "це", "для",
-    "від", "до", "на", "по", "за", "що", "як", "але", "або", "може", "бути",
-    "є", "були", "буде", "які", "який", "яка", "яке", "при", "про", "без",
-    "його", "її", "їх", "нас", "вас", "між", "через",
+    "і",
+    "та",
+    "не",
+    "він",
+    "вона",
+    "вони",
+    "ми",
+    "ви",
+    "ти",
+    "це",
+    "для",
+    "від",
+    "до",
+    "на",
+    "по",
+    "за",
+    "що",
+    "як",
+    "але",
+    "або",
+    "може",
+    "бути",
+    "є",
+    "були",
+    "буде",
+    "які",
+    "який",
+    "яка",
+    "яке",
+    "при",
+    "про",
+    "без",
+    "його",
+    "її",
+    "їх",
+    "нас",
+    "вас",
+    "між",
+    "через",
     # Russian high-frequency (Cyrillic)
-    "и", "в", "не", "он", "на", "с", "что", "а", "по", "это", "она",
-    "так", "его", "но", "да", "ты", "к", "у", "же", "вы", "за", "бы",
-    "до", "из", "от", "для", "при", "или", "они", "мы", "как", "все",
-    "без", "между", "через", "если", "когда", "после", "перед",
+    "и",
+    "в",
+    "не",
+    "он",
+    "на",
+    "с",
+    "что",
+    "а",
+    "по",
+    "это",
+    "она",
+    "так",
+    "его",
+    "но",
+    "да",
+    "ты",
+    "к",
+    "у",
+    "же",
+    "вы",
+    "за",
+    "бы",
+    "до",
+    "из",
+    "от",
+    "для",
+    "при",
+    "или",
+    "они",
+    "мы",
+    "как",
+    "все",
+    "без",
+    "между",
+    "через",
+    "если",
+    "когда",
+    "после",
+    "перед",
     # German
-    "und", "die", "der", "das", "ist", "von", "mit", "für", "nicht", "ein",
-    "eine", "oder", "bei", "nach", "vor", "über", "unter", "des", "dem",
-    "den", "eine", "lager", "bitte", "hinweis", "verwendung", "produkt",
+    "und",
+    "die",
+    "der",
+    "das",
+    "ist",
+    "von",
+    "mit",
+    "für",
+    "nicht",
+    "ein",
+    "eine",
+    "oder",
+    "bei",
+    "nach",
+    "vor",
+    "über",
+    "unter",
+    "des",
+    "dem",
+    "den",
+    "eine",
+    "lager",
+    "bitte",
+    "hinweis",
+    "verwendung",
+    "produkt",
     # French
-    "et", "le", "la", "les", "de", "du", "des", "un", "une", "est", "pas",
-    "avec", "pour", "sur", "dans", "par", "ou", "au", "aux", "ce", "qui",
-    "que", "ne", "se", "son", "sa", "ses", "leur", "leurs", "conserver",
+    "et",
+    "le",
+    "la",
+    "les",
+    "de",
+    "du",
+    "des",
+    "un",
+    "une",
+    "est",
+    "pas",
+    "avec",
+    "pour",
+    "sur",
+    "dans",
+    "par",
+    "ou",
+    "au",
+    "aux",
+    "ce",
+    "qui",
+    "que",
+    "ne",
+    "se",
+    "son",
+    "sa",
+    "ses",
+    "leur",
+    "leurs",
+    "conserver",
     # Spanish
-    "el", "la", "los", "las", "de", "en", "con", "por", "para", "del",
-    "una", "uno", "su", "sus", "son", "este", "esta", "estos", "estas",
-    "sin", "producto", "antes", "uso", "conservar", "almacenar",
+    "el",
+    "la",
+    "los",
+    "las",
+    "de",
+    "en",
+    "con",
+    "por",
+    "para",
+    "del",
+    "una",
+    "uno",
+    "su",
+    "sus",
+    "son",
+    "este",
+    "esta",
+    "estos",
+    "estas",
+    "sin",
+    "producto",
+    "antes",
+    "uso",
+    "conservar",
+    "almacenar",
     # Italian
-    "il", "lo", "gli", "le", "di", "da", "con", "per", "nel", "nella",
-    "dei", "del", "una", "uno", "non", "sono", "questo", "questa",
-    "prima", "dopo", "uso", "prodotto", "conservare",
+    "il",
+    "lo",
+    "gli",
+    "le",
+    "di",
+    "da",
+    "con",
+    "per",
+    "nel",
+    "nella",
+    "dei",
+    "del",
+    "una",
+    "uno",
+    "non",
+    "sono",
+    "questo",
+    "questa",
+    "prima",
+    "dopo",
+    "uso",
+    "prodotto",
+    "conservare",
     # Dutch
-    "de", "het", "een", "van", "in", "is", "op", "met", "voor", "niet",
-    "te", "dit", "dat", "zijn", "bij", "worden", "bewaren", "gebruik",
+    "de",
+    "het",
+    "een",
+    "van",
+    "in",
+    "is",
+    "op",
+    "met",
+    "voor",
+    "niet",
+    "te",
+    "dit",
+    "dat",
+    "zijn",
+    "bij",
+    "worden",
+    "bewaren",
+    "gebruik",
     # Estonian
-    "ja", "on", "ei", "kui", "aga", "kuid", "kas", "see", "mis", "kes",
-    "ning", "või", "ka", "nii", "siis", "veel", "seda", "pole", "alla",
-    "hoida", "enne", "pärast", "kasuta", "ladustada", "toode",
-    "laste", "eest", "kuiv", "kohas", "kuni", "suurus", "partii",
-    "steriilne", "ühekordseks", "lateksivaba", "aegumiskuupäev",
-    "äreulatuses", "kasutamiseks", "kasutusjuhend", "lugege",
+    "ja",
+    "on",
+    "ei",
+    "kui",
+    "aga",
+    "kuid",
+    "kas",
+    "see",
+    "mis",
+    "kes",
+    "ning",
+    "või",
+    "ka",
+    "nii",
+    "siis",
+    "veel",
+    "seda",
+    "pole",
+    "alla",
+    "hoida",
+    "enne",
+    "pärast",
+    "kasuta",
+    "ladustada",
+    "toode",
+    "laste",
+    "eest",
+    "kuiv",
+    "kohas",
+    "kuni",
+    "suurus",
+    "partii",
+    "steriilne",
+    "ühekordseks",
+    "lateksivaba",
+    "aegumiskuupäev",
+    "äreulatuses",
+    "kasutamiseks",
+    "kasutusjuhend",
+    "lugege",
     # Latvian
-    "un", "ir", "nav", "kas", "lai", "bet", "vai", "arī", "tad", "kā",
-    "par", "pie", "glabāt", "lietot", "produkts", "pirms",
-    "bērniem", "sterilizēts", "vienreizlietojams", "izmantošana",
+    "un",
+    "ir",
+    "nav",
+    "kas",
+    "lai",
+    "bet",
+    "vai",
+    "arī",
+    "tad",
+    "kā",
+    "par",
+    "pie",
+    "glabāt",
+    "lietot",
+    "produkts",
+    "pirms",
+    "bērniem",
+    "sterilizēts",
+    "vienreizlietojams",
+    "izmantošana",
     # Lithuanian
-    "ir", "ne", "tai", "bet", "ar", "dar", "jau", "kai", "nuo", "su",
-    "iki", "per", "prie", "laikyti", "naudoti", "produktas",
-    "vaikams", "sterilizuotas", "vienkartinis", "naudojimas",
+    "ir",
+    "ne",
+    "tai",
+    "bet",
+    "ar",
+    "dar",
+    "jau",
+    "kai",
+    "nuo",
+    "su",
+    "iki",
+    "per",
+    "prie",
+    "laikyti",
+    "naudoti",
+    "produktas",
+    "vaikams",
+    "sterilizuotas",
+    "vienkartinis",
+    "naudojimas",
     # Czech / Slovak
-    "a", "je", "na", "se", "ve", "ze", "po", "od", "do", "pro", "při",
-    "ale", "nebo", "jsou", "být", "tento", "tato", "toto", "před",
-    "produkt", "skladovat", "použití", "sterilní", "jednorázový",
+    "a",
+    "je",
+    "na",
+    "se",
+    "ve",
+    "ze",
+    "po",
+    "od",
+    "do",
+    "pro",
+    "při",
+    "ale",
+    "nebo",
+    "jsou",
+    "být",
+    "tento",
+    "tato",
+    "toto",
+    "před",
+    "produkt",
+    "skladovat",
+    "použití",
+    "sterilní",
+    "jednorázový",
     # Romanian
-    "și", "si", "de", "la", "în", "in", "cu", "pe", "nu", "este", "sunt",
-    "pentru", "sau", "cel", "cea", "produs", "sterile", "ambalaj",
+    "și",
+    "si",
+    "de",
+    "la",
+    "în",
+    "in",
+    "cu",
+    "pe",
+    "nu",
+    "este",
+    "sunt",
+    "pentru",
+    "sau",
+    "cel",
+    "cea",
+    "produs",
+    "sterile",
+    "ambalaj",
     # Hungarian
-    "és", "es", "az", "van", "nem", "meg", "fel", "termék",
-    "tárolja", "előtt", "után", "steril", "egyszer", "használatos",
+    "és",
+    "es",
+    "az",
+    "van",
+    "nem",
+    "meg",
+    "fel",
+    "termék",
+    "tárolja",
+    "előtt",
+    "után",
+    "steril",
+    "egyszer",
+    "használatos",
     # Finnish / Swedish / Norwegian / Danish (Nordic)
-    "ja", "ei", "on", "se", "tai", "jos", "kuin", "vain",
-    "och", "att", "det", "den", "till", "som", "men", "inte",
-    "förvara", "använda", "steril", "engångs",
+    "ja",
+    "ei",
+    "on",
+    "se",
+    "tai",
+    "jos",
+    "kuin",
+    "vain",
+    "och",
+    "att",
+    "det",
+    "den",
+    "till",
+    "som",
+    "men",
+    "inte",
+    "förvara",
+    "använda",
+    "steril",
+    "engångs",
     # Medical packaging vocabulary (language-neutral)
-    "sterile", "steril", "sterility", "steriilne",
-    "latex", "latexfrei", "lateksivaba",
-    "single", "einmal", "jednorazowy",
-    "expiry", "ablauf", "erhebt",
-    "batch", "charge", "lot", "partia", "partii",
-    "size", "sizes", "größe", "rozmiar", "suurus",
-    "storage", "lagerung", "przechowywanie",
-    "temperature", "temperatur", "temperatura",
-    "humidity", "feuchtigkeit", "wilgotność",
+    "sterile",
+    "steril",
+    "sterility",
+    "steriilne",
+    "latex",
+    "latexfrei",
+    "lateksivaba",
+    "single",
+    "einmal",
+    "jednorazowy",
+    "expiry",
+    "ablauf",
+    "erhebt",
+    "batch",
+    "charge",
+    "lot",
+    "partia",
+    "partii",
+    "size",
+    "sizes",
+    "größe",
+    "rozmiar",
+    "suurus",
+    "storage",
+    "lagerung",
+    "przechowywanie",
+    "temperature",
+    "temperatur",
+    "temperatura",
+    "humidity",
+    "feuchtigkeit",
+    "wilgotność",
 }
 
 # Matches Latin (incl. EU diacritics) AND Cyrillic.
@@ -741,9 +1222,7 @@ _PL_EN_STOPWORDS = {
 _WORD_RE = re.compile(r"[A-Za-zÀ-ÖØ-öø-ɏѐ-ӿ]{1,12}")
 
 # Used by vowel-density fallback scorer — covers Latin + Cyrillic vowels
-_VOWELS = frozenset(
-    "aeiouäöüåøæáéíóúàèìòùâêîôûãõýůñőűęąīūАаЕеЁёИиОоУуЫыЭэЮюЯяІіЇїЄє"
-)
+_VOWELS = frozenset("aeiouäöüåøæáéíóúàèìòùâêîôûãõýůñőűęąīūАаЕеЁёИиОоУуЫыЭэЮюЯяІіЇїЄє")
 
 
 def _ocr_quality_score(text: str) -> int:
@@ -771,9 +1250,9 @@ def _ocr_quality_score(text: str) -> int:
     if not words:
         return 0
     natural = sum(
-        1 for w in words
-        if len(w) >= 3
-        and 0.20 <= (sum(1 for c in w if c in _VOWELS) / len(w)) <= 0.55
+        1
+        for w in words
+        if len(w) >= 3 and 0.20 <= (sum(1 for c in w if c in _VOWELS) / len(w)) <= 0.55
     )
     if natural >= 4:
         return 2  # Enough plausible words — likely readable text in unknown language
@@ -811,10 +1290,13 @@ def _ocr_rotation_sensitive(img) -> str:
     if reader:
         try:
             import numpy as np
+
             arr = np.array(img.convert("RGB"))
             result = reader.ocr(arr, cls=False)
             if result and result[0]:
-                texts = [line[1][0] for line in result[0] if line and len(line) >= 2 and line[1][1] > 0.3]
+                texts = [
+                    line[1][0] for line in result[0] if line and len(line) >= 2 and line[1][1] > 0.3
+                ]
                 return " ".join(texts)
         except Exception:
             pass
@@ -822,12 +1304,16 @@ def _ocr_rotation_sensitive(img) -> str:
     # scoring only needs to judge readability, not extract accurate text).
     try:
         import pytesseract
+
         _t0 = time.time()
-        _result = pytesseract.image_to_string(img, lang="pol+eng+deu", config="--psm 6",
-                                              timeout=_TESSERACT_TIMEOUT)
+        _result = pytesseract.image_to_string(
+            img, lang="pol+eng+deu", config="--psm 6", timeout=_TESSERACT_TIMEOUT
+        )
         _elapsed = time.time() - _t0
         if _elapsed > _TESSERACT_TIMEOUT:
-            logger.warning("Tesseract OCR took %.1fs (timeout threshold: %ds)", _elapsed, _TESSERACT_TIMEOUT)
+            logger.warning(
+                "Tesseract OCR took %.1fs (timeout threshold: %ds)", _elapsed, _TESSERACT_TIMEOUT
+            )
         return _result
     except Exception:
         pass
@@ -854,8 +1340,7 @@ def _ocr_with_orient_fallback(crop):
 
     # Check if a rotation-sensitive engine is available
     rotation_sensitive_available = (
-        bool(_get_paddleocr("latin") or _get_paddleocr("cyrillic"))
-        or _TESSERACT_AVAILABLE
+        bool(_get_paddleocr("latin") or _get_paddleocr("cyrillic")) or _TESSERACT_AVAILABLE
     )
 
     candidates = []  # [(score, raw_len, img, text), ...]
@@ -913,6 +1398,7 @@ def _detect_page_rotation_angle(img) -> int:
     Downscales large pages aggressively — OSD doesn't need high resolution."""
     try:
         import pytesseract
+
         w, h = img.size
         # OSD works fine on ~800px max dim; downscale large pages for speed
         max_dim = max(w, h)
@@ -961,7 +1447,17 @@ def _get_ocr_langs() -> str:
     # (ARTWORK_OCR_MAX_LANGS, default 12) so the rarely-reached Tesseract fallback
     # doesn't load 24+ packs and run 5–8× slower.
     _TESSERACT_EU_EXTRAS = (
-        "deu", "fra", "spa", "ita", "nld", "ukr", "rus", "ces", "hun", "por", "bul",
+        "deu",
+        "fra",
+        "spa",
+        "ita",
+        "nld",
+        "ukr",
+        "rus",
+        "ces",
+        "hun",
+        "por",
+        "bul",
     )
     try:
         _cap = int(os.environ.get("ARTWORK_OCR_MAX_LANGS", "12"))
@@ -969,12 +1465,13 @@ def _get_ocr_langs() -> str:
         _cap = 12
     try:
         import pytesseract
+
         available = set(pytesseract.get_languages())
         langs = ["pol", "eng"]
         for extra in _TESSERACT_EU_EXTRAS:
             if extra in available and extra not in langs:
                 langs.append(extra)
-        _OCR_LANGS = "+".join(langs[:max(2, _cap)])
+        _OCR_LANGS = "+".join(langs[: max(2, _cap)])
     except Exception:
         _OCR_LANGS = "pol+eng"
     logger.info("OCR language packs: %s", _OCR_LANGS)
@@ -984,26 +1481,26 @@ def _get_ocr_langs() -> str:
 # ── OCR singletons ────────────────────────────────────────────────────────────
 import threading as _threading
 
-_paddleocr_latin    = None   # PaddleOCR — Latin script (Polish, English, …)
-_paddleocr_cyrillic = None   # PaddleOCR — Cyrillic script (Russian, Ukrainian)
-_paddleocr_lock     = _threading.Lock()
+_paddleocr_latin = None  # PaddleOCR — Latin script (Polish, English, …)
+_paddleocr_cyrillic = None  # PaddleOCR — Cyrillic script (Russian, Ukrainian)
+_paddleocr_lock = _threading.Lock()
 
 _easyocr_reader = None
-_easyocr_lock   = _threading.Lock()
+_easyocr_lock = _threading.Lock()
 
-_doctr_reader = None   # DocTR — deep-learning OCR (between EasyOCR and Tesseract)
-_doctr_lock   = _threading.Lock()
+_doctr_reader = None  # DocTR — deep-learning OCR (between EasyOCR and Tesseract)
+_doctr_lock = _threading.Lock()
 
-_got_ocr_model     = None   # GOT-OCR 2.0 — kept for reference, superseded by Qwen2.5-VL
+_got_ocr_model = None  # GOT-OCR 2.0 — kept for reference, superseded by Qwen2.5-VL
 _got_ocr_tokenizer = None
-_got_ocr_lock      = _threading.Lock()
+_got_ocr_lock = _threading.Lock()
 
-_qwen_model     = None   # Qwen2.5-VL-3B — best local VLM, superior 0/O 1/I disambiguation
+_qwen_model = None  # Qwen2.5-VL-3B — best local VLM, superior 0/O 1/I disambiguation
 _qwen_processor = None
-_qwen_lock      = _threading.Lock()
+_qwen_lock = _threading.Lock()
 
 _rapidocr_engine = None  # RapidOCR — PaddleOCR models in ONNX (self-contained, fast, CPU)
-_rapidocr_lock   = _threading.Lock()
+_rapidocr_lock = _threading.Lock()
 
 
 def _get_rapidocr():
@@ -1041,14 +1538,15 @@ def _rapidocr_readtext(img) -> str:
         return ""
     try:
         import numpy as np
+
         arr = np.array(img.convert("RGB"))
         out = engine(arr)
         result = out[0] if isinstance(out, tuple) else out
         if result is None:
             return ""
-        if hasattr(result, "txts"):                      # rapidocr 2.x
+        if hasattr(result, "txts"):  # rapidocr 2.x
             return " ".join(t for t in (result.txts or []) if t).strip()
-        lines = []                                        # rapidocr 1.x list form
+        lines = []  # rapidocr 1.x list form
         for item in result:
             if isinstance(item, (list, tuple)) and len(item) >= 2 and item[1]:
                 lines.append(str(item[1]))
@@ -1084,9 +1582,11 @@ def _get_qwen():
         try:
             import torch
             from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor
+
             # Bandit B615: stała nazwa zaufanego modelu z HF Hub (nie z wejścia); opcjonalny model ładowany leniwie.
             _qwen_processor = AutoProcessor.from_pretrained(  # nosec B615
-                "Qwen/Qwen2.5-VL-3B-Instruct", trust_remote_code=True)
+                "Qwen/Qwen2.5-VL-3B-Instruct", trust_remote_code=True
+            )
             # Bandit B615: stała nazwa zaufanego modelu z HF Hub (nie z wejścia); opcjonalny model ładowany leniwie.
             _qwen_model = Qwen2_5_VLForConditionalGeneration.from_pretrained(  # nosec B615
                 "Qwen/Qwen2.5-VL-3B-Instruct",
@@ -1095,7 +1595,9 @@ def _get_qwen():
                 device_map="cpu",
                 low_cpu_mem_usage=True,
             ).eval()
-            logger.warning("Qwen2.5-VL model loaded — this uses ~12GB RAM; set DISABLE_QWEN=1 to skip")
+            logger.warning(
+                "Qwen2.5-VL model loaded — this uses ~12GB RAM; set DISABLE_QWEN=1 to skip"
+            )
             logger.info("Qwen2.5-VL-3B loaded")
             return (_qwen_processor, _qwen_model)
         except Exception as exc:
@@ -1112,39 +1614,59 @@ def _qwen_readtext(img) -> str:
     processor, model = pair
     try:
         import torch
-        messages = [{"role": "user", "content": [
-            {"type": "image", "image": img},
-            {"type": "text", "text":
-                "Extract all text from this image exactly as printed. "
-                "Pay special attention to numbers and codes — never confuse 0 with O or 1 with I. "
-                "Return only the extracted text, no explanation."},
-        ]}]
+
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image", "image": img},
+                    {
+                        "type": "text",
+                        "text": "Extract all text from this image exactly as printed. "
+                        "Pay special attention to numbers and codes — never confuse 0 with O or 1 with I. "
+                        "Return only the extracted text, no explanation.",
+                    },
+                ],
+            }
+        ]
         try:
             from qwen_vl_utils import process_vision_info
+
             text_prompt = processor.apply_chat_template(
-                messages, tokenize=False, add_generation_prompt=True)
+                messages, tokenize=False, add_generation_prompt=True
+            )
             image_inputs, video_inputs = process_vision_info(messages)
             inputs = processor(
-                text=[text_prompt], images=image_inputs,
-                videos=video_inputs, return_tensors="pt")
+                text=[text_prompt], images=image_inputs, videos=video_inputs, return_tensors="pt"
+            )
         except ImportError:
             # qwen_vl_utils not installed — fall back to direct image encoding
             from io import BytesIO
             import base64 as _b64
+
             buf = BytesIO()
             img.convert("RGB").save(buf, format="JPEG", quality=85)
             b64 = _b64.b64encode(buf.getvalue()).decode()
             inputs = processor(
                 text=processor.apply_chat_template(
-                    [{"role": "user", "content": [
-                        {"type": "image", "image": f"data:image/jpeg;base64,{b64}"},
-                        {"type": "text", "text": "Extract all text exactly as printed."},
-                    ]}], tokenize=False, add_generation_prompt=True),
+                    [
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "image", "image": f"data:image/jpeg;base64,{b64}"},
+                                {"type": "text", "text": "Extract all text exactly as printed."},
+                            ],
+                        }
+                    ],
+                    tokenize=False,
+                    add_generation_prompt=True,
+                ),
                 images=[img.convert("RGB")],
-                return_tensors="pt")
+                return_tensors="pt",
+            )
         with torch.no_grad():
             generated = model.generate(**inputs, max_new_tokens=512)
-        trimmed = [out[len(inp):] for inp, out in zip(inputs.input_ids, generated)]
+        trimmed = [out[len(inp) :] for inp, out in zip(inputs.input_ids, generated)]
         result = processor.batch_decode(trimmed, skip_special_tokens=True)[0]
         return (result or "").strip()
     except Exception as exc:
@@ -1181,6 +1703,7 @@ def _ftfy_fix(text: str) -> str:
     if _HAS_FTFY is None:
         try:
             import ftfy as _f
+
             _FTFY, _HAS_FTFY = _f, True
         except Exception:
             _FTFY, _HAS_FTFY = None, False
@@ -1209,6 +1732,7 @@ def _mistral_readtext(img) -> str:
     try:
         import base64 as _b64, httpx as _hx
         from io import BytesIO
+
         w, h = img.size
         if max(w, h) > 2048:
             scale = 2048 / max(w, h)
@@ -1219,9 +1743,10 @@ def _mistral_readtext(img) -> str:
         resp = _hx.post(
             "https://api.mistral.ai/v1/ocr",
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json={"model": "mistral-ocr-latest",
-                  "document": {"type": "image_url",
-                                "image_url": f"data:image/jpeg;base64,{b64}"}},
+            json={
+                "model": "mistral-ocr-latest",
+                "document": {"type": "image_url", "image_url": f"data:image/jpeg;base64,{b64}"},
+            },
             timeout=30,
         )
         if resp.status_code != 200:
@@ -1249,6 +1774,7 @@ def _get_doctr_reader():
             return _doctr_reader or None
         try:
             from doctr.models import ocr_predictor
+
             _doctr_reader = ocr_predictor(pretrained=True)
             logger.info("DocTR OCR reader initialised")
         except Exception as exc:
@@ -1264,6 +1790,7 @@ def _doctr_readtext(img) -> str:
         return ""
     try:
         import numpy as np
+
         # DocTR predictor accepts numpy arrays (H,W,3) uint8 directly;
         # DocumentFile.from_images() only accepts file paths / bytes, NOT arrays.
         arr = np.array(img.convert("RGB"))
@@ -1281,11 +1808,11 @@ def _doctr_readtext(img) -> str:
 
 # ── Surya layout-aware OCR singleton ──────────────────────────────────────────
 
-_surya_det_model      = None
-_surya_det_processor  = None
-_surya_rec_model      = None
-_surya_rec_processor  = None
-_surya_lock           = _threading.Lock()
+_surya_det_model = None
+_surya_det_processor = None
+_surya_rec_model = None
+_surya_rec_processor = None
+_surya_lock = _threading.Lock()
 
 
 def _get_surya():
@@ -1293,32 +1820,40 @@ def _get_surya():
     global _surya_det_model, _surya_det_processor
     global _surya_rec_model, _surya_rec_processor
     if _surya_det_model is not None:
-        return ((_surya_det_model, _surya_det_processor,
-                 _surya_rec_model, _surya_rec_processor)
-                if _surya_det_model else (None, None, None, None))
+        return (
+            (_surya_det_model, _surya_det_processor, _surya_rec_model, _surya_rec_processor)
+            if _surya_det_model
+            else (None, None, None, None)
+        )
     with _surya_lock:
         if _surya_det_model is not None:
-            return ((_surya_det_model, _surya_det_processor,
-                     _surya_rec_model, _surya_rec_processor)
-                    if _surya_det_model else (None, None, None, None))
+            return (
+                (_surya_det_model, _surya_det_processor, _surya_rec_model, _surya_rec_processor)
+                if _surya_det_model
+                else (None, None, None, None)
+            )
         try:
             from surya.model.detection.segformer import (
-                load_model as _sd_model, load_processor as _sd_proc)
+                load_model as _sd_model,
+                load_processor as _sd_proc,
+            )
             from surya.model.recognition.model import load_model as _sr_model
-            from surya.model.recognition.processor import (
-                load_processor as _sr_proc)
-            _det_m               = _sd_model()   # load into temp var first
+            from surya.model.recognition.processor import load_processor as _sr_proc
+
+            _det_m = _sd_model()  # load into temp var first
             _surya_det_processor = _sd_proc()
-            _surya_rec_model     = _sr_model()
+            _surya_rec_model = _sr_model()
             _surya_rec_processor = _sr_proc()
-            _surya_det_model     = _det_m        # sentinel set last — prevents TOCTOU race
+            _surya_det_model = _det_m  # sentinel set last — prevents TOCTOU race
             logger.info("Surya OCR models initialised")
         except Exception as exc:
             logger.warning("Surya unavailable: %s", exc)
             _surya_det_model = False
-    return ((_surya_det_model, _surya_det_processor,
-             _surya_rec_model, _surya_rec_processor)
-            if _surya_det_model else (None, None, None, None))
+    return (
+        (_surya_det_model, _surya_det_processor, _surya_rec_model, _surya_rec_processor)
+        if _surya_det_model
+        else (None, None, None, None)
+    )
 
 
 def _surya_readtext(img) -> str:
@@ -1329,21 +1864,46 @@ def _surya_readtext(img) -> str:
         return ""
     try:
         from surya.ocr import run_ocr
-        langs = [["pl", "en", "de", "fr", "es", "it", "pt", "nl",
-                  "cs", "sk", "hu", "ro", "hr", "sl",
-                  "et", "lv", "lt", "fi", "sv", "no", "da",
-                  "uk", "ru", "bg"]]
+
+        langs = [
+            [
+                "pl",
+                "en",
+                "de",
+                "fr",
+                "es",
+                "it",
+                "pt",
+                "nl",
+                "cs",
+                "sk",
+                "hu",
+                "ro",
+                "hr",
+                "sl",
+                "et",
+                "lv",
+                "lt",
+                "fi",
+                "sv",
+                "no",
+                "da",
+                "uk",
+                "ru",
+                "bg",
+            ]
+        ]
         predictions = run_ocr(
-            [img], langs,
-            det_model, det_processor,
-            rec_model, rec_processor,
+            [img],
+            langs,
+            det_model,
+            det_processor,
+            rec_model,
+            rec_processor,
         )
         if not predictions:
             return ""
-        lines = [
-            line.text for line in predictions[0].text_lines
-            if line.text and line.text.strip()
-        ]
+        lines = [line.text for line in predictions[0].text_lines if line.text and line.text.strip()]
         return "\n".join(lines).strip()
     except Exception as exc:
         logger.debug("Surya readtext failed: %s", exc)
@@ -1354,7 +1914,7 @@ def _surya_readtext(img) -> str:
 
 _dinov2_model = None
 _dinov2_processor = None
-_dinov2_lock  = _threading.Lock()
+_dinov2_lock = _threading.Lock()
 
 
 def _get_dinov2():
@@ -1368,6 +1928,7 @@ def _get_dinov2():
         try:
             from transformers import AutoImageProcessor, AutoModel
             import torch
+
             # Bandit B615: stała nazwa zaufanego modelu z HF Hub (nie z wejścia); opcjonalny model ładowany leniwie.
             _dinov2_processor = AutoImageProcessor.from_pretrained("facebook/dinov2-small")  # nosec B615
             # Bandit B615: stała nazwa zaufanego modelu z HF Hub (nie z wejścia); opcjonalny model ładowany leniwie.
@@ -1388,10 +1949,11 @@ def _dinov2_similarity(img_a, img_b) -> float:
         return -1.0
     try:
         import torch
+
         inputs = processor(images=[img_a, img_b], return_tensors="pt")
         with torch.no_grad():
             outputs = model(**inputs)
-        emb = outputs.last_hidden_state[:, 0]   # CLS token
+        emb = outputs.last_hidden_state[:, 0]  # CLS token
         emb = emb / emb.norm(dim=-1, keepdim=True)
         score = float((emb[0] * emb[1]).sum())
         return max(0.0, score)
@@ -1402,37 +1964,49 @@ def _dinov2_similarity(img_a, img_b) -> float:
 
 # ── Table Transformer singleton ───────────────────────────────────────────────
 
-_table_transformer_model     = None
+_table_transformer_model = None
 _table_transformer_processor = None
-_table_transformer_lock      = _threading.Lock()
+_table_transformer_lock = _threading.Lock()
 
 
 def _get_table_transformer():
     """Lazy Table Transformer singleton for size-table detection."""
     global _table_transformer_model, _table_transformer_processor
     if _table_transformer_model is not None:
-        return ((_table_transformer_model, _table_transformer_processor)
-                if _table_transformer_model else (None, None))
+        return (
+            (_table_transformer_model, _table_transformer_processor)
+            if _table_transformer_model
+            else (None, None)
+        )
     with _table_transformer_lock:
         if _table_transformer_model is not None:
-            return ((_table_transformer_model, _table_transformer_processor)
-                    if _table_transformer_model else (None, None))
+            return (
+                (_table_transformer_model, _table_transformer_processor)
+                if _table_transformer_model
+                else (None, None)
+            )
         try:
             from transformers import AutoImageProcessor, TableTransformerForObjectDetection
+
             # Bandit B615: stała nazwa zaufanego modelu z HF Hub (nie z wejścia); opcjonalny model ładowany leniwie.
             _table_transformer_processor = AutoImageProcessor.from_pretrained(  # nosec B615
-                "microsoft/table-transformer-detection")
+                "microsoft/table-transformer-detection"
+            )
             # Bandit B615: stała nazwa zaufanego modelu z HF Hub (nie z wejścia); opcjonalny model ładowany leniwie.
             _table_transformer_model = TableTransformerForObjectDetection.from_pretrained(  # nosec B615
-                "microsoft/table-transformer-detection")
+                "microsoft/table-transformer-detection"
+            )
             _table_transformer_model.eval()
             logger.info("Table Transformer model initialised")
         except Exception as exc:
             logger.warning("Table Transformer unavailable: %s", exc)
             _table_transformer_model = False
             _table_transformer_processor = None
-    return ((_table_transformer_model, _table_transformer_processor)
-            if _table_transformer_model else (None, None))
+    return (
+        (_table_transformer_model, _table_transformer_processor)
+        if _table_transformer_model
+        else (None, None)
+    )
 
 
 def _img2table_extract(crop_img) -> str:
@@ -1445,6 +2019,7 @@ def _img2table_extract(crop_img) -> str:
         import io as _io
         from img2table.document import Image as _Img2TableDoc
         from img2table.ocr import TesseractOCR as _Img2TableTess
+
         # img2table only accepts str/Path/BytesIO/bytes — not PIL Images
         _buf = _io.BytesIO()
         crop_img.convert("RGB").save(_buf, format="PNG")
@@ -1462,8 +2037,7 @@ def _img2table_extract(crop_img) -> str:
         for tbl in tables:
             df = tbl.df
             for _, row in df.iterrows():
-                cells = [str(v).strip() for v in row.values
-                         if v is not None and str(v).strip()]
+                cells = [str(v).strip() for v in row.values if v is not None and str(v).strip()]
                 if cells:
                     parts.append(" | ".join(cells))
         return "\n".join(parts).strip()
@@ -1485,6 +2059,7 @@ def _table_cells_img2table(crop):
         import io as _io
         from img2table.document import Image as _Img2TableDoc
         from img2table.ocr import TesseractOCR as _Img2TableTess
+
         W, H = crop.size
         if not W or not H:
             return []
@@ -1496,22 +2071,32 @@ def _table_cells_img2table(crop):
         tables = doc.extract_tables(ocr=ocr, borderless_tables=True, min_confidence=50)
         if not tables:
             return []
-        tbl = tables[0]   # najwyżej ocenioną/pierwszą tabelę
+        tbl = tables[0]  # najwyżej ocenioną/pierwszą tabelę
         out = []
         content = getattr(tbl, "content", None) or {}
         for r_idx, row_cells in content.items():
             for c_idx, cell in enumerate(row_cells or []):
-                val = (getattr(cell, "value", None) or "")
+                val = getattr(cell, "value", None) or ""
                 val = " ".join(str(val).split())
                 bb = getattr(cell, "bbox", None)
                 if bb is None:
                     continue
-                x1, y1, x2, y2 = (getattr(bb, "x1", None), getattr(bb, "y1", None),
-                                  getattr(bb, "x2", None), getattr(bb, "y2", None))
+                x1, y1, x2, y2 = (
+                    getattr(bb, "x1", None),
+                    getattr(bb, "y1", None),
+                    getattr(bb, "x2", None),
+                    getattr(bb, "y2", None),
+                )
                 if None in (x1, y1, x2, y2):
                     continue
-                out.append((int(r_idx), int(c_idx), val,
-                            (x1 / W * 100.0, y1 / H * 100.0, x2 / W * 100.0, y2 / H * 100.0)))
+                out.append(
+                    (
+                        int(r_idx),
+                        int(c_idx),
+                        val,
+                        (x1 / W * 100.0, y1 / H * 100.0, x2 / W * 100.0, y2 / H * 100.0),
+                    )
+                )
         return out
     except ImportError:
         return []
@@ -1540,8 +2125,8 @@ def _compare_table_structured(crop_a, crop_b, tol: float = 0.0):
     komórek po obu stronach. Zwraca dict {changed, boxes_a, boxes_b, note, diffs}
     albo None, gdy struktury nie udało się odzyskać po którejś stronie (wtedy
     caller wraca do boksowania po wartościach)."""
-    if not _env_flag("ARTWORK_TABLE_STRUCT", "0"):   # domyślnie OFF — img2table (Tesseract)
-        return None                                  # rywalizuje o CPU i wpychał POLE w timeout
+    if not _env_flag("ARTWORK_TABLE_STRUCT", "0"):  # domyślnie OFF — img2table (Tesseract)
+        return None  # rywalizuje o CPU i wpychał POLE w timeout
     # UWAGA: img2table służy TYLKO do precyzyjnych RAMEK (detekcja i tak działa bez
     # niego — z diffu tekstu/liczb). Na serwerze produkcyjnym jego Tesseract spowalniał
     # CAŁE pole ponad limit czasu (tabela = duży wycinek), przez co pole timeoutowało
@@ -1586,8 +2171,13 @@ def _compare_table_structured(crop_a, crop_b, tol: float = 0.0):
         "changed": bool(diffs),
         "boxes_a": _dedupe_pct_boxes(boxes_a),
         "boxes_b": _dedupe_pct_boxes(boxes_b),
-        "note": (f"Tabela (komórki): {len(diffs)} różnic — " + ", ".join(diffs[:8])
-                 + (" …" if len(diffs) > 8 else "")) if diffs else "Tabela (komórki): zgodne",
+        "note": (
+            f"Tabela (komórki): {len(diffs)} różnic — "
+            + ", ".join(diffs[:8])
+            + (" …" if len(diffs) > 8 else "")
+        )
+        if diffs
+        else "Tabela (komórki): zgodne",
         "diffs": diffs,
     }
 
@@ -1603,23 +2193,27 @@ def _detect_tables_transformer(img) -> list:
         return []
     try:
         import torch
+
         W, H = img.size
         inputs = processor(images=img, return_tensors="pt")
         with torch.no_grad():
             outputs = model(**inputs)
         target_sizes = torch.tensor([[H, W]])
         results = processor.post_process_object_detection(
-            outputs, threshold=0.7, target_sizes=target_sizes)[0]
+            outputs, threshold=0.7, target_sizes=target_sizes
+        )[0]
         tables = []
         for score, box in zip(results["scores"], results["boxes"]):
             x1, y1, x2, y2 = box.tolist()
-            tables.append({
-                "x1_pct": round(x1 / W * 100, 2),
-                "y1_pct": round(y1 / H * 100, 2),
-                "x2_pct": round(x2 / W * 100, 2),
-                "y2_pct": round(y2 / H * 100, 2),
-                "score":  round(float(score), 3),
-            })
+            tables.append(
+                {
+                    "x1_pct": round(x1 / W * 100, 2),
+                    "y1_pct": round(y1 / H * 100, 2),
+                    "x2_pct": round(x2 / W * 100, 2),
+                    "y2_pct": round(y2 / H * 100, 2),
+                    "score": round(float(score), 3),
+                }
+            )
         tables.sort(key=lambda t: t["score"], reverse=True)
         return tables
     except Exception as exc:
@@ -1630,32 +2224,32 @@ def _detect_tables_transformer(img) -> list:
 # ── LightGlue + SuperPoint singletons ─────────────────────────────────────────
 
 _lightglue_extractor = None
-_lightglue_matcher   = None
-_lightglue_lock      = _threading.Lock()
+_lightglue_matcher = None
+_lightglue_lock = _threading.Lock()
 
 
 def _get_lightglue():
     """Lazy LightGlue + SuperPoint singleton for learned feature matching."""
     global _lightglue_extractor, _lightglue_matcher
     if _lightglue_extractor is not None:
-        return ((_lightglue_extractor, _lightglue_matcher)
-                if _lightglue_extractor else (None, None))
+        return (_lightglue_extractor, _lightglue_matcher) if _lightglue_extractor else (None, None)
     with _lightglue_lock:
         if _lightglue_extractor is not None:
-            return ((_lightglue_extractor, _lightglue_matcher)
-                    if _lightglue_extractor else (None, None))
+            return (
+                (_lightglue_extractor, _lightglue_matcher) if _lightglue_extractor else (None, None)
+            )
         try:
             import torch
             from lightglue import SuperPoint, LightGlue
+
             _lightglue_extractor = SuperPoint(max_num_keypoints=1024).eval()
-            _lightglue_matcher   = LightGlue(features="superpoint").eval()
+            _lightglue_matcher = LightGlue(features="superpoint").eval()
             logger.info("LightGlue + SuperPoint initialised (CPU)")
         except Exception as exc:
             logger.warning("LightGlue unavailable: %s", exc)
             _lightglue_extractor = False
-            _lightglue_matcher   = None
-    return ((_lightglue_extractor, _lightglue_matcher)
-            if _lightglue_extractor else (None, None))
+            _lightglue_matcher = None
+    return (_lightglue_extractor, _lightglue_matcher) if _lightglue_extractor else (None, None)
 
 
 def warmup_models(verbose: bool = True) -> None:
@@ -1679,8 +2273,7 @@ def warmup_models(verbose: bool = True) -> None:
             logger.warning("warmup: %s nie wystartował: %s", _name, _e)
 
 
-def _lightglue_match_locate(tmpl_gray, page_gray, ph: int, pw: int,
-                              th: int, tw: int):
+def _lightglue_match_locate(tmpl_gray, page_gray, ph: int, pw: int, th: int, tw: int):
     """LightGlue + SuperPoint matching. Returns same format as _feature_match_locate."""
     extractor, matcher = _get_lightglue()
     if extractor is None:
@@ -1700,7 +2293,7 @@ def _lightglue_match_locate(tmpl_gray, page_gray, ph: int, pw: int,
             matches01 = matcher({"image0": feats0, "image1": feats1})
 
         feats0, feats1, matches01 = [rbd(x) for x in [feats0, feats1, matches01]]
-        matches = matches01["matches"]          # (N, 2)
+        matches = matches01["matches"]  # (N, 2)
         if matches.shape[0] < 8:
             return None
 
@@ -1708,6 +2301,7 @@ def _lightglue_match_locate(tmpl_gray, page_gray, ph: int, pw: int,
         kpts1 = feats1["keypoints"][matches[:, 1]].cpu().numpy()
 
         import cv2
+
         src_pts = kpts0.reshape(-1, 1, 2).astype(np.float32)
         dst_pts = kpts1.reshape(-1, 1, 2).astype(np.float32)
         M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
@@ -1720,8 +2314,8 @@ def _lightglue_match_locate(tmpl_gray, page_gray, ph: int, pw: int,
         corners = np.float32([[0, 0], [tw, 0], [tw, th], [0, th]]).reshape(-1, 1, 2)
         dst = cv2.perspectiveTransform(corners, M)
         xs, ys = dst[:, 0, 0], dst[:, 0, 1]
-        x1 = int(max(0,  xs.min()))
-        y1 = int(max(0,  ys.min()))
+        x1 = int(max(0, xs.min()))
+        y1 = int(max(0, ys.min()))
         x2 = int(min(pw, xs.max()))
         y2 = int(min(ph, ys.max()))
         if x2 <= x1 or y2 <= y1:
@@ -1732,9 +2326,15 @@ def _lightglue_match_locate(tmpl_gray, page_gray, ph: int, pw: int,
 
         confidence = min(0.97, 0.55 + inliers * 0.04)
         logger.debug("LightGlue: %d inliers conf=%.2f", inliers, confidence)
-        return ({"x1_pct": x1/pw*100, "y1_pct": y1/ph*100,
-                 "x2_pct": x2/pw*100, "y2_pct": y2/ph*100},
-                confidence)
+        return (
+            {
+                "x1_pct": x1 / pw * 100,
+                "y1_pct": y1 / ph * 100,
+                "x2_pct": x2 / pw * 100,
+                "y2_pct": y2 / ph * 100,
+            },
+            confidence,
+        )
     except Exception as exc:
         logger.debug("LightGlue matching error: %s", exc)
         return None
@@ -1752,6 +2352,7 @@ def _get_paddleocr(script: str = "latin"):
             return current or None
         try:
             from paddleocr import PaddleOCR
+
             reader = PaddleOCR(
                 use_angle_cls=True,
                 lang=script,
@@ -1791,27 +2392,47 @@ def _get_easyocr_reader():
         # fall back progressively to a known-safe minimal set so that one
         # unsupported language code never disables the entire EasyOCR tier.
         _EASYOCR_LANGS_FULL = [
-            "pl", "en", "de", "fr", "es", "it", "pt", "nl",
-            "cs", "sk", "hu", "ro", "hr", "sl", "bs",
-            "et", "lv", "lt",
-            "fi", "sv", "no", "da",
-            "uk", "ru", "bg",
+            "pl",
+            "en",
+            "de",
+            "fr",
+            "es",
+            "it",
+            "pt",
+            "nl",
+            "cs",
+            "sk",
+            "hu",
+            "ro",
+            "hr",
+            "sl",
+            "bs",
+            "et",
+            "lv",
+            "lt",
+            "fi",
+            "sv",
+            "no",
+            "da",
+            "uk",
+            "ru",
+            "bg",
         ]
-        _EASYOCR_LANGS_SAFE = ["pl", "en", "de", "fr", "es", "it",
-                                "cs", "ro", "uk", "ru"]
+        _EASYOCR_LANGS_SAFE = ["pl", "en", "de", "fr", "es", "it", "cs", "ro", "uk", "ru"]
         try:
             import easyocr
+
             for _lang_set in (_EASYOCR_LANGS_FULL, _EASYOCR_LANGS_SAFE):
                 try:
-                    _easyocr_reader = easyocr.Reader(
-                        _lang_set, gpu=False, verbose=False
-                    )
-                    logger.info("EasyOCR reader initialised (%d languages, CPU)",
-                                len(_lang_set))
+                    _easyocr_reader = easyocr.Reader(_lang_set, gpu=False, verbose=False)
+                    logger.info("EasyOCR reader initialised (%d languages, CPU)", len(_lang_set))
                     break
                 except Exception as _inner:
-                    logger.warning("EasyOCR init failed with %d langs (%s), retrying with safe set",
-                                   len(_lang_set), _inner)
+                    logger.warning(
+                        "EasyOCR init failed with %d langs (%s), retrying with safe set",
+                        len(_lang_set),
+                        _inner,
+                    )
                     _easyocr_reader = None
             if _easyocr_reader is None:
                 _easyocr_reader = False
@@ -1827,6 +2448,7 @@ def _paddle_readtext(img, use_cls: bool = True) -> str:
     has already corrected orientation (e.g. user-defined rotation) and must not
     let PaddleOCR re-flip correctly-oriented lines."""
     import numpy as np
+
     arr = np.array(img.convert("RGB"))
     for script in ("latin", "cyrillic"):
         reader = _get_paddleocr(script)
@@ -1836,8 +2458,9 @@ def _paddle_readtext(img, use_cls: bool = True) -> str:
             result = reader.ocr(arr, cls=use_cls)
             if not result or not result[0]:
                 continue
-            texts = [line[1][0] for line in result[0]
-                     if line and len(line) >= 2 and line[1][1] > 0.3]
+            texts = [
+                line[1][0] for line in result[0] if line and len(line) >= 2 and line[1][1] > 0.3
+            ]
             text = " ".join(texts).strip()
             if text:
                 return text
@@ -1862,6 +2485,7 @@ def _align_crop_to_master(crop_master, crop_supplier) -> tuple:
         import cv2
         import numpy as np
         from PIL import Image
+
         lanczos = Image.LANCZOS if hasattr(Image, "LANCZOS") else Image.BICUBIC
 
         # Bound alignment cost: SIFT/LightGlue/ECC on full-resolution crops
@@ -1875,14 +2499,22 @@ def _align_crop_to_master(crop_master, crop_supplier) -> tuple:
         except ValueError:
             _align_cap = 1400
         if _align_cap > 0:
-            _amax = max(crop_master.width, crop_master.height,
-                        crop_supplier.width, crop_supplier.height)
+            _amax = max(
+                crop_master.width, crop_master.height, crop_supplier.width, crop_supplier.height
+            )
             if _amax > _align_cap:
                 _asc = _align_cap / _amax
                 crop_master = crop_master.resize(
-                    (max(1, int(crop_master.width * _asc)), max(1, int(crop_master.height * _asc))), lanczos)
+                    (max(1, int(crop_master.width * _asc)), max(1, int(crop_master.height * _asc))),
+                    lanczos,
+                )
                 crop_supplier = crop_supplier.resize(
-                    (max(1, int(crop_supplier.width * _asc)), max(1, int(crop_supplier.height * _asc))), lanczos)
+                    (
+                        max(1, int(crop_supplier.width * _asc)),
+                        max(1, int(crop_supplier.height * _asc)),
+                    ),
+                    lanczos,
+                )
 
         a_gray = np.array(crop_master.convert("L"))
         b_gray = np.array(crop_supplier.convert("L"))
@@ -1901,8 +2533,11 @@ def _align_crop_to_master(crop_master, crop_supplier) -> tuple:
                 M_shift = np.float32([[1, 0, dx], [0, 1, dy]])
                 b_rgb = np.array(crop_supplier.resize(crop_master.size, lanczos).convert("RGB"))
                 warped = cv2.warpAffine(
-                    b_rgb, M_shift, (w, h),
-                    borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255),
+                    b_rgb,
+                    M_shift,
+                    (w, h),
+                    borderMode=cv2.BORDER_CONSTANT,
+                    borderValue=(255, 255, 255),
                 )
                 return Image.fromarray(warped), 0.4
             except Exception:
@@ -1917,9 +2552,7 @@ def _align_crop_to_master(crop_master, crop_supplier) -> tuple:
                 import torch
                 from lightglue.utils import numpy_image_to_torch, rbd
 
-                b_gray_rs = np.array(
-                    crop_supplier.resize(crop_master.size, lanczos).convert("L")
-                )
+                b_gray_rs = np.array(crop_supplier.resize(crop_master.size, lanczos).convert("L"))
                 a_t = numpy_image_to_torch(a_gray.astype(np.float32) / 255.0)
                 b_t = numpy_image_to_torch(b_gray_rs.astype(np.float32) / 255.0)
 
@@ -1940,12 +2573,17 @@ def _align_crop_to_master(crop_master, crop_supplier) -> tuple:
                     use_aff_lg = min(h, w) < 200
                     if use_aff_lg:
                         M_lg, mask_lg = cv2.estimateAffinePartial2D(
-                            src_pts_lg, dst_pts_lg, method=cv2.RANSAC,
+                            src_pts_lg,
+                            dst_pts_lg,
+                            method=cv2.RANSAC,
                             ransacReprojThreshold=4.0,
                         )
                     else:
                         M_lg, mask_lg = cv2.findHomography(
-                            src_pts_lg, dst_pts_lg, cv2.RANSAC, 4.0,
+                            src_pts_lg,
+                            dst_pts_lg,
+                            cv2.RANSAC,
+                            4.0,
                         )
 
                     if M_lg is not None:
@@ -1966,12 +2604,21 @@ def _align_crop_to_master(crop_master, crop_supplier) -> tuple:
                             conf_lg = min(1.0, inliers_lg / 20.0)
                             # ECC sub-pixel refinement on LightGlue result
                             try:
-                                warped_g_lg = cv2.cvtColor(warped_lg, cv2.COLOR_RGB2GRAY).astype(np.float32)
+                                warped_g_lg = cv2.cvtColor(warped_lg, cv2.COLOR_RGB2GRAY).astype(
+                                    np.float32
+                                )
                                 M_ecc_lg = np.eye(2, 3, dtype=np.float32)
-                                criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 50, 1e-4)
+                                criteria = (
+                                    cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,
+                                    50,
+                                    1e-4,
+                                )
                                 _, M_ecc_lg = cv2.findTransformECC(
-                                    a_gray.astype(np.float32), warped_g_lg,
-                                    M_ecc_lg, cv2.MOTION_TRANSLATION, criteria,
+                                    a_gray.astype(np.float32),
+                                    warped_g_lg,
+                                    M_ecc_lg,
+                                    cv2.MOTION_TRANSLATION,
+                                    criteria,
                                 )
                                 warped_lg = cv2.warpAffine(warped_lg, M_ecc_lg, (w, h), **warp_kw)
                                 conf_lg = min(1.0, conf_lg + 0.1)
@@ -1979,7 +2626,8 @@ def _align_crop_to_master(crop_master, crop_supplier) -> tuple:
                                 pass
                             logger.debug(
                                 "LightGlue crop alignment: %d inliers conf=%.2f",
-                                inliers_lg, conf_lg,
+                                inliers_lg,
+                                conf_lg,
                             )
                             return Image.fromarray(warped_lg), conf_lg
             except Exception as exc:
@@ -2018,18 +2666,27 @@ def _align_crop_to_master(crop_master, crop_supplier) -> tuple:
         use_affine = min(h, w) < 200
         if use_affine:
             M_aff, mask = cv2.estimateAffinePartial2D(
-                src_pts, dst_pts, method=cv2.RANSAC, ransacReprojThreshold=5.0,
+                src_pts,
+                dst_pts,
+                method=cv2.RANSAC,
+                ransacReprojThreshold=5.0,
             )
             M = M_aff
             warp_fn = lambda src, mat, sz: cv2.warpAffine(
-                src, mat, sz,
-                borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255),
+                src,
+                mat,
+                sz,
+                borderMode=cv2.BORDER_CONSTANT,
+                borderValue=(255, 255, 255),
             )
         else:
             M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
             warp_fn = lambda src, mat, sz: cv2.warpPerspective(
-                src, mat, sz,
-                borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255),
+                src,
+                mat,
+                sz,
+                borderMode=cv2.BORDER_CONSTANT,
+                borderValue=(255, 255, 255),
             )
 
         if M is None:
@@ -2051,11 +2708,18 @@ def _align_crop_to_master(crop_master, crop_supplier) -> tuple:
             criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 50, 1e-4)
             M_ecc = np.eye(2, 3, dtype=np.float32)
             _, M_ecc = cv2.findTransformECC(
-                a_f, warped_gray, M_ecc, cv2.MOTION_TRANSLATION, criteria,
+                a_f,
+                warped_gray,
+                M_ecc,
+                cv2.MOTION_TRANSLATION,
+                criteria,
             )
             warped = cv2.warpAffine(
-                warped, M_ecc, (w, h),
-                borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255),
+                warped,
+                M_ecc,
+                (w, h),
+                borderMode=cv2.BORDER_CONSTANT,
+                borderValue=(255, 255, 255),
             )
             confidence = min(1.0, confidence + 0.1)
             logger.debug("ECC refinement applied")
@@ -2076,6 +2740,7 @@ def _align_crop_to_master(crop_master, crop_supplier) -> tuple:
         import cv2
         import numpy as np
         from PIL import Image
+
         lanczos = Image.LANCZOS if hasattr(Image, "LANCZOS") else Image.BICUBIC
 
         a_rgb = np.array(crop_master.convert("RGB"))
@@ -2105,11 +2770,13 @@ def _align_crop_to_master(crop_master, crop_supplier) -> tuple:
             canvas = np.full((ha, wa, 3), 255, dtype=np.uint8)
             y2 = min(ha, ty + h_s)
             x2 = min(wa, tx + w_s)
-            canvas[ty:y2, tx:x2] = b_scaled[:y2 - ty, :x2 - tx]
+            canvas[ty:y2, tx:x2] = b_scaled[: y2 - ty, : x2 - tx]
             conf_tm = float(best_val) * 0.75  # conservative — NCC can overfit
             logger.debug(
                 "Template-match crop alignment: scale=%.2f NCC=%.3f conf=%.2f",
-                best_scale, best_val, conf_tm,
+                best_scale,
+                best_val,
+                conf_tm,
             )
             return Image.fromarray(canvas), conf_tm
     except Exception as exc2:
@@ -2118,6 +2785,7 @@ def _align_crop_to_master(crop_master, crop_supplier) -> tuple:
     # ── Final fallback: plain resize ──────────────────────────────────────
     try:
         from PIL import Image
+
         lanczos = Image.LANCZOS if hasattr(Image, "LANCZOS") else Image.BICUBIC
         return crop_supplier.resize(crop_master.size, lanczos), 0.0
     except Exception:
@@ -2157,8 +2825,7 @@ def _ssim_diff_overlay(img_a, img_b, dissim_threshold: float = 0.35):
         if win_size < 3:
             return _pixel_diff_overlay(img_a, img_b)
 
-        _score, diff_map = ssim(a_gray, b_gray, full=True, data_range=255,
-                                 win_size=win_size)
+        _score, diff_map = ssim(a_gray, b_gray, full=True, data_range=255, win_size=win_size)
         dissim = np.clip(1.0 - diff_map, 0.0, 1.0)
 
         # Gradient component: Sobel edge difference highlights ink/content changes
@@ -2166,12 +2833,13 @@ def _ssim_diff_overlay(img_a, img_b, dissim_threshold: float = 0.35):
         # Combined with SSIM this gives fewer false positives on text crops.
         try:
             import cv2 as _cv2
+
             sx_a = _cv2.Sobel(a_gray, _cv2.CV_32F, 1, 0, ksize=3)
             sy_a = _cv2.Sobel(a_gray, _cv2.CV_32F, 0, 1, ksize=3)
             sx_b = _cv2.Sobel(b_gray, _cv2.CV_32F, 1, 0, ksize=3)
             sy_b = _cv2.Sobel(b_gray, _cv2.CV_32F, 0, 1, ksize=3)
-            grad_a = np.sqrt(sx_a ** 2 + sy_a ** 2)
-            grad_b = np.sqrt(sx_b ** 2 + sy_b ** 2)
+            grad_a = np.sqrt(sx_a**2 + sy_a**2)
+            grad_b = np.sqrt(sx_b**2 + sy_b**2)
             max_grad = max(float(grad_a.max()), float(grad_b.max()), 1.0)
             grad_diff = np.abs(grad_a - grad_b) / max_grad
             # Weight: 60% SSIM, 40% gradient — blended dissimilarity
@@ -2209,6 +2877,7 @@ def _annotate_crop_with_boxes(img, boxes, color=(220, 38, 38), line_width=None):
         return img
     try:
         from PIL import ImageDraw
+
         out = img.copy().convert("RGB")
         draw = ImageDraw.Draw(out)
         w, h = out.size
@@ -2239,6 +2908,7 @@ def _pixel_diff_overlay(img_a, img_b, threshold: int = 20):
     try:
         import numpy as np
         from PIL import Image
+
         lanczos = Image.LANCZOS if hasattr(Image, "LANCZOS") else Image.BICUBIC
         w = max(img_a.width, img_b.width)
         h = max(img_a.height, img_b.height)
@@ -2262,10 +2932,16 @@ def _pixel_diff_overlay(img_a, img_b, threshold: int = 20):
         return None
 
 
-def _pixel_diff_boxes(img_a, img_b, thresh: int = 22,
-                      min_area: int = 20, strip_ratio: int = 10,
-                      max_coverage: float = 0.30, max_boxes: int = 8,
-                      de_thresh: float = 7.0) -> tuple:
+def _pixel_diff_boxes(
+    img_a,
+    img_b,
+    thresh: int = 22,
+    min_area: int = 20,
+    strip_ratio: int = 10,
+    max_coverage: float = 0.30,
+    max_boxes: int = 8,
+    de_thresh: float = 7.0,
+) -> tuple:
     """Locate visually changed regions between two crop images via pixel diff.
 
     Returns (boxes_a, boxes_b) where each box is (x1_pct, y1_pct, x2_pct, y2_pct).
@@ -2291,6 +2967,7 @@ def _pixel_diff_boxes(img_a, img_b, thresh: int = 22,
         # Falls back to CIE76 (cv2 Euclidean Lab) then max-channel RGB.
         try:
             from skimage.color import deltaE_ciede2000, rgb2lab as _sk_rgb2lab
+
             a_arr = np.array(a_rgb, dtype=np.float32) / 255.0
             b_arr = np.array(b_rgb, dtype=np.float32) / 255.0
             a_lab = _sk_rgb2lab(a_arr)
@@ -2302,8 +2979,13 @@ def _pixel_diff_boxes(img_a, img_b, thresh: int = 22,
         except Exception:
             try:
                 import cv2 as _cv2
-                a_lab = _cv2.cvtColor(np.array(a_rgb, dtype=np.uint8), _cv2.COLOR_RGB2Lab).astype(np.float32)
-                b_lab = _cv2.cvtColor(np.array(b_rgb, dtype=np.uint8), _cv2.COLOR_RGB2Lab).astype(np.float32)
+
+                a_lab = _cv2.cvtColor(np.array(a_rgb, dtype=np.uint8), _cv2.COLOR_RGB2Lab).astype(
+                    np.float32
+                )
+                b_lab = _cv2.cvtColor(np.array(b_rgb, dtype=np.uint8), _cv2.COLOR_RGB2Lab).astype(
+                    np.float32
+                )
                 delta_e = np.sqrt(np.sum((a_lab - b_lab) ** 2, axis=2))
                 lab_thresh = max(6.0, thresh * 0.45)
                 binary = delta_e > lab_thresh
@@ -2336,8 +3018,12 @@ def _pixel_diff_boxes(img_a, img_b, thresh: int = 22,
             # box na całość (dwa piksele szumu w rogach dawały box na cały crop).
             if box_area / float(W * H) > max_coverage and n_diff / box_area < 0.05:
                 return [], []
-            box = (float(x1 / W * 100), float(y1 / H * 100),
-                   float(x2 / W * 100), float(y2 / H * 100))
+            box = (
+                float(x1 / W * 100),
+                float(y1 / H * 100),
+                float(x2 / W * 100),
+                float(y2 / H * 100),
+            )
             return [box], [box]
 
         # Adaptive min_area: 0.03% of crop area — requires a meaningful cluster
@@ -2352,7 +3038,7 @@ def _pixel_diff_boxes(img_a, img_b, thresh: int = 22,
         PAD = 3
         candidates = []
         for rid in range(1, num + 1):
-            rmask = (labeled == rid)
+            rmask = labeled == rid
             orig_area = int(binary[rmask].sum())  # area in original (undilated) mask
             if orig_area < effective_min_area:
                 continue
@@ -2370,8 +3056,7 @@ def _pixel_diff_boxes(img_a, img_b, thresh: int = 22,
         # Keep the largest N regions only
         candidates.sort(key=lambda c: c[0], reverse=True)
         boxes = [
-            (float(x1 / W * 100), float(y1 / H * 100),
-             float(x2 / W * 100), float(y2 / H * 100))
+            (float(x1 / W * 100), float(y1 / H * 100), float(x2 / W * 100), float(y2 / H * 100))
             for _, x1, y1, x2, y2 in candidates[:max_boxes]
         ]
         return boxes, boxes
@@ -2435,10 +3120,10 @@ def _locate_value_boxes(crop, values, max_repeat: int = 2) -> list:
     if not targets:
         return []
     try:
-        words = _paddle_readtext_with_boxes(crop)   # [(text, (x1,y1,x2,y2)%)]
+        words = _paddle_readtext_with_boxes(crop)  # [(text, (x1,y1,x2,y2)%)]
     except Exception:
         return []
-    per_val = {}   # target → [boxes]
+    per_val = {}  # target → [boxes]
     for text, box in words or []:
         if _LEGEND_BOX_RE.search(str(text)):
             continue
@@ -2453,13 +3138,14 @@ def _locate_value_boxes(crop, values, max_repeat: int = 2) -> list:
     out = []
     for t, boxes in per_val.items():
         bb = _dedupe_pct_boxes(boxes)
-        if len(bb) <= max_repeat:        # unikalne(-awe) → bezpiecznie boksuj
+        if len(bb) <= max_repeat:  # unikalne(-awe) → bezpiecznie boksuj
             out.extend(bb)
     return _dedupe_pct_boxes(out)
 
 
-def _region_pixels_differ(img_a, img_b, box_pct, rgb_thresh: int = 45,
-                          min_frac: float = 0.012) -> bool:
+def _region_pixels_differ(
+    img_a, img_b, box_pct, rgb_thresh: int = 45, min_frac: float = 0.012
+) -> bool:
     """True when pixels inside box_pct (x1,y1,x2,y2 in %) genuinely differ between
     img_a and img_b (expected to be in the SAME aligned coordinate frame).
 
@@ -2475,8 +3161,10 @@ def _region_pixels_differ(img_a, img_b, box_pct, rgb_thresh: int = 45,
 
         def _crop(im):
             w, h = im.size
-            l = max(0, int(x1 / 100.0 * w)); t = max(0, int(y1 / 100.0 * h))
-            r = min(w, int(x2 / 100.0 * w)); bo = min(h, int(y2 / 100.0 * h))
+            l = max(0, int(x1 / 100.0 * w))
+            t = max(0, int(y1 / 100.0 * h))
+            r = min(w, int(x2 / 100.0 * w))
+            bo = min(h, int(y2 / 100.0 * h))
             if r <= l or bo <= t:
                 return None
             return im.convert("RGB").crop((l, t, r, bo))
@@ -2484,7 +3172,8 @@ def _region_pixels_differ(img_a, img_b, box_pct, rgb_thresh: int = 45,
         ca, cb = _crop(img_a), _crop(img_b)
         if ca is None or cb is None:
             return True
-        W = max(ca.width, cb.width); H = max(ca.height, cb.height)
+        W = max(ca.width, cb.width)
+        H = max(ca.height, cb.height)
         if W < 2 or H < 2:
             return True
         lanczos = Image.LANCZOS if hasattr(Image, "LANCZOS") else Image.BICUBIC
@@ -2496,8 +3185,9 @@ def _region_pixels_differ(img_a, img_b, box_pct, rgb_thresh: int = 45,
         return True
 
 
-def _diff_text_boxes(img_a, img_b, text_a: str = "", text_b: str = "",
-                     field_label: str = "") -> tuple:
+def _diff_text_boxes(
+    img_a, img_b, text_a: str = "", text_b: str = "", field_label: str = ""
+) -> tuple:
     """OCR both crops with bounding boxes, find words present in one but not the
     other (or with a different token), return (boxes_a_pct, boxes_b_pct) where
     each box is (x1,y1,x2,y2) in % of crop size.
@@ -2525,6 +3215,7 @@ def _diff_text_boxes(img_a, img_b, text_a: str = "", text_b: str = "",
     # still gets the textual N/D ↔ text comparison on the report.
     def _is_blank_ocr(t: str) -> bool:
         return (not t) or t.strip().upper() in ("N/D", "ND", "—", "-")
+
     if _is_blank_ocr(text_a) or _is_blank_ocr(text_b):
         if text_a or text_b:
             return [], []
@@ -2541,9 +3232,10 @@ def _diff_text_boxes(img_a, img_b, text_a: str = "", text_b: str = "",
     def _try_tess_boxes(img):
         try:
             import pytesseract
+
             data = pytesseract.image_to_data(
-                img, lang="eng+pol", config="--psm 11",
-                output_type=pytesseract.Output.DICT)
+                img, lang="eng+pol", config="--psm 11", output_type=pytesseract.Output.DICT
+            )
             iw, ih = img.size
             out = []
             for i, txt in enumerate(data.get("text", [])):
@@ -2556,10 +3248,8 @@ def _diff_text_boxes(img_a, img_b, text_a: str = "", text_b: str = "",
                     conf = -1.0
                 if conf < 40:
                     continue
-                x, y, w, h = (data["left"][i], data["top"][i],
-                              data["width"][i], data["height"][i])
-                box = (x / iw * 100, y / ih * 100,
-                       (x + w) / iw * 100, (y + h) / ih * 100)
+                x, y, w, h = (data["left"][i], data["top"][i], data["width"][i], data["height"][i])
+                box = (x / iw * 100, y / ih * 100, (x + w) / iw * 100, (y + h) / ih * 100)
                 out.append((txt, box))
             return out
         except Exception:
@@ -2580,8 +3270,7 @@ def _diff_text_boxes(img_a, img_b, text_a: str = "", text_b: str = "",
     _TOKEN_RE = re.compile(r"\d+(?:-\d+)+|\w+", re.UNICODE)
 
     def tokenize(s):
-        return [t for t in _TOKEN_RE.findall(s.lower())
-                if t.isdigit() or len(t) >= 2]
+        return [t for t in _TOKEN_RE.findall(s.lower()) if t.isdigit() or len(t) >= 2]
 
     from collections import Counter
 
@@ -2595,8 +3284,10 @@ def _diff_text_boxes(img_a, img_b, text_a: str = "", text_b: str = "",
         bag_b = Counter(tokenize(text_b))
     else:
         bag_a, bag_b = Counter(), Counter()
-        for text, _ in lines_a: bag_a.update(tokenize(text))
-        for text, _ in lines_b: bag_b.update(tokenize(text))
+        for text, _ in lines_a:
+            bag_a.update(tokenize(text))
+        for text, _ in lines_b:
+            bag_b.update(tokenize(text))
 
     # SET semantics for all tokens: flag a token only if it is entirely absent
     # from one side. Multiset/count diff was rejected because every box that
@@ -2632,8 +3323,9 @@ def _diff_text_boxes(img_a, img_b, text_a: str = "", text_b: str = "",
         # SPLIT: token is a proper substring of some longer other-side token.
         # Exclude numeric-range tokens (e.g. "6" ⊂ "5-6"): a size-range like
         # "5-6" is a distinct value, not a compound-word segmentation artefact.
-        return any(token in k for k in other
-                   if len(k) > len(token) and not _NUMERIC_RANGE_RE.match(k))
+        return any(
+            token in k for k in other if len(k) > len(token) and not _NUMERIC_RANGE_RE.match(k)
+        )
 
     only_in_a = {t for t in only_in_a if not _seg_artifact(t, bag_b.keys())}
     only_in_b = {t for t in only_in_b if not _seg_artifact(t, bag_a.keys())}
@@ -2652,8 +3344,11 @@ def _diff_text_boxes(img_a, img_b, text_a: str = "", text_b: str = "",
         def _ocr_variant(token: str, other_keys) -> bool:
             if token.isdigit() or len(token) < 4:
                 return False
-            return any(_rf_fuzz.ratio(token, k) >= 90 for k in other_keys
-                       if not k.isdigit() and abs(len(k) - len(token)) <= 2)
+            return any(
+                _rf_fuzz.ratio(token, k) >= 90
+                for k in other_keys
+                if not k.isdigit() and abs(len(k) - len(token)) <= 2
+            )
 
         only_in_a = {t for t in only_in_a if not _ocr_variant(t, bag_b.keys())}
         only_in_b = {t for t in only_in_b if not _ocr_variant(t, bag_a.keys())}
@@ -2687,7 +3382,7 @@ def _diff_text_boxes(img_a, img_b, text_a: str = "", text_b: str = "",
                 if line_boxes:
                     out.extend(line_boxes)
                 else:
-                    unlocated.append(tok)   # detected as different but not found on image
+                    unlocated.append(tok)  # detected as different but not found on image
         return _dedupe_boxes(out), unlocated
 
     boxes_a, unloc_a = boxes_for_diffs(lines_a, words_a, only_in_a)
@@ -2696,14 +3391,20 @@ def _diff_text_boxes(img_a, img_b, text_a: str = "", text_b: str = "",
     # Diagnostic: surface what the token diff found and where word-localization is
     # weak (a token flagged as different but not locatable on the image → no box).
     if only_in_a or only_in_b:
-        logger.info("[artwork-diff] pole=%r różnice-tokenów: tylko_wzorzec=%s "
-                    "tylko_dostawca=%s",
-                    field_label or "?", sorted(only_in_a), sorted(only_in_b))
+        logger.info(
+            "[artwork-diff] pole=%r różnice-tokenów: tylko_wzorzec=%s tylko_dostawca=%s",
+            field_label or "?",
+            sorted(only_in_a),
+            sorted(only_in_b),
+        )
     if unloc_a or unloc_b:
-        logger.info("[artwork-diff]   ⚠ słaby punkt OCR-lokalizacji: tokeny "
-                    "wykryte jako różne, ale NIE znalezione na obrazie (brak boxa) "
-                    "→ wzorzec=%s dostawca=%s (zadziała pixel-diff)",
-                    sorted(unloc_a), sorted(unloc_b))
+        logger.info(
+            "[artwork-diff]   ⚠ słaby punkt OCR-lokalizacji: tokeny "
+            "wykryte jako różne, ale NIE znalezione na obrazie (brak boxa) "
+            "→ wzorzec=%s dostawca=%s (zadziała pixel-diff)",
+            sorted(unloc_a),
+            sorted(unloc_b),
+        )
 
     # Mirror boxes to the opposite side when one side found a location and the
     # other didn't. Both images show the same field region, so the changed value
@@ -2738,6 +3439,7 @@ def _paddle_readtext_with_boxes(img) -> list:
             continue
         if arr is None:
             import numpy as np
+
             arr = np.array(img.convert("RGB"))
         try:
             result = reader.ocr(arr, cls=True)
@@ -2745,8 +3447,14 @@ def _paddle_readtext_with_boxes(img) -> list:
                 continue
             for line in result[0]:
                 # BUGFIX: chroń przed pustym line[1]/pts i zerowym rozmiarem obrazu
-                if (not line or len(line) < 2 or not line[1] or len(line[1]) < 2
-                        or not isinstance(line[1][1], (int, float)) or line[1][1] <= 0.3):
+                if (
+                    not line
+                    or len(line) < 2
+                    or not line[1]
+                    or len(line[1]) < 2
+                    or not isinstance(line[1][1], (int, float))
+                    or line[1][1] <= 0.3
+                ):
                     continue
                 pts = line[0]  # 4 corner points
                 if not pts:
@@ -2758,11 +3466,12 @@ def _paddle_readtext_with_boxes(img) -> list:
                 x1, x2 = min(xs), max(xs)
                 y1, y2 = min(ys), max(ys)
                 _iw, _ih = max(iw, 1), max(ih, 1)
-                out.append((
-                    line[1][0],
-                    (x1 / _iw * 100, y1 / _ih * 100,
-                     x2 / _iw * 100, y2 / _ih * 100),
-                ))
+                out.append(
+                    (
+                        line[1][0],
+                        (x1 / _iw * 100, y1 / _ih * 100, x2 / _iw * 100, y2 / _ih * 100),
+                    )
+                )
             # Do NOT early-return after the first script — collect results from
             # all scripts so mixed-script labels (e.g. Latin + Cyrillic) get
             # complete bounding-box coverage.
@@ -2779,18 +3488,20 @@ def _paddle_readtext_with_boxes(img) -> list:
     # boxes covering many cells.  Word-level boxes are precise.
     try:
         import pytesseract
+
         data = pytesseract.image_to_data(
             img.convert("RGB") if img.mode not in ("RGB", "L") else img,
-            lang=_get_ocr_langs(), config="--psm 6",
+            lang=_get_ocr_langs(),
+            config="--psm 6",
             output_type=pytesseract.Output.DICT,
         )
         levels = data.get("level", [])
-        texts  = data.get("text", [])
-        confs  = data.get("conf", [])
-        lefts  = data.get("left", [])
-        tops   = data.get("top", [])
+        texts = data.get("text", [])
+        confs = data.get("conf", [])
+        lefts = data.get("left", [])
+        tops = data.get("top", [])
         widths = data.get("width", [])
-        heights= data.get("height", [])
+        heights = data.get("height", [])
         n = len(texts)
         for i in range(n):
             # Word level only — skip container entries.
@@ -2806,15 +3517,18 @@ def _paddle_readtext_with_boxes(img) -> list:
                 conf = -1.0
             if not text or conf < 30:
                 continue
-            x = lefts[i]; y = tops[i]
-            w = widths[i]; h = heights[i]
+            x = lefts[i]
+            y = tops[i]
+            w = widths[i]
+            h = heights[i]
             if w <= 0 or h <= 0:
                 continue
-            out.append((
-                text,
-                (x/iw*100, y/ih*100,
-                 (x+w)/iw*100, (y+h)/ih*100),
-            ))
+            out.append(
+                (
+                    text,
+                    (x / iw * 100, y / ih * 100, (x + w) / iw * 100, (y + h) / ih * 100),
+                )
+            )
     except Exception as exc:
         logger.debug("Tesseract box-readtext failed: %s", exc)
 
@@ -2839,9 +3553,11 @@ def _get_got_ocr():
         try:
             import torch
             from transformers import AutoTokenizer, AutoModelForCausalLM
+
             # Bandit B615: stała nazwa zaufanego modelu z HF Hub (nie z wejścia); opcjonalny model ładowany leniwie.
             _got_ocr_tokenizer = AutoTokenizer.from_pretrained(  # nosec B615
-                "stepfun-ai/GOT-OCR2_0", trust_remote_code=True)
+                "stepfun-ai/GOT-OCR2_0", trust_remote_code=True
+            )
             # Bandit B615: stała nazwa zaufanego modelu z HF Hub (nie z wejścia); opcjonalny model ładowany leniwie.
             _got_ocr_model = AutoModelForCausalLM.from_pretrained(  # nosec B615
                 "stepfun-ai/GOT-OCR2_0",
@@ -2865,6 +3581,7 @@ def _got_readtext(img) -> str:
         return ""
     tokenizer, model = pair
     import tempfile, os as _os
+
     tmp = None
     try:
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
@@ -2891,6 +3608,7 @@ def _preprocess_for_ocr(img: "Image.Image") -> "Image.Image":
     step handles binarisation when it runs as the final fallback.
     """
     from PIL import ImageEnhance, ImageFilter
+
     img = img.convert("RGB")
     w, h = img.size
     # Downscale BARDZO dużych wycinków PRZED OCR — ogranicza koszt OCR (payload do
@@ -2927,9 +3645,13 @@ def _preprocess_for_ocr(img: "Image.Image") -> "Image.Image":
     return img
 
 
-from core.ai_safety import (system_with_rule as _ai_system, untrusted_block as _ai_doc,  # noqa: E402
-                            safe_name as _ai_name, injection_suspect as _ai_injection,
-                            first_text as _ai_first_text)
+from core.ai_safety import (
+    system_with_rule as _ai_system,
+    untrusted_block as _ai_doc,  # noqa: E402
+    safe_name as _ai_name,
+    injection_suspect as _ai_injection,
+    first_text as _ai_first_text,
+)
 
 
 def _claude_readtext(img, model: str = None) -> str:
@@ -2946,6 +3668,7 @@ def _claude_readtext(img, model: str = None) -> str:
     try:
         import base64 as _b64, httpx as _hx
         from io import BytesIO
+
         w, h = img.size
         # Downscale only if above 2048 px — Claude handles higher resolution well
         if max(w, h) > 2048:
@@ -2956,25 +3679,41 @@ def _claude_readtext(img, model: str = None) -> str:
         b64 = _b64.b64encode(buf.getvalue()).decode()
         resp = _hx.post(
             "https://api.anthropic.com/v1/messages",
-            headers={"x-api-key": api_key, "anthropic-version": "2023-06-01",
-                     "Content-Type": "application/json"},
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json",
+            },
             json={
                 "model": _model,
                 "max_tokens": 1024,
                 "system": _ai_system(),
-                "messages": [{"role": "user", "content": [
-                    {"type": "image", "source": {"type": "base64",
-                                                  "media_type": "image/jpeg", "data": b64}},
-                    {"type": "text", "text":
-                        "Extract ALL text from this medical packaging label image exactly as printed. "
-                        "This may contain: EAN/GTIN barcodes, LOT numbers, expiry dates (EXP), "
-                        "REF codes, revision numbers, gauge sizes, product names in multiple languages. "
-                        "CRITICAL character rules — never substitute: "
-                        "0 (zero) ≠ O (letter O), 1 (one) ≠ I (letter I) ≠ l (lowercase L), "
-                        "5 ≠ S, 8 ≠ B, 6 ≠ G. "
-                        "Preserve exact spacing, punctuation, and every digit. "
-                        "Return only the extracted text, nothing else."},
-                ]}],
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": "image/jpeg",
+                                    "data": b64,
+                                },
+                            },
+                            {
+                                "type": "text",
+                                "text": "Extract ALL text from this medical packaging label image exactly as printed. "
+                                "This may contain: EAN/GTIN barcodes, LOT numbers, expiry dates (EXP), "
+                                "REF codes, revision numbers, gauge sizes, product names in multiple languages. "
+                                "CRITICAL character rules — never substitute: "
+                                "0 (zero) ≠ O (letter O), 1 (one) ≠ I (letter I) ≠ l (lowercase L), "
+                                "5 ≠ S, 8 ≠ B, 6 ≠ G. "
+                                "Preserve exact spacing, punctuation, and every digit. "
+                                "Return only the extracted text, nothing else.",
+                            },
+                        ],
+                    }
+                ],
             },
             timeout=30,
         )
@@ -2986,12 +3725,12 @@ def _claude_readtext(img, model: str = None) -> str:
                 _body = resp.text[:400]
             except Exception:
                 pass
-            logger.warning("Claude OCR HTTP %s — model=%s body=%s",
-                           resp.status_code, _model, _body)
+            logger.warning("Claude OCR HTTP %s — model=%s body=%s", resp.status_code, _model, _body)
             return ""
         _resp_json = resp.json()
         try:
             from api_usage_tracker import record_usage
+
             record_usage(_model, _resp_json.get("usage", {}), call_type="ocr")
         except Exception:
             pass
@@ -3020,7 +3759,12 @@ _OCR_TEXT_CACHE_LOCK = threading.Lock()
 
 def _ocr_cache_key(img, auto_orient):
     try:
-        return (hashlib.sha1(img.tobytes(), usedforsecurity=False).hexdigest(), img.size, img.mode, bool(auto_orient))
+        return (
+            hashlib.sha1(img.tobytes(), usedforsecurity=False).hexdigest(),
+            img.size,
+            img.mode,
+            bool(auto_orient),
+        )
     except Exception:
         return None
 
@@ -3084,7 +3828,7 @@ def _extract_text_ocr(img, auto_orient: bool = True) -> str:
         with _OCR_TEXT_CACHE_LOCK:
             _OCR_TEXT_CACHE[key] = result
             if len(_OCR_TEXT_CACHE) > _OCR_TEXT_CACHE_MAX:
-                try:                   # drop oldest (dict is insertion-ordered)
+                try:  # drop oldest (dict is insertion-ordered)
                     del _OCR_TEXT_CACHE[next(iter(_OCR_TEXT_CACHE))]
                 except Exception:
                     pass
@@ -3232,8 +3976,10 @@ def _extract_text_ocr_uncached(img, auto_orient: bool = True, _allow_strips: boo
     # ── Fallback: Tesseract with Sauvola pre-binarization ────────────────
     try:
         import pytesseract
+
         try:
             from skimage.filters import threshold_sauvola
+
             _g = img.convert("L")
             _arr = np.array(_g)
             _win = max(25, min(_arr.shape[0], _arr.shape[1]) // 4)
@@ -3242,19 +3988,35 @@ def _extract_text_ocr_uncached(img, auto_orient: bool = True, _allow_strips: boo
             _thresh = threshold_sauvola(_arr, window_size=_win, k=0.2)
             _bin = Image.fromarray(((_arr > _thresh) * 255).astype(np.uint8))
             _t0 = time.time()
-            _res = pytesseract.image_to_string(_bin, lang=_get_ocr_langs(), config="--psm 3",
-                                               timeout=_TESSERACT_TIMEOUT) or ""
+            _res = (
+                pytesseract.image_to_string(
+                    _bin, lang=_get_ocr_langs(), config="--psm 3", timeout=_TESSERACT_TIMEOUT
+                )
+                or ""
+            )
             _elapsed = time.time() - _t0
             if _elapsed > _TESSERACT_TIMEOUT:
-                logger.warning("Tesseract OCR took %.1fs (timeout threshold: %ds)", _elapsed, _TESSERACT_TIMEOUT)
+                logger.warning(
+                    "Tesseract OCR took %.1fs (timeout threshold: %ds)",
+                    _elapsed,
+                    _TESSERACT_TIMEOUT,
+                )
             return _res
         except Exception:
             _t0 = time.time()
-            _res = pytesseract.image_to_string(img, lang=_get_ocr_langs(), config="--psm 3",
-                                               timeout=_TESSERACT_TIMEOUT) or ""
+            _res = (
+                pytesseract.image_to_string(
+                    img, lang=_get_ocr_langs(), config="--psm 3", timeout=_TESSERACT_TIMEOUT
+                )
+                or ""
+            )
             _elapsed = time.time() - _t0
             if _elapsed > _TESSERACT_TIMEOUT:
-                logger.warning("Tesseract OCR took %.1fs (timeout threshold: %ds)", _elapsed, _TESSERACT_TIMEOUT)
+                logger.warning(
+                    "Tesseract OCR took %.1fs (timeout threshold: %ds)",
+                    _elapsed,
+                    _TESSERACT_TIMEOUT,
+                )
             return _res
     except Exception as exc:
         logger.warning("OCR failed: %s", exc)
@@ -3263,15 +4025,17 @@ def _extract_text_ocr_uncached(img, auto_orient: bool = True, _allow_strips: boo
 
 # ── Perceptual similarity helpers ──────────────────────────────────────────────
 
+
 def _phash_similarity(img_a, img_b) -> float:
     """Perceptual hash similarity: 1.0 = identical, 0.0 = completely different.
     Very fast (~1 ms) — used as a pre-filter before expensive SSIM/pixel diff."""
     try:
         import imagehash
+
         h1 = imagehash.phash(img_a)
         h2 = imagehash.phash(img_b)
         bits = len(h1.hash.flatten())
-        if not bits:            # guard against empty hash → ZeroDivisionError
+        if not bits:  # guard against empty hash → ZeroDivisionError
             return -1.0
         return 1.0 - (h1 - h2) / bits
     except Exception:
@@ -3283,6 +4047,7 @@ def _ssim_score(img_a, img_b) -> float:
     Better than raw pixel diff — accounts for luminance, contrast and structure."""
     try:
         from skimage.metrics import structural_similarity as ssim
+
         a = np.array(img_a.convert("L"))
         b = np.array(img_b.convert("L"))
         if a.shape != b.shape:
@@ -3309,26 +4074,36 @@ def _ocr_yellow_badges(img) -> list:
         labeled, num = ndimage.label(yellow)
         badges = []
         for rid in range(1, num + 1):
-            mask = (labeled == rid)
+            mask = labeled == rid
             ys, xs = np.where(mask)
             if len(ys) < 300:
                 continue
             y1, y2, x1, x2 = ys.min(), ys.max(), xs.min(), xs.max()
             if (x2 - x1) < 40 or (y2 - y1) < 40:
                 continue
-            crop = img.crop((max(0, x1-15), max(0, y1-15),
-                              min(img.width, x2+15), min(img.height, y2+15)))
+            crop = img.crop(
+                (
+                    max(0, x1 - 15),
+                    max(0, y1 - 15),
+                    min(img.width, x2 + 15),
+                    min(img.height, y2 + 15),
+                )
+            )
             text = _extract_text_ocr(crop, auto_orient=False)
             clean = " ".join(text.split())
-            m_g  = re.search(r"(\d+)\s*[Gg]", clean)
+            m_g = re.search(r"(\d+)\s*[Gg]", clean)
             m_mm = re.findall(r"[\d,.]+\s*mm", clean, re.IGNORECASE)
             if m_g or m_mm:
-                badges.append({
-                    "text": clean, "gauge": m_g.group(1) if m_g else None,
-                    "mm": m_mm, "area": int(len(ys)),
-                    "x_pct": float(round(x1 / max(img.width, 1) * 100)),
-                    "y_pct": float(round(y1 / max(img.height, 1) * 100)),
-                })
+                badges.append(
+                    {
+                        "text": clean,
+                        "gauge": m_g.group(1) if m_g else None,
+                        "mm": m_mm,
+                        "area": int(len(ys)),
+                        "x_pct": float(round(x1 / max(img.width, 1) * 100)),
+                        "y_pct": float(round(y1 / max(img.height, 1) * 100)),
+                    }
+                )
         return badges
     except Exception as e:
         logger.warning("OCR yellow badge extraction failed: %s", e)
@@ -3336,6 +4111,7 @@ def _ocr_yellow_badges(img) -> list:
 
 
 # ─── PIXEL DIFF + KOLOROWE REGIONY ────────────────────────────────────────────
+
 
 def _compute_pixel_diff(img_a, img_b):
     """
@@ -3352,15 +4128,15 @@ def _compute_pixel_diff(img_a, img_b):
         return 0.0, img_a, img_b, img_a, []
 
     img_a_cmp = img_a
-    img_b_r   = None
-    b_warped  = False   # True tylko gdy B zostało zwarpowane homografią do układu A
+    img_b_r = None
+    b_warped = False  # True tylko gdy B zostało zwarpowane homografią do układu A
 
     # ── Image registration ────────────────────────────────────────────────
     # Warp B into A's coordinate space (SIFT/AKAZE/LightGlue + ECC) before diffing.
     # Eliminates false regions caused by sub-mm print/render shifts. The perceptual
     # hash skips this work when the hashes already match (no shift to correct).
     if _ALIGN_ENABLED:
-        ph = _phash_similarity(img_a, img_b)   # 1.0 = identical hash, -1.0 = lib missing
+        ph = _phash_similarity(img_a, img_b)  # 1.0 = identical hash, -1.0 = lib missing
         if ph < 0.999:
             try:
                 aligned_b, _conf = _align_crop_to_master(img_a, img_b)
@@ -3380,12 +4156,12 @@ def _compute_pixel_diff(img_a, img_b):
     elif (wa, ha) != (wb, hb):
         W, H = max(wa, wb), max(ha, hb)
         img_a_cmp = img_a.resize((W, H), Image.LANCZOS) if img_a.size != (W, H) else img_a
-        img_b_r   = img_b.resize((W, H), Image.LANCZOS)
+        img_b_r = img_b.resize((W, H), Image.LANCZOS)
     else:
         W, H = wa, ha
-        img_b_r   = img_b
+        img_b_r = img_b
 
-    diff_arr  = np.array(ImageChops.difference(img_a_cmp, img_b_r))
+    diff_arr = np.array(ImageChops.difference(img_a_cmp, img_b_r))
     diff_gray = np.max(diff_arr, axis=2).astype(np.uint8)
 
     # ── Adaptive threshold ────────────────────────────────────────────────
@@ -3395,20 +4171,20 @@ def _compute_pixel_diff(img_a, img_b):
     if _ADAPTIVE_THRESH:
         nz = diff_gray[diff_gray > 0]
         if nz.size:
-            med   = float(np.median(nz))
-            mad   = float(np.median(np.abs(nz - med)))
+            med = float(np.median(nz))
+            mad = float(np.median(np.abs(nz - med)))
             noise = med + 1.4826 * mad
             thresh = int(max(DIFF_THRESH, min(noise, DIFF_THRESH * 2)))
 
-    binary    = diff_gray > thresh
-    diff_pct  = float(binary.sum() / binary.size * 100)
+    binary = diff_gray > thresh
+    diff_pct = float(binary.sum() / binary.size * 100)
 
     regions = []
     if HAS_SCIPY:
         labeled, num_reg = ndimage.label(binary)
         for rid in range(1, num_reg + 1):
-            rmask = (labeled == rid)
-            area  = rmask.sum()
+            rmask = labeled == rid
+            area = rmask.sum()
             if area < MIN_REGION_PX:
                 continue
             ys, xs = np.where(rmask)
@@ -3419,13 +4195,19 @@ def _compute_pixel_diff(img_a, img_b):
             # Reject thin layout-shift strips (e.g. text shifted 5px → elongated bbox)
             if max(bw, bh) / min(bw, bh) > STRIP_RATIO:
                 continue
-            avg_diff = float(diff_gray[y1:y2+1, x1:x2+1].mean())
+            avg_diff = float(diff_gray[y1 : y2 + 1, x1 : x2 + 1].mean())
             sev = "high" if avg_diff > 60 else "medium" if avg_diff > 25 else "low"
-            regions.append({
-                "x_pct": float(round(x1 / W * 100, 1)), "y_pct": float(round(y1 / H * 100, 1)),
-                "w_pct": float(round(bw / W * 100, 1)), "h_pct": float(round(bh / H * 100, 1)),
-                "severity": sev, "avg_diff": float(round(avg_diff, 1)), "area": int(area),
-            })
+            regions.append(
+                {
+                    "x_pct": float(round(x1 / W * 100, 1)),
+                    "y_pct": float(round(y1 / H * 100, 1)),
+                    "w_pct": float(round(bw / W * 100, 1)),
+                    "h_pct": float(round(bh / H * 100, 1)),
+                    "severity": sev,
+                    "avg_diff": float(round(avg_diff, 1)),
+                    "area": int(area),
+                }
+            )
     else:
         # Bez scipy nie ma etykietowania spójnych komponentów. Zamiast nie pokazać
         # ŻADNYCH regionów (mapa różnic była pusta mimo realnej różnicy), degradujemy
@@ -3440,24 +4222,30 @@ def _compute_pixel_diff(img_a, img_b):
             # Pomiń, gdy różnice są rozproszone po dużej części kadru (jeden box
             # zamalowałby prawie całość) — ten sam guard co w _pixel_diff_boxes.
             if not (box_area / float(W * H) > 0.5 and xs.size / float(box_area) < 0.05):
-                avg_diff = float(diff_gray[y1:y2+1, x1:x2+1].mean())
+                avg_diff = float(diff_gray[y1 : y2 + 1, x1 : x2 + 1].mean())
                 sev = "high" if avg_diff > 60 else "medium" if avg_diff > 25 else "low"
-                regions.append({
-                    "x_pct": float(round(x1 / W * 100, 1)), "y_pct": float(round(y1 / H * 100, 1)),
-                    "w_pct": float(round(bw / W * 100, 1)), "h_pct": float(round(bh / H * 100, 1)),
-                    "severity": sev, "avg_diff": float(round(avg_diff, 1)), "area": int(xs.size),
-                })
+                regions.append(
+                    {
+                        "x_pct": float(round(x1 / W * 100, 1)),
+                        "y_pct": float(round(y1 / H * 100, 1)),
+                        "w_pct": float(round(bw / W * 100, 1)),
+                        "h_pct": float(round(bh / H * 100, 1)),
+                        "severity": sev,
+                        "avg_diff": float(round(avg_diff, 1)),
+                        "area": int(xs.size),
+                    }
+                )
 
     COLOR_MAP = {
-        "high":   ((220, 38, 38, 110), (220, 38, 38, 230)),
-        "medium": ((234, 179, 8, 90),  (234, 179, 8, 210)),
-        "low":    ((59, 130, 246, 60), (59, 130, 246, 180)),
+        "high": ((220, 38, 38, 110), (220, 38, 38, 230)),
+        "medium": ((234, 179, 8, 90), (234, 179, 8, 210)),
+        "low": ((59, 130, 246, 60), (59, 130, 246, 180)),
     }
 
     # img_a_cmp is either img_a (when sizes match) or a resized copy.
     # Box coordinates are in W×H space so annotate img_a using img_a_cmp.
     img_a_annot = img_a_cmp.copy().convert("RGBA")
-    img_diff    = img_a_cmp.copy().convert("RGBA")
+    img_diff = img_a_cmp.copy().convert("RGBA")
     # B-side annotation target + W×H→target scale. When B was homography-warped
     # into A's frame, its region coords live in the W×H aligned space and a
     # uniform scale CANNOT map them back onto the pristine B (a perspective warp
@@ -3470,11 +4258,11 @@ def _compute_pixel_diff(img_a, img_b):
         sx = sy = 1.0
     else:
         img_b_annot = img_b.copy().convert("RGBA")
-        sx = img_b.width  / W
+        sx = img_b.width / W
         sy = img_b.height / H
     draw_a = ImageDraw.Draw(img_a_annot, "RGBA")
     draw_b = ImageDraw.Draw(img_b_annot, "RGBA")
-    draw_d = ImageDraw.Draw(img_diff,    "RGBA")
+    draw_d = ImageDraw.Draw(img_diff, "RGBA")
 
     for reg in regions:
         x1 = int(reg["x_pct"] / 100 * W)
@@ -3483,17 +4271,24 @@ def _compute_pixel_diff(img_a, img_b):
         y2 = int((reg["y_pct"] + reg["h_pct"]) / 100 * H)
         fill, outline = COLOR_MAP[reg["severity"]]
         draw_a.rectangle([x1, y1, x2, y2], fill=fill, outline=outline, width=2)
-        draw_d.rectangle([x1, y1, x2, y2], fill=(220, 38, 38, 90), outline=(220, 38, 38, 220), width=2)
-        bx1, bx2 = int(x1*sx), int(x2*sx)
-        by1, by2 = int(y1*sy), int(y2*sy)
+        draw_d.rectangle(
+            [x1, y1, x2, y2], fill=(220, 38, 38, 90), outline=(220, 38, 38, 220), width=2
+        )
+        bx1, bx2 = int(x1 * sx), int(x2 * sx)
+        by1, by2 = int(y1 * sy), int(y2 * sy)
         draw_b.rectangle([bx1, by1, bx2, by2], fill=fill, outline=outline, width=2)
 
-    return (diff_pct,
-            img_a_annot.convert("RGB"), img_b_annot.convert("RGB"),
-            img_diff.convert("RGB"), regions)
+    return (
+        diff_pct,
+        img_a_annot.convert("RGB"),
+        img_b_annot.convert("RGB"),
+        img_diff.convert("RGB"),
+        regions,
+    )
 
 
 # ─── STRUCTURED FIELD DIFF ────────────────────────────────────────────────────
+
 
 def _first(text: str, pat: str, default: str = "—") -> str:
     m = re.findall(pat, text, re.IGNORECASE)
@@ -3514,6 +4309,7 @@ def _ai_extract_manufacturer_blocks(ocr_a: str, ocr_b: str) -> dict:
     Falls back to empty strings on error or missing API key.
     """
     import urllib.request as _ur
+
     api_key = _get_api_key_artwork()
     if not api_key:
         return {}
@@ -3534,23 +4330,34 @@ def _ai_extract_manufacturer_blocks(ocr_a: str, ocr_b: str) -> dict:
         '{"manufacturer_a":"","manufacturer_b":"","eu_rep_a":"","eu_rep_b":"","distributor_a":"","distributor_b":""}'
     )
 
-    payload = json.dumps({
-        "model": _current_ai_model(),
-        "max_tokens": 1000,
-        "system": _ai_system(),
-        "messages": [{"role": "user", "content": prompt}],
-    }).encode("utf-8")
+    payload = json.dumps(
+        {
+            "model": _current_ai_model(),
+            "max_tokens": 1000,
+            "system": _ai_system(),
+            "messages": [{"role": "user", "content": prompt}],
+        }
+    ).encode("utf-8")
     req = _ur.Request(
-        "https://api.anthropic.com/v1/messages", data=payload,
-        headers={"Content-Type": "application/json", "x-api-key": api_key,
-                 "anthropic-version": "2023-06-01"}, method="POST")
+        "https://api.anthropic.com/v1/messages",
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+        },
+        method="POST",
+    )
     try:
         # Bandit B310: URL stały w kodzie (https://api.anthropic.com), schemat nie pochodzi z wejścia.
         with _ur.urlopen(req, timeout=20) as resp:  # nosec B310
             data = json.loads(resp.read())
         try:
             from api_usage_tracker import record_usage
-            record_usage(_current_ai_model(), data.get("usage", {}), call_type="artwork_manufacturer")
+
+            record_usage(
+                _current_ai_model(), data.get("usage", {}), call_type="artwork_manufacturer"
+            )
         except Exception:
             pass
         text = _ai_first_text(data.get("content")).strip()
@@ -3572,7 +4379,7 @@ def _ai_extract_manufacturer_blocks(ocr_a: str, ocr_b: str) -> dict:
 def _detect_color_spec(text: str) -> str:
     pantone_pats = [
         r"PANTONE\s+[\w\-]+(?:\s+[CUMV](?:\s|$)|\s+C\b)?",
-        r"\bP\s+\d{3,4}\s+[A-Z]+\b",   # shorthand "P 485 C", "P 1805 U"
+        r"\bP\s+\d{3,4}\s+[A-Z]+\b",  # shorthand "P 485 C", "P 1805 U"
     ]
     pantones = []
     for pat in pantone_pats:
@@ -3631,7 +4438,7 @@ _FILENAME_NOISE = re.compile(
     r"(?:_v\d+|_r\d+|_rev\d*|_master|_factory|_artwork|_art|_print|_final|_draft|"
     r"_approved|_proof|_supplier|_client|_new|_old|_ok|_ver\d*|_d\d{4,}|\d{8,}|"
     r"\.(pdf|ai|eps|tif|tiff|png|jpg))$",
-    re.IGNORECASE
+    re.IGNORECASE,
 )
 
 
@@ -3655,7 +4462,12 @@ def _extract_product_name(text: str) -> str:
     skip = re.compile(r"(?:PANTONE|CMYK|P\s+\d{3,4}|\bCE\b|MDR|\bISO\b|\bEN\b|^\d)", re.IGNORECASE)
     lines = [l.strip() for l in text.splitlines() if len(l.strip()) > 8]
     for line in lines[:30]:
-        if len(line) > 10 and line.isupper() and not skip.search(line) and not re.match(r"^\d+", line):
+        if (
+            len(line) > 10
+            and line.isupper()
+            and not skip.search(line)
+            and not re.match(r"^\d+", line)
+        ):
             return line[:80]
     for line in lines[:15]:
         if len(line) > 10 and not re.match(r"^[\d.]+$", line) and not skip.search(line):
@@ -3685,12 +4497,12 @@ def _extract_gauge(text: str) -> str:
     # Gauge/French/Charriere
     gauge_m = re.search(
         r"(?<!\w)(\d{1,2}(?:[.,]\d+)?)\s*(Fr(?:ench)?|Ch(?:arriere)?|(?-i:G)(?!\.?[Ww])\b|gauge)(?!\s*[wW])",
-        text, re.IGNORECASE
+        text,
+        re.IGNORECASE,
     )
     # mm — tylko w kontekście wymiarów (OD/ID/długość) nie masy
     mm_m = re.search(
-        r"(?:OD|ID|długość|length|Ø|diam)[:\s]*(\d{1,3}(?:[.,]\d+)?)\s*mm",
-        text, re.IGNORECASE
+        r"(?:OD|ID|długość|length|Ø|diam)[:\s]*(\d{1,3}(?:[.,]\d+)?)\s*mm", text, re.IGNORECASE
     )
     parts = []
     if size_code:
@@ -3702,11 +4514,17 @@ def _extract_gauge(text: str) -> str:
     return " / ".join(parts) if parts else "—"
 
 
-def _build_field_report(full_a: str, full_b: str,
-                         badges_a: list, badges_b: list,
-                         dims_a: tuple, dims_b: tuple,
-                         use_ai: bool = False,
-                         file_a: str = "", file_b: str = "") -> list:
+def _build_field_report(
+    full_a: str,
+    full_b: str,
+    badges_a: list,
+    badges_b: list,
+    dims_a: tuple,
+    dims_b: tuple,
+    use_ai: bool = False,
+    file_a: str = "",
+    file_b: str = "",
+) -> list:
     def gauge_str(badges):
         if not badges:
             return "—"
@@ -3721,8 +4539,13 @@ def _build_field_report(full_a: str, full_b: str,
     rows = []
 
     # Pola krytyczne — "N/D vs N/D" to nie "Zgodny", tylko "Nie zweryfikowano" (ważne ostrzeżenie)
-    _CRITICAL_MUST_HAVE = {"EAN / GTIN", "REF / Nr katalogowy", "Rozmiar / Gauge",
-                            "Oznaczenie CE / MDR", "Sterylność / Jednorazowy"}
+    _CRITICAL_MUST_HAVE = {
+        "EAN / GTIN",
+        "REF / Nr katalogowy",
+        "Rozmiar / Gauge",
+        "Oznaczenie CE / MDR",
+        "Sterylność / Jednorazowy",
+    }
 
     def row(field, va, vb, sev, note=""):
         va = (str(va).strip() if va is not None else None) or "N/D"
@@ -3741,16 +4564,29 @@ def _build_field_report(full_a: str, full_b: str,
             va = "Nie zweryfikowano (OCR)"
             vb = "Nie zweryfikowano (OCR)"
             sev = "important"
-            note = (note + " | " if note else "") + "Brak danych OCR dla obu stron — zweryfikuj ręcznie"
-        rows.append({"field": field, "val_a": va, "val_b": vb,
-                     "severity": sev, "changed": changed, "note": note,
-                     "ocr_confidence": ocr_confidence})
+            note = (
+                note + " | " if note else ""
+            ) + "Brak danych OCR dla obu stron — zweryfikuj ręcznie"
+        rows.append(
+            {
+                "field": field,
+                "val_a": va,
+                "val_b": vb,
+                "severity": sev,
+                "changed": changed,
+                "note": note,
+                "ocr_confidence": ocr_confidence,
+            }
+        )
 
     # Format dokumentu — PIERWSZA POZYCJA (wpływa na jakość pixel diff)
-    row("Format dokumentu",
+    row(
+        "Format dokumentu",
         f"{dims_a[0]}×{dims_a[1]} mm" if dims_a[0] else "N/D",
         f"{dims_b[0]}×{dims_b[1]} mm" if dims_b[0] else "N/D",
-        "critical", note="Zmiana formatu arkusza — pixel diff pominięty dla różnych formatów")
+        "critical",
+        note="Zmiana formatu arkusza — pixel diff pominięty dla różnych formatów",
+    )
 
     # Nazwa produktu — priorytet: z nazwy pliku
     name_a = _product_name_from_filename(file_a) if file_a else "—"
@@ -3759,67 +4595,89 @@ def _build_field_report(full_a: str, full_b: str,
         name_a = _extract_product_name(full_a)
     if name_b == "—":
         name_b = _extract_product_name(full_b)
-    row("Nazwa produktu", name_a, name_b, "important",
-        note="Nazwa wyrobu z nazwy pliku lub pierwszej linii tekstu")
+    row(
+        "Nazwa produktu",
+        name_a,
+        name_b,
+        "important",
+        note="Nazwa wyrobu z nazwy pliku lub pierwszej linii tekstu",
+    )
 
     # Rewizja dokumentu
-    row("Rewizja / Wersja",
+    row(
+        "Rewizja / Wersja",
         _first(full_a, r"(?:Rev\.?|Wer\.?|Ver\.?|Version|Rewizja)[:\s]*([\d]+(?:\.\d+)*)"),
         _first(full_b, r"(?:Rev\.?|Wer\.?|Ver\.?|Version|Rewizja)[:\s]*([\d]+(?:\.\d+)*)"),
-        "critical")
+        "critical",
+    )
 
     # EAN barcode (13 cyfr) — obsługa spacji
     row("EAN / GTIN", _extract_ean(full_a), _extract_ean(full_b), "critical")
 
     # REF — bez fallbacku na EAN
-    row("REF / Nr katalogowy",
-        _extract_ref(full_a),
-        _extract_ref(full_b), "critical")
+    row("REF / Nr katalogowy", _extract_ref(full_a), _extract_ref(full_b), "critical")
 
     # LOT / EXP
-    row("LOT / Nr serii",
+    row(
+        "LOT / Nr serii",
         _extract_lot(full_a),
-        _extract_lot(full_b), "critical",
-        note="Numer serii/LOT — krytyczne dla identyfikacji partii")
+        _extract_lot(full_b),
+        "critical",
+        note="Numer serii/LOT — krytyczne dla identyfikacji partii",
+    )
 
-    row("EXP / Data ważności",
+    row(
+        "EXP / Data ważności",
         _extract_exp(full_a),
-        _extract_exp(full_b), "critical",
-        note="Data ważności produktu medycznego")
+        _extract_exp(full_b),
+        "critical",
+        note="Data ważności produktu medycznego",
+    )
 
     # Gauge/rozmiar (dla wyrobów medycznych)
     ga = gauge_str(badges_a) if badges_a else _extract_gauge(full_a)
     gb = gauge_str(badges_b) if badges_b else _extract_gauge(full_b)
-    row("Rozmiar / Gauge", ga, gb, "critical",
-        note="Rozmiar wyrobu medycznego (gauge, Fr, CH, mm)")
+    row("Rozmiar / Gauge", ga, gb, "critical", note="Rozmiar wyrobu medycznego (gauge, Fr, CH, mm)")
 
     # Wymiary produktu (fizyczne)
-    row("Wymiary produktu",
+    row(
+        "Wymiary produktu",
         _first(full_a, r"(\d{1,4})\s*[*×x]\s*(\d{1,4})\s*(?:[*×x]\s*(\d{1,4}))?\s*mm"),
         _first(full_b, r"(\d{1,4})\s*[*×x]\s*(\d{1,4})\s*(?:[*×x]\s*(\d{1,4}))?\s*mm"),
-        "important", note="Wymiary fizyczne produktu w mm")
+        "important",
+        note="Wymiary fizyczne produktu w mm",
+    )
 
     # Specyfikacja koloru
-    row("Specyfikacja koloru",
+    row(
+        "Specyfikacja koloru",
         _detect_color_spec(full_a),
         _detect_color_spec(full_b),
-        "important", note="CMYK / Pantone — specyfikacja kolorów druku")
+        "important",
+        note="CMYK / Pantone — specyfikacja kolorów druku",
+    )
 
     # Sterylność / Single Use — "N/D" gdy brak (etykieta przed EAN)
     st_a = _first(full_a, r"(STERILE|STERYLNY|JAŁOWY|SINGLE\s+USE|JEDNORAZOWY|DO\s+NOT\s+REUSE)")
     st_b = _first(full_b, r"(STERILE|STERYLNY|JAŁOWY|SINGLE\s+USE|JEDNORAZOWY|DO\s+NOT\s+REUSE)")
-    row("Sterylność / Jednorazowy",
+    row(
+        "Sterylność / Jednorazowy",
         st_a if st_a and st_a != "—" else "N/D",
         st_b if st_b and st_b != "—" else "N/D",
-        "critical", note="Wymagana informacja MDR dla wyrobów sterylnych")
+        "critical",
+        note="Wymagana informacja MDR dla wyrobów sterylnych",
+    )
 
     # Oznaczenie CE/MDR — "N/D" gdy brak
     ce_a = _first(full_a, r"(CE\s*\d{4}|MDR\s*\d{4}/\d+|CE\s+2|0318|0197)")
     ce_b = _first(full_b, r"(CE\s*\d{4}|MDR\s*\d{4}/\d+|CE\s+2|0318|0197)")
-    row("Oznaczenie CE / MDR",
+    row(
+        "Oznaczenie CE / MDR",
         ce_a if ce_a and ce_a != "—" else "N/D",
         ce_b if ce_b and ce_b != "—" else "N/D",
-        "critical", note="Numer jednostki notyfikowanej — wymagane CE MDR")
+        "critical",
+        note="Numer jednostki notyfikowanej — wymagane CE MDR",
+    )
 
     # Materiał
     mat_a = _first(full_a, r"(?:材质|[Mm]aterial|Materiał)[：:\s]*([^\n,;]{3,40})")
@@ -3828,8 +4686,14 @@ def _build_field_report(full_a: str, full_b: str,
         row("Materiał", mat_a, mat_b, "important")
 
     # Data projektu
-    dt_a = _first(full_a, r"(?:日期|[Dd]ate|Data\s+projektu)[：:\s]*([\d]{2,4}[./\-][\d]{1,2}[./\-][\d]{2,4}|[\d]{4}[./\-][\d]{2}[./\-][\d]{2})")
-    dt_b = _first(full_b, r"(?:日期|[Dd]ate|Data\s+projektu)[：:\s]*([\d]{2,4}[./\-][\d]{1,2}[./\-][\d]{2,4}|[\d]{4}[./\-][\d]{2}[./\-][\d]{2})")
+    dt_a = _first(
+        full_a,
+        r"(?:日期|[Dd]ate|Data\s+projektu)[：:\s]*([\d]{2,4}[./\-][\d]{1,2}[./\-][\d]{2,4}|[\d]{4}[./\-][\d]{2}[./\-][\d]{2})",
+    )
+    dt_b = _first(
+        full_b,
+        r"(?:日期|[Dd]ate|Data\s+projektu)[：:\s]*([\d]{2,4}[./\-][\d]{1,2}[./\-][\d]{2,4}|[\d]{4}[./\-][\d]{2}[./\-][\d]{2})",
+    )
     if dt_a != "—" or dt_b != "—":
         row("Data projektu", dt_a, dt_b, "important")
 
@@ -3839,15 +4703,27 @@ def _build_field_report(full_a: str, full_b: str,
     else:
         _mfr = {}
 
-    mfr_a = _mfr.get("manufacturer_a") or _first(full_a, r"(?:Manufactured\s+by|Producent|Manufacturer)[:\s]+([^\n]{5,60})")
-    mfr_b = _mfr.get("manufacturer_b") or _first(full_b, r"(?:Manufactured\s+by|Producent|Manufacturer)[:\s]+([^\n]{5,60})")
-    row("Producent / Manufacturer", mfr_a, mfr_b, "critical",
-        note="Zmiana producenta lub adresu fabryki — weryfikuj MDR")
+    mfr_a = _mfr.get("manufacturer_a") or _first(
+        full_a, r"(?:Manufactured\s+by|Producent|Manufacturer)[:\s]+([^\n]{5,60})"
+    )
+    mfr_b = _mfr.get("manufacturer_b") or _first(
+        full_b, r"(?:Manufactured\s+by|Producent|Manufacturer)[:\s]+([^\n]{5,60})"
+    )
+    row(
+        "Producent / Manufacturer",
+        mfr_a,
+        mfr_b,
+        "critical",
+        note="Zmiana producenta lub adresu fabryki — weryfikuj MDR",
+    )
 
-    eu_rep_a = _mfr.get("eu_rep_a") or _first(full_a, r"(?:EU\s*REP|Przedstawiciel\s+UE)[:\s]*([^\n]{5,80})")
-    eu_rep_b = _mfr.get("eu_rep_b") or _first(full_b, r"(?:EU\s*REP|Przedstawiciel\s+UE)[:\s]*([^\n]{5,80})")
-    row("EU REP", eu_rep_a, eu_rep_b, "critical",
-        note="Zmiana przedstawiciela UE — wymagane MDR")
+    eu_rep_a = _mfr.get("eu_rep_a") or _first(
+        full_a, r"(?:EU\s*REP|Przedstawiciel\s+UE)[:\s]*([^\n]{5,80})"
+    )
+    eu_rep_b = _mfr.get("eu_rep_b") or _first(
+        full_b, r"(?:EU\s*REP|Przedstawiciel\s+UE)[:\s]*([^\n]{5,80})"
+    )
+    row("EU REP", eu_rep_a, eu_rep_b, "critical", note="Zmiana przedstawiciela UE — wymagane MDR")
 
     dist_a = _mfr.get("distributor_a") or "—"
     dist_b = _mfr.get("distributor_b") or "—"
@@ -3863,6 +4739,7 @@ def _build_field_report(full_a: str, full_b: str,
 
 
 # ─── MULTI-FILE EXTRACTION ────────────────────────────────────────────────────
+
 
 def extract_artwork_fields(pdf_path: str) -> dict:
     """Wyciąga pola strukturalne z jednego PDF artworku (na potrzeby porównania multi-plik)."""
@@ -3886,16 +4763,19 @@ def extract_artwork_fields(pdf_path: str) -> dict:
     colors = " + ".join(dict.fromkeys(all_pantones)) if all_pantones else _detect_color_spec(full)
 
     return {
-        "dims":      f"{dims[0]}×{dims[1]} mm" if dims[0] else "—",
-        "pages":     len(texts),
-        "revision":  _first(full, r"(?:Rev(?:ision)?\.?|Wer\.?|Ver(?:sion)?\.?|Rewizja|r)[:\s]*([vV]?\d+[\._]\d+(?:[\._]\d+)*|[vV]\d+(?:\.\d+)*|\d+\.\d+(?:\.\d+)*)"),
-        "ean":       _first(full, r"\b(\d{13})\b"),
-        "ref":       _extract_ref(full),
-        "lot":       _extract_lot(full),
-        "exp":       _extract_exp(full),
-        "colors":    colors,
+        "dims": f"{dims[0]}×{dims[1]} mm" if dims[0] else "—",
+        "pages": len(texts),
+        "revision": _first(
+            full,
+            r"(?:Rev(?:ision)?\.?|Wer\.?|Ver(?:sion)?\.?|Rewizja|r)[:\s]*([vV]?\d+[\._]\d+(?:[\._]\d+)*|[vV]\d+(?:\.\d+)*|\d+\.\d+(?:\.\d+)*)",
+        ),
+        "ean": _first(full, r"\b(\d{13})\b"),
+        "ref": _extract_ref(full),
+        "lot": _extract_lot(full),
+        "exp": _extract_exp(full),
+        "colors": colors,
         "sterility": _first(full, r"(STERILE|STERYLNY|JAŁOWY|SINGLE\s+USE|JEDNORAZOWY)", "—"),
-        "ce":        _first(full, r"(CE\s*\d{4}|0318|0197)", "—"),
+        "ce": _first(full, r"(CE\s*\d{4}|0318|0197)", "—"),
     }
 
 
@@ -3904,15 +4784,15 @@ def compare_multi_artworks(pdf_paths: list) -> dict:
     from collections import Counter
 
     FIELD_DEFS = [
-        ("revision",  "Rewizja",              "critical"),
-        ("ean",       "EAN / GTIN",            "critical"),
-        ("ref",       "REF / Nr katalogowy",   "critical"),
-        ("lot",       "LOT / Nr serii",        "important"),
-        ("exp",       "EXP / Data ważności",   "important"),
-        ("colors",    "Kolory (Pantone/CMYK)", "important"),
-        ("dims",      "Format dokumentu",      "info"),
-        ("sterility", "Sterylność",            "important"),
-        ("ce",        "CE / MDR",              "important"),
+        ("revision", "Rewizja", "critical"),
+        ("ean", "EAN / GTIN", "critical"),
+        ("ref", "REF / Nr katalogowy", "critical"),
+        ("lot", "LOT / Nr serii", "important"),
+        ("exp", "EXP / Data ważności", "important"),
+        ("colors", "Kolory (Pantone/CMYK)", "important"),
+        ("dims", "Format dokumentu", "info"),
+        ("sterility", "Sterylność", "important"),
+        ("ce", "CE / MDR", "important"),
     ]
 
     files = [os.path.basename(p) for p in pdf_paths]
@@ -3945,33 +4825,64 @@ def compare_multi_artworks(pdf_paths: list) -> dict:
             mismatch = True
             mismatch_count += 1
 
-        matrix.append({
-            "key":             key,
-            "label":           label,
-            "severity":        severity,
-            "values":          values,
-            "consensus":       consensus,
-            "mismatch":        mismatch,
-            "mismatch_indices": mismatch_indices,
-        })
+        matrix.append(
+            {
+                "key": key,
+                "label": label,
+                "severity": severity,
+                "values": values,
+                "consensus": consensus,
+                "mismatch": mismatch,
+                "mismatch_indices": mismatch_indices,
+            }
+        )
 
     return {
-        "files":          files,
-        "fields":         matrix,
+        "files": files,
+        "fields": matrix,
         "mismatch_count": mismatch_count,
-        "ok_count":       ok_count,
+        "ok_count": ok_count,
     }
 
 
 # ─── TEXT DIFF ────────────────────────────────────────────────────────────────
 
 TEXT_DIFF_CATEGORIES = {
-    "critical": ["batch", "lot", "exp", "expiry", "ważność", "ref", "gtin",
-                 "sterile", "jałowy", "latex free", "caution", "warning",
-                 "ostrzeżenie", "do not reuse", "single use", "jednorazowy"],
-    "important": ["name", "nazwa", "product", "producent", "manufacturer",
-                  "ce ", "mdr", "size", "rozmiar", "gauge", "quantity", "ilość",
-                  "storage", "przechowywać", "temperature"],
+    "critical": [
+        "batch",
+        "lot",
+        "exp",
+        "expiry",
+        "ważność",
+        "ref",
+        "gtin",
+        "sterile",
+        "jałowy",
+        "latex free",
+        "caution",
+        "warning",
+        "ostrzeżenie",
+        "do not reuse",
+        "single use",
+        "jednorazowy",
+    ],
+    "important": [
+        "name",
+        "nazwa",
+        "product",
+        "producent",
+        "manufacturer",
+        "ce ",
+        "mdr",
+        "size",
+        "rozmiar",
+        "gauge",
+        "quantity",
+        "ilość",
+        "storage",
+        "przechowywać",
+        "temperature",
+    ],
     "info": ["address", "adres", "phone", "tel", "www", "email", "made in"],
 }
 
@@ -4125,7 +5036,7 @@ def _compare_sections(text_a: str, text_b: str) -> list:
 
     all_keys = [s["key"] for s in SECTION_DEFS] + ["tlumaczenia", "dane_dostawcy"]
     sec_meta = {s["key"]: s for s in SECTION_DEFS}
-    sec_meta["tlumaczenia"]   = {"label": "Tłumaczenia", "severity": "important"}
+    sec_meta["tlumaczenia"] = {"label": "Tłumaczenia", "severity": "important"}
     sec_meta["dane_dostawcy"] = {"label": "Dane dostawcy (znaki niełacińskie)", "severity": "info"}
 
     result = []
@@ -4155,16 +5066,20 @@ def _compare_sections(text_a: str, text_b: str) -> list:
             rows.append({"content_a": a, "content_b": b, "status": status, "severity": sev})
 
         severities = [r["severity"] for r in rows if r["status"] != "equal"]
-        sec_sev = "error" if "error" in severities else "warning" if "warning" in severities else "info"
+        sec_sev = (
+            "error" if "error" in severities else "warning" if "warning" in severities else "info"
+        )
 
-        result.append({
-            "section_key":   key,
-            "section_label": sec_meta[key]["label"],
-            "severity":      sec_sev,
-            "rows":          rows,
-            "diff_count":    diff_count,
-            "total_count":   len(rows),
-        })
+        result.append(
+            {
+                "section_key": key,
+                "section_label": sec_meta[key]["label"],
+                "severity": sec_sev,
+                "rows": rows,
+                "diff_count": diff_count,
+                "total_count": len(rows),
+            }
+        )
     return result
 
 
@@ -4186,13 +5101,15 @@ def _compare_texts(text_a: str, text_b: str) -> list:
         if a == b:
             continue
         cat, sev = _cat_diff(a + " " + b)
-        diffs.append({
-            "type": "replace",
-            "content_a": a,
-            "content_b": b,
-            "category": cat,
-            "severity": sev,
-        })
+        diffs.append(
+            {
+                "type": "replace",
+                "content_a": a,
+                "content_b": b,
+                "category": cat,
+                "severity": sev,
+            }
+        )
     return diffs
 
 
@@ -4205,17 +5122,17 @@ Zwracasz WYŁĄCZNIE JSON — bez markdown, bez komentarzy."""
 
 # Klucz → (etykieta w raporcie, poziom ważności)
 _DECOMPOSE_SECTIONS = {
-    "tłumaczenia":      ("Tłumaczenia nazwy i opisu produktu (wszystkie języki)", "important"),
-    "instrukcje_ifu":   ("Instrukcje użycia / IFU (wszystkie języki)",           "important"),
-    "dane_produktu":    ("Dane produktu (REF / EAN / rozmiar)",                   "critical"),
-    "dane_zmienne":     ("Dane zmienne (LOT / EXP / daty)",                       "critical"),
-    "symbole_mdr":      ("Symbole i oznaczenia MDR",                              "critical"),
-    "dane_producenta":  ("Dane producenta / dystrybutora",                        "important"),
-    "dane_fabryczne":   ("Dane fabryczne / rewizja",                              "critical"),
-    "wymiary_kolory":   ("Wymiary i specyfikacja kolorów",                        "important"),
-    "kody_kreskowe":    ("Kody kreskowe (GS1 / UDI)",                       "critical"),
-    "normy_ostrzezenia":("Normy, ostrzeżenia, warunki przechowywania",     "important"),
-    "inne":             ("Inne",                                           "info"),
+    "tłumaczenia": ("Tłumaczenia nazwy i opisu produktu (wszystkie języki)", "important"),
+    "instrukcje_ifu": ("Instrukcje użycia / IFU (wszystkie języki)", "important"),
+    "dane_produktu": ("Dane produktu (REF / EAN / rozmiar)", "critical"),
+    "dane_zmienne": ("Dane zmienne (LOT / EXP / daty)", "critical"),
+    "symbole_mdr": ("Symbole i oznaczenia MDR", "critical"),
+    "dane_producenta": ("Dane producenta / dystrybutora", "important"),
+    "dane_fabryczne": ("Dane fabryczne / rewizja", "critical"),
+    "wymiary_kolory": ("Wymiary i specyfikacja kolorów", "important"),
+    "kody_kreskowe": ("Kody kreskowe (GS1 / UDI)", "critical"),
+    "normy_ostrzezenia": ("Normy, ostrzeżenia, warunki przechowywania", "important"),
+    "inne": ("Inne", "info"),
 }
 
 
@@ -4226,14 +5143,12 @@ def _ai_decompose_label(ocr_text: str) -> dict:
     Zwraca {} przy braku klucza API lub błędzie (fallback do regexów).
     """
     import urllib.request as _ur
+
     api_key = _get_api_key_artwork()
     if not api_key or len(ocr_text.strip()) < 20:
         return {}
 
-    sections_desc = "\n".join(
-        f'  "{k}": {label}'
-        for k, (label, _) in _DECOMPOSE_SECTIONS.items()
-    )
+    sections_desc = "\n".join(f'  "{k}": {label}' for k, (label, _) in _DECOMPOSE_SECTIONS.items())
     empty_json = json.dumps({k: [] for k in _DECOMPOSE_SECTIONS}, ensure_ascii=False)
 
     prompt = (
@@ -4253,22 +5168,31 @@ def _ai_decompose_label(ocr_text: str) -> dict:
         f"Zwróć WYŁĄCZNIE JSON:\n{empty_json}"
     )
 
-    payload = json.dumps({
-        "model": _current_ai_model(),
-        "max_tokens": 3000,
-        "system": _ai_system(_DECOMPOSE_SYSTEM),
-        "messages": [{"role": "user", "content": prompt}],
-    }).encode("utf-8")
+    payload = json.dumps(
+        {
+            "model": _current_ai_model(),
+            "max_tokens": 3000,
+            "system": _ai_system(_DECOMPOSE_SYSTEM),
+            "messages": [{"role": "user", "content": prompt}],
+        }
+    ).encode("utf-8")
     req = _ur.Request(
-        "https://api.anthropic.com/v1/messages", data=payload,
-        headers={"Content-Type": "application/json", "x-api-key": api_key,
-                 "anthropic-version": "2023-06-01"}, method="POST")
+        "https://api.anthropic.com/v1/messages",
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+        },
+        method="POST",
+    )
     try:
         # Bandit B310: URL stały w kodzie (https://api.anthropic.com), schemat nie pochodzi z wejścia.
         with _ur.urlopen(req, timeout=40) as resp:  # nosec B310
             data = json.loads(resp.read())
         try:
             from api_usage_tracker import record_usage
+
             record_usage(_current_ai_model(), data.get("usage", {}), call_type="artwork_decompose")
         except Exception:
             pass
@@ -4301,6 +5225,7 @@ def _match_section_items(la: list, lb: list) -> list:
 
     try:
         from rapidfuzz import fuzz as _fuzz
+
         use_fuzzy = True
     except ImportError:
         use_fuzzy = False
@@ -4311,11 +5236,13 @@ def _match_section_items(la: list, lb: list) -> list:
         for op, i1, i2, j1, j2 in difflib.SequenceMatcher(None, la, lb).get_opcodes():
             if op == "equal":
                 for k in range(i2 - i1):
-                    rows.append({"content_a": la[i1+k], "content_b": lb[j1+k], "status": "equal"})
+                    rows.append(
+                        {"content_a": la[i1 + k], "content_b": lb[j1 + k], "status": "equal"}
+                    )
             else:
                 for k in range(max(i2 - i1, j2 - j1)):
-                    a = la[i1+k] if op != "insert" and (i1+k) < i2 else ""
-                    b = lb[j1+k] if op != "delete" and (j1+k) < j2 else ""
+                    a = la[i1 + k] if op != "insert" and (i1 + k) < i2 else ""
+                    b = lb[j1 + k] if op != "delete" and (j1 + k) < j2 else ""
                     st = "changed" if a and b else ("only_master" if a else "only_factory")
                     rows.append({"content_a": a, "content_b": b, "status": st})
         return rows
@@ -4385,18 +5312,22 @@ def _compare_sections_ai(text_a: str, text_b: str) -> list:
             rows.append({**r, "severity": sev})
 
         diff_count = sum(1 for r in rows if r["status"] != "equal")
-        severities  = [r["severity"] for r in rows if r["status"] != "equal"]
-        sec_sev     = "error" if "error" in severities else "warning" if "warning" in severities else "info"
+        severities = [r["severity"] for r in rows if r["status"] != "equal"]
+        sec_sev = (
+            "error" if "error" in severities else "warning" if "warning" in severities else "info"
+        )
 
-        result.append({
-            "section_key":   key,
-            "section_label": label,
-            "severity":      sec_sev,
-            "rows":          rows,
-            "diff_count":    diff_count,
-            "total_count":   len(rows),
-            "ai_decomposed": True,
-        })
+        result.append(
+            {
+                "section_key": key,
+                "section_label": label,
+                "severity": sec_sev,
+                "rows": rows,
+                "diff_count": diff_count,
+                "total_count": len(rows),
+                "ai_decomposed": True,
+            }
+        )
 
     return result
 
@@ -4405,7 +5336,7 @@ def _compare_sections_ai(text_a: str, text_b: str) -> list:
 
 # Rozmiar ikon w mm — mniejsze = szum, większe = bloki tekstowe lub zdjęcia produktu
 _ICON_MIN_MM = 4
-_ICON_MAX_MM = 50   # ↓ z 70 — wyklucza duże bloki tekstowe fałszywie wykryte jako ikony
+_ICON_MAX_MM = 50  # ↓ z 70 — wyklucza duże bloki tekstowe fałszywie wykryte jako ikony
 # Minimalna gęstość ciemnych pikseli w bbox (filtruje puste obszary i rzadkie teksty)
 _ICON_MIN_DENSITY = 0.10  # ↑ z 0.04 — wymaga gęstszej treści graficznej
 # Tolerancja dopasowania pozycji ikon między A i B (% wymiaru strony)
@@ -4454,19 +5385,21 @@ def _detect_icon_regions(img, dpi: int = RENDER_DPI) -> list:
             if ratio > 8:
                 continue
             # Gęstość ciemnych pikseli w oryginalnym (nie dilated) bbox
-            density = float(binary[y1:y2+1, x1:x2+1].sum()) / max((w * h), 1)
+            density = float(binary[y1 : y2 + 1, x1 : x2 + 1].sum()) / max((w * h), 1)
             if density < _ICON_MIN_DENSITY:
                 continue
 
-            regions.append({
-                "x_pct":    round(x1 / W * 100, 2),
-                "y_pct":    round(y1 / H * 100, 2),
-                "w_pct":    round(w  / W * 100, 2),
-                "h_pct":    round(h  / H * 100, 2),
-                "center_x": (x1 + x2) / 2 / W * 100,
-                "center_y": (y1 + y2) / 2 / H * 100,
-                "density":  round(density, 3),
-            })
+            regions.append(
+                {
+                    "x_pct": round(x1 / W * 100, 2),
+                    "y_pct": round(y1 / H * 100, 2),
+                    "w_pct": round(w / W * 100, 2),
+                    "h_pct": round(h / H * 100, 2),
+                    "center_x": (x1 + x2) / 2 / W * 100,
+                    "center_y": (y1 + y2) / 2 / H * 100,
+                    "density": round(density, 3),
+                }
+            )
 
         # Sortuj: wiersz (co 3%) → kolumna
         regions.sort(key=lambda r: (int(r["center_y"] / 3), r["center_x"]))
@@ -4509,9 +5442,9 @@ def _icon_similarity(crop_a, crop_b) -> float:
         # 1. Perceptual hash pre-filter
         ph = _phash_similarity(ra, rb)
         if ph >= 0:
-            if ph >= 0.97:   # nearly identical
+            if ph >= 0.97:  # nearly identical
                 return 100.0
-            if ph <= 0.40:   # very different — skip expensive models
+            if ph <= 0.40:  # very different — skip expensive models
                 return round(ph * 100, 1)
 
         # 2. SSIM (structural similarity)
@@ -4541,12 +5474,12 @@ def _icon_similarity(crop_a, crop_b) -> float:
         return 0.0
 
 
-_ICON_CONTENT_MATCH_SIM = 65.0  # min similarity for content-based (layout-shifted) match; ↑ z 45 — redukuje fałszywe pary
+_ICON_CONTENT_MATCH_SIM = (
+    65.0  # min similarity for content-based (layout-shifted) match; ↑ z 45 — redukuje fałszywe pary
+)
 
 
-def compare_icon_regions(img_a, img_b,
-                          dpi: int = RENDER_DPI,
-                          hires_a=None, hires_b=None) -> list:
+def compare_icon_regions(img_a, img_b, dpi: int = RENDER_DPI, hires_a=None, hires_b=None) -> list:
     """
     Wykrywa ikony na obu etykietach, dopasowuje parami i porównuje.
 
@@ -4584,8 +5517,9 @@ def compare_icon_regions(img_a, img_b,
         for j, rb in enumerate(regions_b):
             if j in used_b:
                 continue
-            dist = ((ra["center_x"] - rb["center_x"]) ** 2 +
-                    (ra["center_y"] - rb["center_y"]) ** 2) ** 0.5
+            dist = (
+                (ra["center_x"] - rb["center_x"]) ** 2 + (ra["center_y"] - rb["center_y"]) ** 2
+            ) ** 0.5
             if dist < best_dist:
                 best_dist, best_j = dist, j
         if best_j >= 0 and best_dist <= _ICON_MATCH_TOL:
@@ -4626,23 +5560,23 @@ def compare_icon_regions(img_a, img_b,
 
     for i, ra in enumerate(regions_a):
         j_b, match_type = matched[i]
-        rb     = regions_b[j_b] if j_b is not None else None
+        rb = regions_b[j_b] if j_b is not None else None
         crop_a = crops_a[i]
         crop_b = crops_b[j_b] if j_b is not None else None
-        sim    = _icon_similarity(crop_a, crop_b)
+        sim = _icon_similarity(crop_a, crop_b)
 
         if rb is None:
             status, status_cls = "Brak w B", "status-niezgodnosc"
         elif sim >= 92:
             # Wizualnie identyczna ikona — OK nawet jeśli w innym miejscu
-            status, status_cls = "OK",        "status-ok"
+            status, status_cls = "OK", "status-ok"
         elif match_type == "layout" and sim >= 75:
             # Podobna ikona ale wyraźnie przesunięta — zmiana układu
             status, status_cls = "Inny układ", "status-niezgodnosc"
         elif sim >= 70:
-            status, status_cls = "Roznica",   "status-niezgodnosc"
+            status, status_cls = "Roznica", "status-niezgodnosc"
         else:
-            status, status_cls = "Blad",      "status-niezgodnosc"
+            status, status_cls = "Blad", "status-niezgodnosc"
 
         # Hires crop: użyj obrazu OCR (150 DPI) jeśli dostępny — więcej pikseli na ikonę
         hires_crop_a = _crop_icon(hires_a, ra) if hires_a else crop_a
@@ -4659,43 +5593,55 @@ def compare_icon_regions(img_a, img_b,
             except Exception:
                 pass
 
-        result.append({
-            "crop_a_b64":         _img_to_b64(crop_a, max_width=180, quality=88) if crop_a else None,
-            "crop_b_b64":         _img_to_b64(crop_b, max_width=180, quality=88) if crop_b else None,
-            "crop_a_hires":       _img_to_b64(hires_crop_a, max_width=600, quality=95) if hires_crop_a else None,
-            "crop_b_hires":       _img_to_b64(hires_crop_b, max_width=600, quality=95) if hires_crop_b else None,
-            "crop_a_hires_annot": crop_a_hires_annot,
-            "crop_b_hires_annot": crop_b_hires_annot,
-            "similarity":   sim,
-            "status":       status,
-            "status_class": status_cls,
-            "x_pct":        ra["x_pct"],
-            "y_pct":        ra["y_pct"],
-            "pos_b_x":      rb["x_pct"] if rb else None,
-            "pos_b_y":      rb["y_pct"] if rb else None,
-            "layout_shift": match_type == "layout",
-        })
+        result.append(
+            {
+                "crop_a_b64": _img_to_b64(crop_a, max_width=180, quality=88) if crop_a else None,
+                "crop_b_b64": _img_to_b64(crop_b, max_width=180, quality=88) if crop_b else None,
+                "crop_a_hires": _img_to_b64(hires_crop_a, max_width=600, quality=95)
+                if hires_crop_a
+                else None,
+                "crop_b_hires": _img_to_b64(hires_crop_b, max_width=600, quality=95)
+                if hires_crop_b
+                else None,
+                "crop_a_hires_annot": crop_a_hires_annot,
+                "crop_b_hires_annot": crop_b_hires_annot,
+                "similarity": sim,
+                "status": status,
+                "status_class": status_cls,
+                "x_pct": ra["x_pct"],
+                "y_pct": ra["y_pct"],
+                "pos_b_x": rb["x_pct"] if rb else None,
+                "pos_b_y": rb["y_pct"] if rb else None,
+                "layout_shift": match_type == "layout",
+            }
+        )
 
     # Ikony tylko w B (brak w A)
     for j in range(len(regions_b)):
         if j not in matched_b_set:
-            rb          = regions_b[j]
-            crop_b      = crops_b[j]
+            rb = regions_b[j]
+            crop_b = crops_b[j]
             hires_crop_b = _crop_icon(hires_b, rb) if hires_b else crop_b
-            result.append({
-                "crop_a_b64":   None,
-                "crop_b_b64":   _img_to_b64(crop_b, max_width=180, quality=88) if crop_b else None,
-                "crop_a_hires": None,
-                "crop_b_hires": _img_to_b64(hires_crop_b, max_width=600, quality=95) if hires_crop_b else None,
-                "similarity":   0.0,
-                "status":       "Brak w A",
-                "status_class": "status-niezgodnosc",
-                "x_pct":        rb["x_pct"],
-                "y_pct":        rb["y_pct"],
-                "pos_b_x":      rb["x_pct"],
-                "pos_b_y":      rb["y_pct"],
-                "layout_shift": False,
-            })
+            result.append(
+                {
+                    "crop_a_b64": None,
+                    "crop_b_b64": _img_to_b64(crop_b, max_width=180, quality=88)
+                    if crop_b
+                    else None,
+                    "crop_a_hires": None,
+                    "crop_b_hires": _img_to_b64(hires_crop_b, max_width=600, quality=95)
+                    if hires_crop_b
+                    else None,
+                    "similarity": 0.0,
+                    "status": "Brak w A",
+                    "status_class": "status-niezgodnosc",
+                    "x_pct": rb["x_pct"],
+                    "y_pct": rb["y_pct"],
+                    "pos_b_x": rb["x_pct"],
+                    "pos_b_y": rb["y_pct"],
+                    "layout_shift": False,
+                }
+            )
 
     return result
 
@@ -4805,12 +5751,12 @@ Odpowiedz WYŁĄCZNIE w JSON (bez markdown):
 # Strefa "header" to zazwyczaj logo + EAN; "body" to tabela rozmiarów + ikony;
 # "translations" to bloki językowe; "footer" to dane producenta.
 _AUTO_ZONES = [
-    ("Nagłówek / Logo + EAN",       0,   18,  "critical",  "Logo, EAN, REF, nazwa produktu"),
-    ("Tabela rozmiarów / Gauge",    18,   42,  "critical",  "Rozmiary XS-XL, parametry techniczne"),
-    ("Ikony / Infografiki",         42,   62,  "important", "Piktogramy, CE, symbole użytkowania"),
-    ("Tłumaczenia — blok górny",    62,   78,  "important", "Języki EU: EN/DE/FR/ES/PT/IT"),
-    ("Tłumaczenia — blok dolny",    78,   90,  "important", "Języki EU: PL/CZ/SK/HU/RO/BG/RU/UA"),
-    ("Stopka / Dane producenta",    90,  100,  "info",      "Producent, importer, www"),
+    ("Nagłówek / Logo + EAN", 0, 18, "critical", "Logo, EAN, REF, nazwa produktu"),
+    ("Tabela rozmiarów / Gauge", 18, 42, "critical", "Rozmiary XS-XL, parametry techniczne"),
+    ("Ikony / Infografiki", 42, 62, "important", "Piktogramy, CE, symbole użytkowania"),
+    ("Tłumaczenia — blok górny", 62, 78, "important", "Języki EU: EN/DE/FR/ES/PT/IT"),
+    ("Tłumaczenia — blok dolny", 78, 90, "important", "Języki EU: PL/CZ/SK/HU/RO/BG/RU/UA"),
+    ("Stopka / Dane producenta", 90, 100, "info", "Producent, importer, www"),
 ]
 
 
@@ -4819,6 +5765,7 @@ def _ocr_enhanced(img) -> str:
     try:
         from PIL import ImageEnhance, ImageFilter
         import pytesseract
+
         img = _orient_for_ocr(img)
         g = img.convert("L")
         g = ImageEnhance.Contrast(g).enhance(2.5)
@@ -4836,6 +5783,7 @@ def _ocr_enhanced(img) -> str:
         # illumination and low-contrast packaging text.  Falls back to fixed threshold.
         try:
             from skimage.filters import threshold_sauvola
+
             arr = np.array(g)
             win = max(25, min(arr.shape[0], arr.shape[1]) // 4)
             if win % 2 == 0:
@@ -4848,11 +5796,17 @@ def _ocr_enhanced(img) -> str:
         # avoids the RGB-conversion and contrast steps in _preprocess_for_ocr which
         # would undo the Sauvola binarization we just computed.
         _t0 = time.time()
-        _res = pytesseract.image_to_string(g, lang=_get_ocr_langs(), config="--psm 3",
-                                           timeout=_TESSERACT_TIMEOUT) or ""
+        _res = (
+            pytesseract.image_to_string(
+                g, lang=_get_ocr_langs(), config="--psm 3", timeout=_TESSERACT_TIMEOUT
+            )
+            or ""
+        )
         _elapsed = time.time() - _t0
         if _elapsed > _TESSERACT_TIMEOUT:
-            logger.warning("Tesseract OCR took %.1fs (timeout threshold: %ds)", _elapsed, _TESSERACT_TIMEOUT)
+            logger.warning(
+                "Tesseract OCR took %.1fs (timeout threshold: %ds)", _elapsed, _TESSERACT_TIMEOUT
+            )
         return _res
     except Exception:
         return _extract_text_ocr(img)
@@ -4890,8 +5844,10 @@ def _zone_ocr_compare(img_a, img_b, path_a: str = "", path_b: str = "") -> tuple
 
     for zone_name, y1_pct, y2_pct, severity, desc in _AUTO_ZONES:
         # Crop strefa z obu stron (220 DPI dla pixel diff)
-        y1a = int(y1_pct / 100 * ha); y2a = int(y2_pct / 100 * ha)
-        y1b = int(y1_pct / 100 * hb); y2b = int(y2_pct / 100 * hb)
+        y1a = int(y1_pct / 100 * ha)
+        y2a = int(y2_pct / 100 * ha)
+        y1b = int(y1_pct / 100 * hb)
+        y2b = int(y2_pct / 100 * hb)
 
         crop_a = img_a.crop((0, y1a, wa, y2a)) if y2a > y1a else None
         crop_b = img_b.crop((0, y1b, wb, y2b)) if y2b > y1b else None
@@ -4908,9 +5864,10 @@ def _zone_ocr_compare(img_a, img_b, path_a: str = "", path_b: str = "") -> tuple
         # OCR — dla tabeli rozmiarów używaj 300 DPI jeśli dostępne
         is_size_zone = "rozmiar" in zone_name.lower() or "gauge" in zone_name.lower()
         if is_size_zone and hires_a and hires_b:
-            wha, hha = hires_a.size; whb, hhb = hires_b.size
-            hcrop_a = hires_a.crop((0, int(y1_pct/100*hha), wha, int(y2_pct/100*hha)))
-            hcrop_b = hires_b.crop((0, int(y1_pct/100*hhb), whb, int(y2_pct/100*hhb)))
+            wha, hha = hires_a.size
+            whb, hhb = hires_b.size
+            hcrop_a = hires_a.crop((0, int(y1_pct / 100 * hha), wha, int(y2_pct / 100 * hha)))
+            hcrop_b = hires_b.crop((0, int(y1_pct / 100 * hhb), whb, int(y2_pct / 100 * hhb)))
             va = " ".join(_ocr_enhanced(hcrop_a).split()) or "N/D"
             vb = " ".join(_ocr_enhanced(hcrop_b).split()) or "N/D"
         else:
@@ -4935,21 +5892,27 @@ def _zone_ocr_compare(img_a, img_b, path_a: str = "", path_b: str = "") -> tuple
         if text_changed and pixel_changed:
             note_parts.append("⚠ Różnica tekstowa i wizualna")
 
-        rows.append({
-            "field":    f"[Strefa] {zone_name}",
-            "val_a":    va[:500] if va != "N/D" else "N/D",
-            "val_b":    vb[:500] if vb != "N/D" else "N/D",
-            "severity": severity,
-            "changed":  changed,
-            "note":     " | ".join(note_parts),
-        })
+        rows.append(
+            {
+                "field": f"[Strefa] {zone_name}",
+                "val_a": va[:500] if va != "N/D" else "N/D",
+                "val_b": vb[:500] if vb != "N/D" else "N/D",
+                "severity": severity,
+                "changed": changed,
+                "note": " | ".join(note_parts),
+            }
+        )
 
         if changed:
-            zone_regions.append({
-                "y1_pct": y1_pct, "y2_pct": y2_pct,
-                "severity": severity, "name": zone_name,
-                "pix_sim": pix_sim,
-            })
+            zone_regions.append(
+                {
+                    "y1_pct": y1_pct,
+                    "y2_pct": y2_pct,
+                    "severity": severity,
+                    "name": zone_name,
+                    "pix_sim": pix_sim,
+                }
+            )
 
     return rows, zone_regions
 
@@ -4968,6 +5931,7 @@ def _get_dominant_colors(img, n: int = 5) -> list:
         return []
     try:
         from collections import Counter
+
         small = img.resize((120, 120), Image.LANCZOS).convert("RGB")
         quantized = small.quantize(colors=n, method=2).convert("RGB")
         pixels = list(quantized.getdata())
@@ -4975,11 +5939,15 @@ def _get_dominant_colors(img, n: int = 5) -> list:
         counter = Counter(pixels)
         colors = []
         for (r, g, b), cnt in counter.most_common(n):
-            colors.append({
-                "hex": f"#{r:02x}{g:02x}{b:02x}",
-                "r": r, "g": g, "b": b,
-                "pct": round(cnt * 100 / total, 1),
-            })
+            colors.append(
+                {
+                    "hex": f"#{r:02x}{g:02x}{b:02x}",
+                    "r": r,
+                    "g": g,
+                    "b": b,
+                    "pct": round(cnt * 100 / total, 1),
+                }
+            )
         return colors
     except Exception:
         return []
@@ -5008,12 +5976,14 @@ def _delta_e_rgb(rgb1, rgb2) -> float:
     """Perceptualna różnica barwy (CIEDE2000) między dwoma kolorami RGB (0-255)."""
     try:
         from skimage.color import deltaE_ciede2000, rgb2lab as _rgb2lab
+
         a = _rgb2lab(np.array([[[c / 255.0 for c in rgb1]]], dtype=float))
         b = _rgb2lab(np.array([[[c / 255.0 for c in rgb2]]], dtype=float))
         return float(deltaE_ciede2000(a, b)[0][0])
     except Exception:
         # Awaryjnie (brak skimage): euklides w sRGB — przybliżenie, ale lepsze niż nic.
         import math
+
         return math.sqrt(sum((float(x) - float(y)) ** 2 for x, y in zip(rgb1, rgb2)))
 
 
@@ -5035,7 +6005,7 @@ def _global_color_compare(col_a: dict, col_b: dict, de_thresh: float = None) -> 
     avg_de = _delta_e_rgb(avg_a, avg_b) if (avg_a and avg_b) else 0.0
     pairs, max_de = [], 0.0
     for ca in pal_a:
-        if ca.get("pct", 0) < 3:        # pomiń marginalne kolory (szum, antyaliasing)
+        if ca.get("pct", 0) < 3:  # pomiń marginalne kolory (szum, antyaliasing)
             continue
         rgb_a = (ca["r"], ca["g"], ca["b"])
         best, best_de = None, 999.0
@@ -5043,26 +6013,36 @@ def _global_color_compare(col_a: dict, col_b: dict, de_thresh: float = None) -> 
             de = _delta_e_rgb(rgb_a, (cb["r"], cb["g"], cb["b"]))
             if de < best_de:
                 best_de, best = de, cb
-        pairs.append({
-            "a_hex": ca["hex"], "a_pct": ca["pct"],
-            "b_hex": best["hex"] if best else "",
-            "delta_e": round(best_de, 1), "changed": best_de > de_thresh,
-        })
+        pairs.append(
+            {
+                "a_hex": ca["hex"],
+                "a_pct": ca["pct"],
+                "b_hex": best["hex"] if best else "",
+                "delta_e": round(best_de, 1),
+                "changed": best_de > de_thresh,
+            }
+        )
         max_de = max(max_de, best_de)
     changed = (max_de > de_thresh) or (avg_de > de_thresh)
     n_changed = sum(1 for p in pairs if p["changed"])
     if changed:
-        note = (f"Różnica koloru: {n_changed} dominując(ych) kolorów przesuniętych "
-                f"(maks ΔE={max_de:.1f}, tło ΔE={avg_de:.1f}; próg {de_thresh:.0f}).")
+        note = (
+            f"Różnica koloru: {n_changed} dominując(ych) kolorów przesuniętych "
+            f"(maks ΔE={max_de:.1f}, tło ΔE={avg_de:.1f}; próg {de_thresh:.0f})."
+        )
     else:
-        note = (f"Kolory zgodne (maks ΔE={max_de:.1f}, tło ΔE={avg_de:.1f}; "
-                f"próg {de_thresh:.0f}).")
+        note = f"Kolory zgodne (maks ΔE={max_de:.1f}, tło ΔE={avg_de:.1f}; próg {de_thresh:.0f})."
     return {
-        "palette_a": pal_a, "palette_b": pal_b,
-        "avg_hex_a": col_a.get("avg_hex"), "avg_hex_b": col_b.get("avg_hex"),
-        "avg_delta_e": round(avg_de, 1), "max_delta_e": round(max_de, 1),
-        "threshold": de_thresh, "pairs": pairs,
-        "changed": changed, "note": note,
+        "palette_a": pal_a,
+        "palette_b": pal_b,
+        "avg_hex_a": col_a.get("avg_hex"),
+        "avg_hex_b": col_b.get("avg_hex"),
+        "avg_delta_e": round(avg_de, 1),
+        "max_delta_e": round(max_de, 1),
+        "threshold": de_thresh,
+        "pairs": pairs,
+        "changed": changed,
+        "note": note,
     }
 
 
@@ -5071,17 +6051,17 @@ def _load_artwork_profile_by_id(profile_id: int) -> Optional[dict]:
     try:
         import json as _json
         from db import get_db as _gdb
+
         db = _gdb()
         try:
             row = db.execute(
-                "SELECT * FROM artwork_profiles WHERE id=? AND is_active=1",
-                (profile_id,)
+                "SELECT * FROM artwork_profiles WHERE id=? AND is_active=1", (profile_id,)
             ).fetchone()
             if not row:
                 return None
             fields = db.execute(
                 "SELECT * FROM artwork_profile_fields WHERE profile_id=? ORDER BY sort_order",
-                (row["id"],)
+                (row["id"],),
             ).fetchall()
             dict_rows = db.execute(
                 "SELECT display_name, display_layout, default_rotation, comparison_mode, numeric_tolerance FROM artwork_field_dict"
@@ -5106,10 +6086,10 @@ def _load_artwork_profile_by_id(profile_id: int) -> Optional[dict]:
             field_list.append(fd)
         row_d = dict(row)
         return {
-            "id":              row_d["id"],
-            "name":            row_d["name"],
+            "id": row_d["id"],
+            "name": row_d["name"],
             "master_pdf_path": row_d.get("master_pdf_path", ""),
-            "fields":          field_list,
+            "fields": field_list,
         }
     except Exception as _e:
         logger.debug("Profile load by ID failed: %s", _e)
@@ -5124,6 +6104,7 @@ def _load_artwork_profile(ean: str = "", ref: str = "", dims_a=None) -> Optional
     try:
         import json as _json
         from db import get_db as _gdb
+
         db = _gdb()
         try:
             row = None
@@ -5131,16 +6112,13 @@ def _load_artwork_profile(ean: str = "", ref: str = "", dims_a=None) -> Optional
             # 1. Dopasowanie po EAN
             if ean and ean != "N/D":
                 row = db.execute(
-                    "SELECT * FROM artwork_profiles WHERE ean=? AND is_active=1",
-                    (ean,)
+                    "SELECT * FROM artwork_profiles WHERE ean=? AND is_active=1", (ean,)
                 ).fetchone()
 
             # 2. Dopasowanie po REF — sprawdź ref_list_json (JSON array) i ref_code
             if not row and ref and ref != "N/D":
                 ref_clean = ref.strip().upper()
-                all_rows = db.execute(
-                    "SELECT * FROM artwork_profiles WHERE is_active=1"
-                ).fetchall()
+                all_rows = db.execute("SELECT * FROM artwork_profiles WHERE is_active=1").fetchall()
                 for candidate in all_rows:
                     # Sprawdź stare pole ref_code
                     if candidate["ref_code"] and candidate["ref_code"].strip().upper() == ref_clean:
@@ -5160,7 +6138,7 @@ def _load_artwork_profile(ean: str = "", ref: str = "", dims_a=None) -> Optional
 
             fields = db.execute(
                 "SELECT * FROM artwork_profile_fields WHERE profile_id=? ORDER BY sort_order",
-                (row["id"],)
+                (row["id"],),
             ).fetchall()
             dict_rows = db.execute(
                 "SELECT display_name, display_layout, default_rotation, comparison_mode, numeric_tolerance FROM artwork_field_dict"
@@ -5185,18 +6163,17 @@ def _load_artwork_profile(ean: str = "", ref: str = "", dims_a=None) -> Optional
             field_list.append(fd)
         row_d = dict(row)
         return {
-            "id":              row_d["id"],
-            "name":            row_d["name"],
+            "id": row_d["id"],
+            "name": row_d["name"],
             "master_pdf_path": row_d.get("master_pdf_path", ""),
-            "fields":          field_list,
+            "fields": field_list,
         }
     except Exception as _e:
         logger.debug("Profile lookup failed: %s", _e)
         return None
 
 
-def _crop_field_region(img, x1_pct: float, y1_pct: float,
-                        x2_pct: float, y2_pct: float):
+def _crop_field_region(img, x1_pct: float, y1_pct: float, x2_pct: float, y2_pct: float):
     """Wycina region z obrazu wg % współrzędnych. Skaluje do min 200px szer."""
     w, h = img.size
     x1 = max(0, int(x1_pct / 100 * w))
@@ -5222,8 +6199,7 @@ def _crop_field_region(img, x1_pct: float, y1_pct: float,
     return crop
 
 
-def _feature_match_locate(tmpl_gray, page_gray, ph: int, pw: int,
-                           th: int, tw: int) -> tuple:
+def _feature_match_locate(tmpl_gray, page_gray, ph: int, pw: int, th: int, tw: int) -> tuple:
     """
     LightGlue → SIFT → AKAZE feature-based matching.
     Returns (coords_dict, confidence) or None.
@@ -5247,7 +6223,7 @@ def _feature_match_locate(tmpl_gray, page_gray, ph: int, pw: int,
     # ── Tier 2+3: SIFT → AKAZE ────────────────────────────────────────────
     MIN_KP = 6
     for det_name, norm, ratio_thr in (
-        ("SIFT",  cv2.NORM_L2,      0.75),
+        ("SIFT", cv2.NORM_L2, 0.75),
         ("AKAZE", cv2.NORM_HAMMING, 0.80),
     ):
         try:
@@ -5277,8 +6253,8 @@ def _feature_match_locate(tmpl_gray, page_gray, ph: int, pw: int,
             corners = np.float32([[0, 0], [tw, 0], [tw, th], [0, th]]).reshape(-1, 1, 2)
             dst = cv2.perspectiveTransform(corners, M)
             xs, ys = dst[:, 0, 0], dst[:, 0, 1]
-            x1 = int(max(0,  xs.min()))
-            y1 = int(max(0,  ys.min()))
+            x1 = int(max(0, xs.min()))
+            y1 = int(max(0, ys.min()))
             x2 = int(min(pw, xs.max()))
             y2 = int(min(ph, ys.max()))
             if x2 <= x1 or y2 <= y1:
@@ -5290,9 +6266,15 @@ def _feature_match_locate(tmpl_gray, page_gray, ph: int, pw: int,
 
             confidence = min(0.95, 0.5 + inliers * 0.04)
             logger.debug("_auto_locate %s: %d inliers conf=%.2f", det_name, inliers, confidence)
-            return ({"x1_pct": x1/pw*100, "y1_pct": y1/ph*100,
-                     "x2_pct": x2/pw*100, "y2_pct": y2/ph*100},
-                    confidence)
+            return (
+                {
+                    "x1_pct": x1 / pw * 100,
+                    "y1_pct": y1 / ph * 100,
+                    "x2_pct": x2 / pw * 100,
+                    "y2_pct": y2 / ph * 100,
+                },
+                confidence,
+            )
 
         except Exception as exc:
             logger.debug("_auto_locate %s error: %s", det_name, exc)
@@ -5300,10 +6282,15 @@ def _feature_match_locate(tmpl_gray, page_gray, ph: int, pw: int,
     return None
 
 
-def _auto_locate_field(master_crop, supplier_page,
-                        orig_x1_pct: float, orig_y1_pct: float,
-                        orig_x2_pct: float, orig_y2_pct: float,
-                        confidence_threshold: float = 0.60) -> tuple:
+def _auto_locate_field(
+    master_crop,
+    supplier_page,
+    orig_x1_pct: float,
+    orig_y1_pct: float,
+    orig_x2_pct: float,
+    orig_y2_pct: float,
+    confidence_threshold: float = 0.60,
+) -> tuple:
     """
     Three-tier field localisation:
 
@@ -5328,12 +6315,14 @@ def _auto_locate_field(master_crop, supplier_page,
         _MAX_DIM = 1200
         _ds = min(1.0, _MAX_DIM / max(ph_full, pw_full, 1))
         if _ds < 1.0:
-            page = cv2.resize(page_full, (int(pw_full*_ds), int(ph_full*_ds)),
-                              interpolation=cv2.INTER_AREA)
-            tmpl = cv2.resize(tmpl_full,
-                              (max(4, int(tmpl_full.shape[1]*_ds)),
-                               max(4, int(tmpl_full.shape[0]*_ds))),
-                              interpolation=cv2.INTER_AREA)
+            page = cv2.resize(
+                page_full, (int(pw_full * _ds), int(ph_full * _ds)), interpolation=cv2.INTER_AREA
+            )
+            tmpl = cv2.resize(
+                tmpl_full,
+                (max(4, int(tmpl_full.shape[1] * _ds)), max(4, int(tmpl_full.shape[0] * _ds))),
+                interpolation=cv2.INTER_AREA,
+            )
         else:
             page, tmpl = page_full, tmpl_full
 
@@ -5355,8 +6344,10 @@ def _auto_locate_field(master_crop, supplier_page,
             else:
                 mx = max(int(pw * margin_pct / 100), tw)
                 my = max(int(ph * margin_pct / 100), th)
-                sx1 = max(0, cx - mx);  sy1 = max(0, cy - my)
-                sx2 = min(pw, cx + mx); sy2 = min(ph, cy + my)
+                sx1 = max(0, cx - mx)
+                sy1 = max(0, cy - my)
+                sx2 = min(pw, cx + mx)
+                sy2 = min(ph, cy + my)
 
             roi = page[sy1:sy2, sx1:sx2]
             for scale in (0.75, 0.85, 0.95, 1.00, 1.05, 1.15, 1.25):
@@ -5369,16 +6360,24 @@ def _auto_locate_field(master_crop, supplier_page,
                 _, mv, _, ml = cv2.minMaxLoc(res)
                 if mv > best_val:
                     best_val = mv
-                    best_x = sx1 + ml[0];  best_y = sy1 + ml[1]
-                    best_tw = rtw;          best_th = rth
+                    best_x = sx1 + ml[0]
+                    best_y = sy1 + ml[1]
+                    best_tw = rtw
+                    best_th = rth
 
             if best_val >= confidence_threshold:
                 break
 
         if best_val >= confidence_threshold:
-            return ({"x1_pct": best_x/pw*100, "y1_pct": best_y/ph*100,
-                     "x2_pct": (best_x+best_tw)/pw*100, "y2_pct": (best_y+best_th)/ph*100},
-                    float(best_val))
+            return (
+                {
+                    "x1_pct": best_x / pw * 100,
+                    "y1_pct": best_y / ph * 100,
+                    "x2_pct": (best_x + best_tw) / pw * 100,
+                    "y2_pct": (best_y + best_th) / ph * 100,
+                },
+                float(best_val),
+            )
 
         # ── Tier 2: SIFT / AKAZE feature matching on full page ────────────
         feat = _feature_match_locate(tmpl, page, ph, pw, th, tw)
@@ -5389,13 +6388,18 @@ def _auto_locate_field(master_crop, supplier_page,
         logger.debug("_auto_locate_field error: %s", _e)
 
     # ── Tier 3: original coordinates ──────────────────────────────────────
-    return {"x1_pct": orig_x1_pct, "y1_pct": orig_y1_pct,
-            "x2_pct": orig_x2_pct, "y2_pct": orig_y2_pct}, 0.0
+    return {
+        "x1_pct": orig_x1_pct,
+        "y1_pct": orig_y1_pct,
+        "x2_pct": orig_x2_pct,
+        "y2_pct": orig_y2_pct,
+    }, 0.0
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Comparison-mode helpers
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _extract_numbers_from_text(text: str) -> list:
     """Return all numeric values extracted from OCR text, normalized to float.
@@ -5478,6 +6482,7 @@ def _compare_lines_fuzzy(va: str, vb: str, threshold: float = 90.0) -> tuple:
     changed = abs(len(lines_a) - len(lines_b))
     try:
         from rapidfuzz import fuzz as _fuzz
+
         for la, lb in zip(lines_a, lines_b):
             if _fuzz.ratio(la, lb) < threshold:
                 changed += 1
@@ -5488,9 +6493,9 @@ def _compare_lines_fuzzy(va: str, vb: str, threshold: float = 90.0) -> tuple:
     return changed > 0, changed, total
 
 
-def _process_profile_field(fld: dict, img_a, img_b,
-                            field_overrides_b, profile_name: str,
-                            field_stats: dict = None):
+def _process_profile_field(
+    fld: dict, img_a, img_b, field_overrides_b, profile_name: str, field_stats: dict = None
+):
     """Process one profile field: crop → auto-locate → OCR → compare.
     Thread-safe: img_a/img_b are read-only PIL images shared across workers.
     field_stats: optional {field_name: {fpr, reviews}} from operator feedback.
@@ -5517,16 +6522,15 @@ def _process_profile_field(fld: dict, img_a, img_b,
             # User explicitly skipped this field
             size_lbl = fld.get("size_label", "").strip()
             _dname = fld.get("display_name") or fld.get("field_name", "")
-            field_label = (f"[Rozmiar {size_lbl}] {_dname}"
-                           if size_lbl else f"[Szablon] {_dname}")
+            field_label = f"[Rozmiar {size_lbl}] {_dname}" if size_lbl else f"[Szablon] {_dname}"
             return {
-                "field":    field_label,
-                "val_a":    "—",
-                "val_b":    "⊘ pominięto",
+                "field": field_label,
+                "val_a": "—",
+                "val_b": "⊘ pominięto",
                 "severity": fld.get("severity", "critical"),
-                "changed":  False,
-                "note":     "Pole pominięte przez użytkownika podczas weryfikacji",
-                "skipped":  True,
+                "changed": False,
+                "note": "Pole pominięte przez użytkownika podczas weryfikacji",
+                "skipped": True,
                 "crop_a_b64": None,
                 "crop_b_b64": None,
             }
@@ -5537,7 +6541,10 @@ def _process_profile_field(fld: dict, img_a, img_b,
             by2 = override.get("y2_pct", y2)
             try:
                 # Per-comparison override takes priority over field-dict default
-                user_rotation = int(override.get("rotation", field_default_rotation) or field_default_rotation) % 360
+                user_rotation = (
+                    int(override.get("rotation", field_default_rotation) or field_default_rotation)
+                    % 360
+                )
             except (TypeError, ValueError):
                 user_rotation = field_default_rotation
         else:
@@ -5552,8 +6559,12 @@ def _process_profile_field(fld: dict, img_a, img_b,
         if crop_a:
             located, conf = _auto_locate_field(crop_a, img_b, bx1, by1, bx2, by2)
             if conf > 0:
-                bx1, by1, bx2, by2 = (located["x1_pct"], located["y1_pct"],
-                                       located["x2_pct"], located["y2_pct"])
+                bx1, by1, bx2, by2 = (
+                    located["x1_pct"],
+                    located["y1_pct"],
+                    located["x2_pct"],
+                    located["y2_pct"],
+                )
 
     crop_b = _crop_field_region(img_b, bx1, by1, bx2, by2)
 
@@ -5573,6 +6584,7 @@ def _process_profile_field(fld: dict, img_a, img_b,
             crop_b = crop_b.rotate(-user_rotation, expand=True)
         crop_a_oriented = crop_a
         crop_b_oriented = crop_b
+
         # OCR of A and B are independent HTTP/model calls — run them concurrently
         # so a field costs ~one OCR latency instead of two (the dominant per-field
         # cost in the field-queue path, where one request handles one field).
@@ -5582,6 +6594,7 @@ def _process_profile_field(fld: dict, img_a, img_b,
                 return " ".join(t.split())
             except Exception:
                 return ""
+
         with ThreadPoolExecutor(max_workers=2) as _ex:
             _fa = _ex.submit(_ocr_fixed, crop_a)
             _fb = _ex.submit(_ocr_fixed, crop_b)
@@ -5607,6 +6620,7 @@ def _process_profile_field(fld: dict, img_a, img_b,
         if crop_a_oriented and crop_b_oriented:
             try:
                 import numpy as _np
+
                 _ref64 = crop_a_oriented.convert("L").resize((64, 64), Image.LANCZOS)
                 _ref_arr = _np.array(_ref64, dtype=float)
                 _b_curr = crop_b_oriented.convert("L").resize((64, 64), Image.LANCZOS)
@@ -5634,7 +6648,7 @@ def _process_profile_field(fld: dict, img_a, img_b,
     comparison_mode = fld.get("comparison_mode", "text")
     both_nd = va == "N/D" and vb == "N/D"
     changed = va != vb and not both_nd
-    _num_diff_vals = set()   # konkretne różniące się liczby (do precyzyjnego boksowania)
+    _num_diff_vals = set()  # konkretne różniące się liczby (do precyzyjnego boksowania)
     # Per-strona: wartości zmienione PO STRONIE A i PO STRONIE B osobno, żeby master
     # boksował swoją zmienioną liczbę (np. unikalne '2' w kolumnie Level), a dostawca
     # swoją — zamiast wspólnej unii zaznaczanej na obu wycinkach.
@@ -5663,12 +6677,15 @@ def _process_profile_field(fld: dict, img_a, img_b,
     # Tabele NIE używają weryfikacji Sonnetem — werdykt daje (szybki) diff numeryczny,
     # a podwójny odczyt Sonnetem na dużej tabeli to główna przyczyna timeoutów pola
     # (różnica i tak była łapana numerycznie). Weryfikacja zostaje dla text/translation.
-    if (changed and not both_nd
-            and comparison_mode in ("text", "translation")
-            and fld.get("severity", "critical") == "critical"
-            and not _too_long_for_verify
-            and os.environ.get("ARTWORK_OCR_VERIFY", "1") not in ("0", "false", "no")
-            and _ocr_verify_model()):
+    if (
+        changed
+        and not both_nd
+        and comparison_mode in ("text", "translation")
+        and fld.get("severity", "critical") == "critical"
+        and not _too_long_for_verify
+        and os.environ.get("ARTWORK_OCR_VERIFY", "1") not in ("0", "false", "no")
+        and _ocr_verify_model()
+    ):
         # A and B verify reads are independent accurate-model (Sonnet) OCR calls.
         # On long description panels each takes many seconds, so run them
         # concurrently — same pattern as the initial OCR above — to halve the
@@ -5683,12 +6700,15 @@ def _process_profile_field(fld: dict, img_a, img_b,
             vb = (vb2 or vb) or "N/D"
             both_nd = va == "N/D" and vb == "N/D"
             changed = va != vb and not both_nd
-            note_parts_verify = ("🔬 Zweryfikowano dokładnym modelem OCR"
-                                 + (" — różnica potwierdzona" if changed
-                                    else " — różnica była błędem OCR (zgodne)"))
-            logger.info("[artwork-diff] pole=%r weryfikacja OCR: %s → ZMIANA=%s",
-                        fld.get("display_name") or fname,
-                        "potwierdzona" if changed else "odrzucona (błąd OCR)", changed)
+            note_parts_verify = "🔬 Zweryfikowano dokładnym modelem OCR" + (
+                " — różnica potwierdzona" if changed else " — różnica była błędem OCR (zgodne)"
+            )
+            logger.info(
+                "[artwork-diff] pole=%r weryfikacja OCR: %s → ZMIANA=%s",
+                fld.get("display_name") or fname,
+                "potwierdzona" if changed else "odrzucona (błąd OCR)",
+                changed,
+            )
         else:
             note_parts_verify = None
     else:
@@ -5722,8 +6742,8 @@ def _process_profile_field(fld: dict, img_a, img_b,
     _field_stats = (field_stats or {}).get(fname, {})
     _fpr = float(_field_stats.get("fpr", 0.0))
     _reviews = int(_field_stats.get("reviews", 0))
-    _pix_threshold = 90   # default pixel-similarity threshold for triggering changed
-    _sev_adjust = 0        # 0=no change, 1=down one step, 2=down two steps
+    _pix_threshold = 90  # default pixel-similarity threshold for triggering changed
+    _sev_adjust = 0  # 0=no change, 1=down one step, 2=down two steps
     if _reviews >= 5:
         if _fpr >= 0.90:
             _pix_threshold = 96
@@ -5769,8 +6789,11 @@ def _process_profile_field(fld: dict, img_a, img_b,
                 # wyżej tego nie łapie, a bywa realną wadą. Surfujemy MIĘKKO —
                 # oznaczamy do przeglądu z severity zdegradowaną do „info", żeby nie
                 # eskalować nieszkodliwego przetasowania OCR do twardej różnicy.
-                _swap = [(_a, _b) for _a, _b in _numeric_diffs_list(nums_a, nums_b, tolerance)
-                         if _a is not None and _b is not None]
+                _swap = [
+                    (_a, _b)
+                    for _a, _b in _numeric_diffs_list(nums_a, nums_b, tolerance)
+                    if _a is not None and _b is not None
+                ]
                 if _swap:
                     changed = True
                     _sev_adjust = max(_sev_adjust, 2)
@@ -5778,7 +6801,8 @@ def _process_profile_field(fld: dict, img_a, img_b,
                         "⚠ Możliwa transpozycja wartości (ta sama treść, inna "
                         "kolejność: "
                         + ", ".join(f"{_a:g}↔{_b:g}" for _a, _b in _swap)
-                        + ") — do weryfikacji")
+                        + ") — do weryfikacji"
+                    )
                     for _a, _b in _swap:
                         for _x in (_a, _b):
                             if _distinctive_num(_x):
@@ -5803,15 +6827,13 @@ def _process_profile_field(fld: dict, img_a, img_b,
         # the operator sees every differing cell in a multi-value table — e.g. a
         # Chemical Permeation table where K, P, T and the level all changed, not
         # only the one region the visual diff happened to highlight.
-        num_diffs = (_numeric_diffs_list(nums_a, nums_b, tolerance)
-                     if (nums_a or nums_b) else [])
+        num_diffs = _numeric_diffs_list(nums_a, nums_b, tolerance) if (nums_a or nums_b) else []
         if num_diffs:
             changed = True
             _fmt = lambda v: "—" if v is None else f"{v:g}"
             _pairs = ", ".join(f"{_fmt(a)}→{_fmt(b)}" for a, b in num_diffs[:12])
             _more = f" (+{len(num_diffs) - 12} więcej)" if len(num_diffs) > 12 else ""
-            note_parts.append(
-                f"⚠ Różnice liczbowe ({len(num_diffs)}): {_pairs}{_more}")
+            note_parts.append(f"⚠ Różnice liczbowe ({len(num_diffs)}): {_pairs}{_more}")
             for a, b in num_diffs:
                 # Per-side sets get EVERY differing value (incl. bare ints like the
                 # Level column 2/6) — _locate_value_boxes drops the ambiguous ones
@@ -5841,7 +6863,7 @@ def _process_profile_field(fld: dict, img_a, img_b,
                 _struct_boxes_a = _struct.get("boxes_a") or []
                 _struct_boxes_b = _struct.get("boxes_b") or []
             if _struct.get("changed"):
-                changed = True   # addytywnie — tylko dodaje różnicę
+                changed = True  # addytywnie — tylko dodaje różnicę
             note_parts.append(_struct.get("note", ""))
         if pix_sim is not None and pix_sim < _pix_threshold and not changed:
             changed = True
@@ -5874,16 +6896,17 @@ def _process_profile_field(fld: dict, img_a, img_b,
                 changed = True
                 note_parts.append("⚠ Wizualnie wyraźnie różne mimo identycznego tekstu OCR")
             elif pix_sim < _pix_threshold:
-                note_parts.append("ℹ Drobna różnica wizualna przy zgodnym tekście "
-                                  "(jakość druku / wyrównanie) — nie traktuję jako różnicy")
+                note_parts.append(
+                    "ℹ Drobna różnica wizualna przy zgodnym tekście "
+                    "(jakość druku / wyrównanie) — nie traktuję jako różnicy"
+                )
 
     if fld.get("notes"):
         note_parts.append(fld["notes"])
 
     size_lbl = fld.get("size_label", "").strip()
     _dname = fld.get("display_name") or fld.get("field_name", "")
-    field_label = (f"[Rozmiar {size_lbl}] {_dname}"
-                   if size_lbl else f"[Szablon] {_dname}")
+    field_label = f"[Rozmiar {size_lbl}] {_dname}" if size_lbl else f"[Szablon] {_dname}"
 
     # ── Diagnostic: full per-field decision trail ────────────────────────
     # Shows HOW the difference verdict was reached and the OCR inputs behind it,
@@ -5892,12 +6915,17 @@ def _process_profile_field(fld: dict, img_a, img_b,
     def _short(t, n=180):
         t = " ".join((t or "").split())
         return (t[:n] + "…") if len(t) > n else t
+
     logger.info(
         "[artwork-diff] pole=%r tryb=%s → ZMIANA=%s | pix_sim=%s | "
         "OCR wzorzec=%r | OCR dostawca=%r",
-        _dname, comparison_mode, changed,
+        _dname,
+        comparison_mode,
+        changed,
         (f"{pix_sim:.0f}%" if pix_sim is not None else "—"),
-        _short(va), _short(vb))
+        _short(va),
+        _short(vb),
+    )
 
     # When changed: align supplier→master, then compute SSIM diff overlay.
     # Alignment handles labels printed at different scales (the typical case for
@@ -5925,9 +6953,15 @@ def _process_profile_field(fld: dict, img_a, img_b,
             try:
                 if align_conf >= 0.15:
                     diff_boxes_a, diff_boxes_b = _pixel_diff_boxes(
-                        crop_a_oriented, crop_b_aligned,
-                        thresh=25, min_area=50, strip_ratio=8,
-                        max_coverage=0.15, max_boxes=5, de_thresh=18.0)
+                        crop_a_oriented,
+                        crop_b_aligned,
+                        thresh=25,
+                        min_area=50,
+                        strip_ratio=8,
+                        max_coverage=0.15,
+                        max_boxes=5,
+                        de_thresh=18.0,
+                    )
             except Exception as exc:
                 logger.debug("graphic pixel-diff boxes failed: %s", exc)
         else:
@@ -5969,9 +7003,15 @@ def _process_profile_field(fld: dict, img_a, img_b,
                 if align_conf >= 0.30 and crop_b_aligned is not None:
                     try:
                         diff_boxes_a, diff_boxes_b = _pixel_diff_boxes(
-                            crop_a_oriented, crop_b_aligned,
-                            thresh=30, min_area=80, strip_ratio=8,
-                            max_coverage=0.35, max_boxes=14, de_thresh=15.0)
+                            crop_a_oriented,
+                            crop_b_aligned,
+                            thresh=30,
+                            min_area=80,
+                            strip_ratio=8,
+                            max_coverage=0.35,
+                            max_boxes=14,
+                            de_thresh=15.0,
+                        )
                     except Exception as exc:
                         logger.debug("table pixel-diff boxes failed: %s", exc)
                 _n_raw, _dropped = len(diff_boxes_a), 0
@@ -5984,8 +7024,12 @@ def _process_profile_field(fld: dict, img_a, img_b,
                 if not _too_long_for_verify:
                     try:
                         _ocr_a, _ocr_b = _diff_text_boxes(
-                            crop_a_oriented, crop_b_oriented, va, vb,
-                            field_label=fld.get("display_name") or fname)
+                            crop_a_oriented,
+                            crop_b_oriented,
+                            va,
+                            vb,
+                            field_label=fld.get("display_name") or fname,
+                        )
                     except Exception as exc:
                         logger.debug("diff-box overlay failed: %s", exc)
                 # Use master-frame boxes as canonical (fall back to supplier-frame),
@@ -5995,8 +7039,11 @@ def _process_profile_field(fld: dict, img_a, img_b,
                 # Pixel-verify: drop boxes whose pixels are identical on both prints
                 # (OCR misread the same text differently, e.g. 'klasi' vs 'klasy').
                 if _boxes and align_conf >= 0.15 and crop_b_aligned is not None:
-                    _boxes = [b for b in _boxes
-                              if _region_pixels_differ(crop_a_oriented, crop_b_aligned, b)]
+                    _boxes = [
+                        b
+                        for b in _boxes
+                        if _region_pixels_differ(crop_a_oriented, crop_b_aligned, b)
+                    ]
                 _dropped = _n_raw - len(_boxes)
                 diff_boxes_a, diff_boxes_b = list(_boxes), list(_boxes)
                 # Dorzuć precyzyjne boksy zmienionych liczb (jeśli były).
@@ -6010,20 +7057,33 @@ def _process_profile_field(fld: dict, img_a, img_b,
             if not diff_boxes_a and not diff_boxes_b and align_conf >= 0.45:
                 try:
                     diff_boxes_a, diff_boxes_b = _pixel_diff_boxes(
-                        crop_a_oriented, crop_b_aligned,
-                        thresh=22, min_area=60, strip_ratio=8,
-                        max_coverage=0.22, max_boxes=6, de_thresh=15.0)
+                        crop_a_oriented,
+                        crop_b_aligned,
+                        thresh=22,
+                        min_area=60,
+                        strip_ratio=8,
+                        max_coverage=0.22,
+                        max_boxes=6,
+                        de_thresh=15.0,
+                    )
                 except Exception as exc:
                     logger.debug("pixel-diff boxes fallback failed: %s", exc)
             logger.info(
                 "[artwork-diff] pole=%r tryb=%s align=%.0f%% | ocr-boxy=%d "
                 "(odrzucone-jako-identyczne=%d) → razem=%d",
-                fld.get("display_name") or fname, comparison_mode, align_conf * 100,
-                _n_raw, _dropped, len(diff_boxes_a))
+                fld.get("display_name") or fname,
+                comparison_mode,
+                align_conf * 100,
+                _n_raw,
+                _dropped,
+                len(diff_boxes_a),
+            )
             if _dropped:
-                logger.info("[artwork-diff]   ⚠ %d boxów OCR pominięto — OCR odczytał "
-                            "inny tekst, ale piksele identyczne (błąd OCR, nie różnica)",
-                            _dropped)
+                logger.info(
+                    "[artwork-diff]   ⚠ %d boxów OCR pominięto — OCR odczytał "
+                    "inny tekst, ale piksele identyczne (błąd OCR, nie różnica)",
+                    _dropped,
+                )
         if diff_boxes_a:
             crop_a_out = _annotate_crop_with_boxes(crop_a_oriented, diff_boxes_a)
         if diff_boxes_b:
@@ -6041,34 +7101,43 @@ def _process_profile_field(fld: dict, img_a, img_b,
     # jakości JPEG (98) — żeby operator widział master i dostawcę w równej jakości
     # niezależnie od proporcji źródłowych PDF-ów.
     # Apply severity downgrade from learning stats
-    _sev_map   = {"critical": 0, "important": 1, "info": 2}
+    _sev_map = {"critical": 0, "important": 1, "info": 2}
     _sev_unmap = {0: "critical", 1: "important", 2: "info"}
-    _orig_sev  = fld.get("severity", "critical")
-    _final_sev = _sev_unmap.get(
-        min(_sev_map.get(_orig_sev, 0) + _sev_adjust, 2), "info"
-    ) if _sev_adjust > 0 else _orig_sev
+    _orig_sev = fld.get("severity", "critical")
+    _final_sev = (
+        _sev_unmap.get(min(_sev_map.get(_orig_sev, 0) + _sev_adjust, 2), "info")
+        if _sev_adjust > 0
+        else _orig_sev
+    )
     return {
-        "field":    field_label,
-        "val_a":    va,
-        "val_b":    vb,
+        "field": field_label,
+        "val_a": va,
+        "val_b": vb,
         "severity": _final_sev,
-        "changed":  changed,
-        "note":     " | ".join(note_parts),
+        "changed": changed,
+        "note": " | ".join(note_parts),
         "display_layout": fld.get("display_layout", "side_by_side"),
         "crop_a_b64": _img_to_b64(crop_a_out, max_width=2400, quality=98) if crop_a_out else None,
         "crop_b_b64": _img_to_b64(crop_b_out, max_width=2400, quality=98) if crop_b_out else None,
         "crop_b_aligned_b64": crop_b_aligned_b64,
-        "diff_overlay_b64": _img_to_b64(diff_overlay, max_width=2400, quality=95) if diff_overlay else None,
+        "diff_overlay_b64": _img_to_b64(diff_overlay, max_width=2400, quality=95)
+        if diff_overlay
+        else None,
         "diff_boxes_a": diff_boxes_a,
         "diff_boxes_b": diff_boxes_b,
         "align_confidence": align_conf,
     }
 
 
-def _apply_profile_comparison(path_a: str, path_b: str,
-                               profile: dict, page_a=None, page_b=None,
-                               field_overrides_b: dict = None,
-                               profiler=None) -> list:
+def _apply_profile_comparison(
+    path_a: str,
+    path_b: str,
+    profile: dict,
+    page_a=None,
+    page_b=None,
+    field_overrides_b: dict = None,
+    profiler=None,
+) -> list:
     """
     Wycina pola z obu artworków wg definicji szablonu (300 DPI).
     Uruchamia OCR na każdym wycinku i porównuje — pola przetwarzane równolegle.
@@ -6106,15 +7175,13 @@ def _apply_profile_comparison(path_a: str, path_b: str,
             return _process_profile_field(fld, img_a, img_b, field_overrides_b, profile_name)
         finally:
             if profiler is not None:
-                _nm = (fld.get("display_name") or fld.get("field_name")
-                       or fld.get("size_label") or "?")
+                _nm = (
+                    fld.get("display_name") or fld.get("field_name") or fld.get("size_label") or "?"
+                )
                 profiler.field(str(_nm), (time.perf_counter() - _s) * 1000.0)
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
-        futures = [
-            (fld, executor.submit(_timed_field, fld))
-            for fld in fields
-        ]
+        futures = [(fld, executor.submit(_timed_field, fld)) for fld in fields]
         # Per-field timeout kept UNDER gunicorn's request timeout (default 180s) so a
         # single slow field fails gracefully as an error row instead of blocking the
         # whole compare past the worker timeout and killing it. ARTWORK_FIELD_TIMEOUT.
@@ -6129,25 +7196,36 @@ def _apply_profile_comparison(path_a: str, path_b: str,
                 rows.append(f.result(timeout=_field_timeout))
             except Exception as _fe:
                 _elapsed_field = time.time() - _t_field
-                logger.error("Profile field compare worker error: %s: %s",
-                             type(_fe).__name__, _fe or "(no message)")
+                logger.error(
+                    "Profile field compare worker error: %s: %s",
+                    type(_fe).__name__,
+                    _fe or "(no message)",
+                )
                 size_lbl = fld.get("size_label", "").strip()
                 _dname = fld.get("display_name") or fld.get("field_name", "")
-                _is_timeout = isinstance(_fe, TimeoutError) or "timeout" in type(_fe).__name__.lower()
-                _note = (f"Timeout przetwarzania pola po {_elapsed_field:.0f}s"
-                         if _is_timeout else f"Błąd przetwarzania pola: {_fe}")
-                rows.append({
-                    "field":    (f"[Rozmiar {size_lbl}] {_dname}"
-                                 if size_lbl else f"[Szablon] {_dname}"),
-                    "val_a":    "N/D",
-                    "val_b":    "N/D",
-                    "severity": fld.get("severity", "critical"),
-                    "changed":  True,
-                    "note":     _note,
-                    "display_layout": fld.get("display_layout", "side_by_side"),
-                    "crop_a_b64": None,
-                    "crop_b_b64": None,
-                })
+                _is_timeout = (
+                    isinstance(_fe, TimeoutError) or "timeout" in type(_fe).__name__.lower()
+                )
+                _note = (
+                    f"Timeout przetwarzania pola po {_elapsed_field:.0f}s"
+                    if _is_timeout
+                    else f"Błąd przetwarzania pola: {_fe}"
+                )
+                rows.append(
+                    {
+                        "field": (
+                            f"[Rozmiar {size_lbl}] {_dname}" if size_lbl else f"[Szablon] {_dname}"
+                        ),
+                        "val_a": "N/D",
+                        "val_b": "N/D",
+                        "severity": fld.get("severity", "critical"),
+                        "changed": True,
+                        "note": _note,
+                        "display_layout": fld.get("display_layout", "side_by_side"),
+                        "crop_a_b64": None,
+                        "crop_b_b64": None,
+                    }
+                )
 
     return [r for r in rows if r is not None]
 
@@ -6167,14 +7245,17 @@ def _qpersist(queue_id: str, ctx: dict) -> None:
     """Save queue context to shared disk so other gunicorn workers can load it."""
     try:
         import json as _j
+
         os.makedirs(_QUEUE_PERSIST_DIR, exist_ok=True)
         png_a = os.path.join(_QUEUE_PERSIST_DIR, f"{queue_id}_a.png")
         png_b = os.path.join(_QUEUE_PERSIST_DIR, f"{queue_id}_b.png")
         ctx["img_a"].save(png_a, "PNG")
         ctx["img_b"].save(png_b, "PNG")
         meta = {
-            "png_a": png_a, "png_b": png_b,
-            "profile": ctx["profile"], "ts": ctx["ts"],
+            "png_a": png_a,
+            "png_b": png_b,
+            "profile": ctx["profile"],
+            "ts": ctx["ts"],
         }
         with open(os.path.join(_QUEUE_PERSIST_DIR, f"{queue_id}.json"), "w") as f:
             _j.dump(meta, f)
@@ -6186,15 +7267,18 @@ def _qload(queue_id: str) -> dict | None:
     """Load queue context from disk (cross-worker recovery). Returns None on miss/expiry."""
     try:
         import json as _j
+
         meta_path = os.path.join(_QUEUE_PERSIST_DIR, f"{queue_id}.json")
         if not os.path.exists(meta_path):
             return None
         with open(meta_path) as f:
             meta = _j.load(f)
         import time as _t
+
         if _t.time() - meta.get("ts", 0) > _FIELD_QUEUE_TTL:
             return None
         from PIL import Image as _PILImg
+
         _raw_a = _PILImg.open(meta["png_a"])
         try:
             _img_a = _raw_a.copy()
@@ -6208,8 +7292,10 @@ def _qload(queue_id: str) -> dict | None:
         ctx = {
             "img_a": _img_a,
             "img_b": _img_b,
-            "profile": meta["profile"], "ts": meta["ts"],
-            "field_overrides": {}, "field_stats": {},
+            "profile": meta["profile"],
+            "ts": meta["ts"],
+            "field_overrides": {},
+            "field_stats": {},
             "_temp_files": [],
         }
         return ctx
@@ -6229,11 +7315,16 @@ def _qdelete(queue_id: str) -> None:
             pass
 
 
-def field_queue_init(path_a: str, path_b: str, profile: dict,
-                     page_a: int = 0, page_b: int = 0,
-                     field_overrides: dict = None,
-                     temp_files: list = None,
-                     field_stats: dict = None) -> dict:
+def field_queue_init(
+    path_a: str,
+    path_b: str,
+    profile: dict,
+    page_a: int = 0,
+    page_b: int = 0,
+    field_overrides: dict = None,
+    temp_files: list = None,
+    field_stats: dict = None,
+) -> dict:
     """
     Load both pages at profile DPI and cache them under a new queue_id.
     Returns {queue_id, fields: [{field_name, display_name, severity,
@@ -6243,6 +7334,7 @@ def field_queue_init(path_a: str, path_b: str, profile: dict,
     temp_files: optional list of file paths to delete when the queue is destroyed.
     """
     import hashlib, time as _t
+
     if not HAS_PIL:
         return {"error": "PIL niedostępny"}
 
@@ -6257,12 +7349,17 @@ def field_queue_init(path_a: str, path_b: str, profile: dict,
     # Capture timestamp once so that eviction cannot use a later now= that
     # would make the just-inserted entry appear stale (e.g. after clock jump).
     import os as _os
+
     ts_now = _t.time()
-    queue_id = hashlib.md5(f"{path_a}{path_b}{ts_now}".encode(), usedforsecurity=False).hexdigest()[:16]
+    queue_id = hashlib.md5(f"{path_a}{path_b}{ts_now}".encode(), usedforsecurity=False).hexdigest()[
+        :16
+    ]
     overrides = field_overrides or {}
     queue_entry = {
-        "img_a": img_a, "img_b": img_b,
-        "profile": profile, "ts": ts_now,
+        "img_a": img_a,
+        "img_b": img_b,
+        "profile": profile,
+        "ts": ts_now,
         "field_overrides": overrides,
         "field_stats": field_stats or {},
         "_temp_files": [p for p in (temp_files or []) if p],
@@ -6271,8 +7368,11 @@ def field_queue_init(path_a: str, path_b: str, profile: dict,
         _field_queue_cache[queue_id] = queue_entry
         # Evict old entries and clean up their temp files.
         # Use the same ts_now so the new entry is never considered stale.
-        for k in [k for k, v in _field_queue_cache.items()
-                  if k != queue_id and (ts_now - v["ts"]) > _FIELD_QUEUE_TTL]:
+        for k in [
+            k
+            for k, v in _field_queue_cache.items()
+            if k != queue_id and (ts_now - v["ts"]) > _FIELD_QUEUE_TTL
+        ]:
             ctx = _field_queue_cache.pop(k)
             for p in ctx.get("_temp_files", []):
                 try:
@@ -6325,22 +7425,27 @@ def field_queue_init(path_a: str, path_b: str, profile: dict,
 
         # Show raw crops in preview. OCR-determined orientation comes back in
         # the compare result and replaces these placeholders.
-        fields_out.append({
-            "field_name":   fld.get("field_name", ""),
-            "display_name": fld.get("display_name", fld.get("field_name", "")),
-            "severity":     fld.get("severity", "critical"),
-            "display_layout": fld.get("display_layout", "side_by_side"),
-            "coords": {"x1_pct": x1, "y1_pct": y1, "x2_pct": x2, "y2_pct": y2},
-            "rotation": rot,
-            "crop_a_b64": _img_to_b64(crop_a_preview, max_width=2400, quality=98) if crop_a_preview else None,
-            "crop_b_b64": _img_to_b64(crop_b_preview, max_width=2400, quality=98) if crop_b_preview else None,
-        })
+        fields_out.append(
+            {
+                "field_name": fld.get("field_name", ""),
+                "display_name": fld.get("display_name", fld.get("field_name", "")),
+                "severity": fld.get("severity", "critical"),
+                "display_layout": fld.get("display_layout", "side_by_side"),
+                "coords": {"x1_pct": x1, "y1_pct": y1, "x2_pct": x2, "y2_pct": y2},
+                "rotation": rot,
+                "crop_a_b64": _img_to_b64(crop_a_preview, max_width=2400, quality=98)
+                if crop_a_preview
+                else None,
+                "crop_b_b64": _img_to_b64(crop_b_preview, max_width=2400, quality=98)
+                if crop_b_preview
+                else None,
+            }
+        )
 
     return {"queue_id": queue_id, "fields": fields_out}
 
 
-def field_queue_compare_one(queue_id: str, field_name: str,
-                             override_b: dict = None) -> dict:
+def field_queue_compare_one(queue_id: str, field_name: str, override_b: dict = None) -> dict:
     """
     Compare a single field from a queued context.
     override_b: optional {x1_pct, y1_pct, x2_pct, y2_pct} for B crop.
@@ -6362,8 +7467,7 @@ def field_queue_compare_one(queue_id: str, field_name: str,
     img_a = ctx["img_a"]
     img_b = ctx["img_b"]
 
-    fld = next((f for f in profile.get("fields", [])
-                if f.get("field_name") == field_name), None)
+    fld = next((f for f in profile.get("fields", []) if f.get("field_name") == field_name), None)
     if not fld:
         return {"error": f"Nieznane pole: {field_name}"}
 
@@ -6377,14 +7481,13 @@ def field_queue_compare_one(queue_id: str, field_name: str,
         override_b = _field_overrides[field_name]  # None = skip, dict = coords
     overrides = {field_name: override_b} if has_override else None
     field_stats = ctx.get("field_stats") or {}
-    result = _process_profile_field(fld, img_a, img_b, overrides,
-                                    profile.get("name", ""),
-                                    field_stats=field_stats)
+    result = _process_profile_field(
+        fld, img_a, img_b, overrides, profile.get("name", ""), field_stats=field_stats
+    )
     return result or {"error": "Brak wyniku"}
 
 
-def field_queue_finalize(queue_id: str, field_rows: list,
-                         file_a: str = "", file_b: str = ""):
+def field_queue_finalize(queue_id: str, field_rows: list, file_a: str = "", file_b: str = ""):
     """Zbuduj pełny ArtworkCompareResult z JUŻ policzonych wierszy kolejki pól —
     BEZ ponownego liczenia porównania. Wiersze (z cropami) wystarczą do raportu,
     więc finalize NIE wymaga kontekstu kolejki: gdy kolejka jeszcze żyje, dokłada
@@ -6406,33 +7509,42 @@ def field_queue_finalize(queue_id: str, field_rows: list,
     # NIE są wyrzucane — pole, które się nie policzyło, musi być WIDOCZNE w raporcie
     # jako krytyczne (ciche APPROVED z pominiętym polem byłoby groźne).
     rows = []
-    for r in (field_rows or []):
+    for r in field_rows or []:
         if not isinstance(r, dict) or r.get("skipped") or r.get("removed"):
             continue
         if r.get("error") and not r.get("changed"):
             r = dict(r)
             r["severity"] = "critical"
             r["changed"] = True
-            r.setdefault("note", "Pole nie zostało przetworzone (błąd/timeout) — wymaga ręcznej weryfikacji")
+            r.setdefault(
+                "note", "Pole nie zostało przetworzone (błąd/timeout) — wymaga ręcznej weryfikacji"
+            )
             r.setdefault("val_a", "—")
             r.setdefault("val_b", "—")
         rows.append(r)
     crit = sum(1 for r in rows if r.get("severity") == "critical" and r.get("changed"))
-    imp  = sum(1 for r in rows if r.get("severity") == "important" and r.get("changed"))
-    info = sum(1 for r in rows if r.get("severity") == "info"      and r.get("changed"))
-    okc  = sum(1 for r in rows if not r.get("changed"))
+    imp = sum(1 for r in rows if r.get("severity") == "important" and r.get("changed"))
+    info = sum(1 for r in rows if r.get("severity") == "info" and r.get("changed"))
+    okc = sum(1 for r in rows if not r.get("changed"))
     # Map field-count severity → overall risk_level scale (ok/warning/error/critical).
     # Must stay identical to the mapping in compare_artworks (~7495):
     #   critical change → critical, important change → error, info change → warning.
     risk = "critical" if crit else "error" if imp else "warning" if info else "ok"
 
     res = ArtworkCompareResult(
-        file_a=file_a or "wzorzec", file_b=file_b or "dostawca",
-        pages_a=1, pages_b=1,
+        file_a=file_a or "wzorzec",
+        file_b=file_b or "dostawca",
+        pages_a=1,
+        pages_b=1,
         field_report=rows,
-        profile_active=True, profile_name=profile.get("name", ""),
-        critical_count=crit, important_count=imp, info_count=info, ok_count=okc,
-        risk_level=risk, mapped_field_count=len(rows),
+        profile_active=True,
+        profile_name=profile.get("name", ""),
+        critical_count=crit,
+        important_count=imp,
+        info_count=info,
+        ok_count=okc,
+        risk_level=risk,
+        mapped_field_count=len(rows),
     )
     # Podgląd stron + kolorymetria + kody — TYLKO gdy mamy jeszcze obrazy z kolejki.
     if img_a is not None and img_b is not None:
@@ -6440,24 +7552,37 @@ def field_queue_finalize(queue_id: str, field_rows: list,
             _a_t, _b_t = _img_to_b64(img_a), _img_to_b64(img_b)
             _a_h = _img_to_b64(img_a, max_width=HIRES_W)
             _b_h = _img_to_b64(img_b, max_width=HIRES_W)
-            res.page_diffs = [PageDiff(
-                page_num=1, pixel_diff_pct=0.0, diff_regions=[], text_diffs=[], field_diffs=[],
-                img_a_b64=_a_t, img_b_b64=_b_t,
-                img_a_annot_b64=_a_t, img_b_annot_b64=_b_t, img_diff_b64=None,
-                img_a_hires_b64=_a_h, img_b_hires_b64=_b_h,
-                img_a_annot_hires_b64=_a_h, img_b_annot_hires_b64=_b_h,
-            )]
+            res.page_diffs = [
+                PageDiff(
+                    page_num=1,
+                    pixel_diff_pct=0.0,
+                    diff_regions=[],
+                    text_diffs=[],
+                    field_diffs=[],
+                    img_a_b64=_a_t,
+                    img_b_b64=_b_t,
+                    img_a_annot_b64=_a_t,
+                    img_b_annot_b64=_b_t,
+                    img_diff_b64=None,
+                    img_a_hires_b64=_a_h,
+                    img_b_hires_b64=_b_h,
+                    img_a_annot_hires_b64=_a_h,
+                    img_b_annot_hires_b64=_b_h,
+                )
+            ]
         except Exception as _e:
             logger.debug("finalize page preview failed: %s", _e)
         try:
             res.colorimetry["a"] = _get_colorimetry(img_a)
             res.colorimetry["b"] = _get_colorimetry(img_b)
             res.colorimetry["global"] = _global_color_compare(
-                res.colorimetry.get("a"), res.colorimetry.get("b"))
+                res.colorimetry.get("a"), res.colorimetry.get("b")
+            )
         except Exception:
             pass
         try:
             from barcode_validator import validate_artwork_barcodes
+
             res.barcode_report = validate_artwork_barcodes("", "", [img_a], [img_b])
         except Exception:
             res.barcode_report = {}
@@ -6471,6 +7596,7 @@ def field_queue_destroy(queue_id: str) -> None:
         ctx = _field_queue_cache.pop(queue_id, None)
     if ctx:
         import os as _os
+
         for p in ctx.get("_temp_files", []):
             try:
                 if _os.path.exists(p):
@@ -6480,10 +7606,9 @@ def field_queue_destroy(queue_id: str) -> None:
     _qdelete(queue_id)
 
 
-def extract_field_crops_for_preview(path_a: str, path_b: str,
-                                      profile: dict,
-                                      page_a: int = 0,
-                                      page_b: int = 0) -> dict:
+def extract_field_crops_for_preview(
+    path_a: str, path_b: str, profile: dict, page_a: int = 0, page_b: int = 0
+) -> dict:
     """Extract field crops from both documents for user preview/validation.
 
     Returns a dict with:
@@ -6518,8 +7643,12 @@ def extract_field_crops_for_preview(path_a: str, path_b: str,
         if crop_a:
             located, auto_conf = _auto_locate_field(crop_a, img_b, x1, y1, x2, y2)
             if auto_conf > 0:
-                bx1, by1, bx2, by2 = (located["x1_pct"], located["y1_pct"],
-                                       located["x2_pct"], located["y2_pct"])
+                bx1, by1, bx2, by2 = (
+                    located["x1_pct"],
+                    located["y1_pct"],
+                    located["x2_pct"],
+                    located["y2_pct"],
+                )
 
         crop_b = _crop_field_region(img_b, bx1, by1, bx2, by2)
         # Do NOT bake the user's rotation into the preview crop — the client applies
@@ -6535,27 +7664,33 @@ def extract_field_crops_for_preview(path_a: str, path_b: str,
         else:
             crop_a_disp = _orient_for_ocr(crop_a) if crop_a else None
             crop_b_disp = _orient_for_ocr(crop_b) if crop_b else None
-        fields_out.append({
-            "field_name":   fld.get("field_name", ""),
-            "display_name": fld.get("display_name", fld.get("field_name", "")),
-            "severity":     fld.get("severity", "critical"),
-            "size_label":   fld.get("size_label", ""),
-            "rotation":     fld_rot,
-            "coords_pct":   {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
-            "auto_coords_pct": {"x1": bx1, "y1": by1, "x2": bx2, "y2": by2},
-            "auto_confidence": round(auto_conf * 100),
-            "crop_a_b64":   _img_to_b64(crop_a_disp, max_width=500, quality=90) if crop_a_disp else None,
-            "crop_b_b64":   _img_to_b64(crop_b_disp, max_width=500, quality=90) if crop_b_disp else None,
-        })
+        fields_out.append(
+            {
+                "field_name": fld.get("field_name", ""),
+                "display_name": fld.get("display_name", fld.get("field_name", "")),
+                "severity": fld.get("severity", "critical"),
+                "size_label": fld.get("size_label", ""),
+                "rotation": fld_rot,
+                "coords_pct": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
+                "auto_coords_pct": {"x1": bx1, "y1": by1, "x2": bx2, "y2": by2},
+                "auto_confidence": round(auto_conf * 100),
+                "crop_a_b64": _img_to_b64(crop_a_disp, max_width=500, quality=90)
+                if crop_a_disp
+                else None,
+                "crop_b_b64": _img_to_b64(crop_b_disp, max_width=500, quality=90)
+                if crop_b_disp
+                else None,
+            }
+        )
 
     # Medium-res page B for the crop editor (kept unrotated — user's rectangle
     # coordinates must match the source image coordinate system)
     page_b_b64 = _img_to_b64(img_b, max_width=1200, quality=88)
     return {
-        "fields":    fields_out,
+        "fields": fields_out,
         "page_b_b64": page_b_b64,
-        "page_b_w":  img_b.size[0],
-        "page_b_h":  img_b.size[1],
+        "page_b_w": img_b.size[0],
+        "page_b_h": img_b.size[1],
     }
 
 
@@ -6586,8 +7721,7 @@ def _compare_size_tables_transformer(img_a, img_b) -> list:
     def _ocr_table_crop(img, t):
         if t is None:
             return "N/D"
-        crop = _crop_field_region(img, t["x1_pct"], t["y1_pct"],
-                                   t["x2_pct"], t["y2_pct"])
+        crop = _crop_field_region(img, t["x1_pct"], t["y1_pct"], t["x2_pct"], t["y2_pct"])
         if crop is None:
             return "N/D"
         # img2table gives structured cell content; fall back to raw OCR cascade
@@ -6601,19 +7735,33 @@ def _compare_size_tables_transformer(img_a, img_b) -> list:
     text_b = _ocr_table_crop(img_b, best_b)
 
     if best_a is None:
-        rows.append({"field": "Tabela rozmiarów (Transformer)",
-                     "val_a": "BRAK", "val_b": text_b,
-                     "severity": "critical", "changed": True,
-                     "note": "Table Transformer: brak tabeli w matrycy"})
+        rows.append(
+            {
+                "field": "Tabela rozmiarów (Transformer)",
+                "val_a": "BRAK",
+                "val_b": text_b,
+                "severity": "critical",
+                "changed": True,
+                "note": "Table Transformer: brak tabeli w matrycy",
+            }
+        )
     elif best_b is None:
-        rows.append({"field": "Tabela rozmiarów (Transformer)",
-                     "val_a": text_a, "val_b": "BRAK",
-                     "severity": "critical", "changed": True,
-                     "note": "Table Transformer: brak tabeli u dostawcy"})
+        rows.append(
+            {
+                "field": "Tabela rozmiarów (Transformer)",
+                "val_a": text_a,
+                "val_b": "BRAK",
+                "severity": "critical",
+                "changed": True,
+                "note": "Table Transformer: brak tabeli u dostawcy",
+            }
+        )
     else:
-        note = (f"Table Transformer: pewność A={best_a['score']:.0%} B={best_b['score']:.0%} | "
-                f"lokalizacja A=({best_a['x1_pct']:.0f}%,{best_a['y1_pct']:.0f}%) "
-                f"B=({best_b['x1_pct']:.0f}%,{best_b['y1_pct']:.0f}%)")
+        note = (
+            f"Table Transformer: pewność A={best_a['score']:.0%} B={best_b['score']:.0%} | "
+            f"lokalizacja A=({best_a['x1_pct']:.0f}%,{best_a['y1_pct']:.0f}%) "
+            f"B=({best_b['x1_pct']:.0f}%,{best_b['y1_pct']:.0f}%)"
+        )
         both_nd = text_a == "N/D" and text_b == "N/D"
         if both_nd:
             # OCR failed on both sides — flag as unverified rather than silently OK
@@ -6622,9 +7770,16 @@ def _compare_size_tables_transformer(img_a, img_b) -> list:
             note += " | Brak odczytu OCR po obu stronach — zweryfikuj ręcznie"
         else:
             changed = text_a != text_b
-        rows.append({"field": "Tabela rozmiarów (Transformer)",
-                     "val_a": text_a, "val_b": text_b,
-                     "severity": "critical", "changed": changed, "note": note})
+        rows.append(
+            {
+                "field": "Tabela rozmiarów (Transformer)",
+                "val_a": text_a,
+                "val_b": text_b,
+                "severity": "critical",
+                "changed": changed,
+                "note": note,
+            }
+        )
     return rows
 
 
@@ -6635,6 +7790,7 @@ def _compare_size_table_vision(img_a_b64: Optional[str], img_b_b64: Optional[str
     Zwraca listę wpisów kompatybilnych z field_report.
     """
     import urllib.request as _ur
+
     api_key = _get_api_key_artwork()
     if not api_key or not img_a_b64 or not img_b_b64:
         return []
@@ -6643,9 +7799,10 @@ def _compare_size_table_vision(img_a_b64: Optional[str], img_b_b64: Optional[str
         try:
             import base64 as _b64
             from io import BytesIO
+
             raw = _b64.b64decode(b64)
             with Image.open(BytesIO(raw)) as _im:
-                img = _im.convert("RGB")   # zamknij oryginalny uchwyt PIL
+                img = _im.convert("RGB")  # zamknij oryginalny uchwyt PIL
             for quality in (80, 65, 50):
                 buf = BytesIO()
                 img.save(buf, format="JPEG", quality=quality)
@@ -6662,44 +7819,56 @@ def _compare_size_table_vision(img_a_b64: Optional[str], img_b_b64: Optional[str
         return []
 
     content = [
-        {"type": "text",  "text": "ARTWORK A (wzorzec ACME / master):"},
+        {"type": "text", "text": "ARTWORK A (wzorzec ACME / master):"},
         {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": ia}},
-        {"type": "text",  "text": "ARTWORK B (proof dostawcy / supplier):"},
+        {"type": "text", "text": "ARTWORK B (proof dostawcy / supplier):"},
         {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": ib}},
-        {"type": "text",  "text": (
-            "Przeszukaj oba artworki pod kątem tabeli rozmiarów rękawic.\n"
-            "Tabela zawiera rozmiary (XS/S/M/L/XL) z zakresami długości palców (np. 5-6 cm).\n\n"
-            "ZASADY — stosuj rygorystycznie:\n"
-            "- Jeśli tabela NIE jest wyraźnie widoczna i czytelna → ustaw table_found na false\n"
-            "- NIE zgaduj wartości — tylko odczytaj to co WYRAŹNIE widać w tekście\n"
-            "- Jeśli wartość nieczytelna → pomiń ten wiersz (nie dopisuj)\n"
-            "- Raportuj TYLKO rzeczywiste różnice między A i B\n\n"
-            "Zwróć WYŁĄCZNIE JSON (bez markdown):\n"
-            '{"table_found_a": true/false, "table_found_b": true/false,\n'
-            ' "rows_a": [{"size": "XS", "value": "5-6"}, ...],\n'
-            ' "rows_b": [{"size": "XS", "value": "5-6"}, ...],\n'
-            ' "differences": ["opis różnicy..."],\n'
-            ' "identical": true/false}'
-        )},
+        {
+            "type": "text",
+            "text": (
+                "Przeszukaj oba artworki pod kątem tabeli rozmiarów rękawic.\n"
+                "Tabela zawiera rozmiary (XS/S/M/L/XL) z zakresami długości palców (np. 5-6 cm).\n\n"
+                "ZASADY — stosuj rygorystycznie:\n"
+                "- Jeśli tabela NIE jest wyraźnie widoczna i czytelna → ustaw table_found na false\n"
+                "- NIE zgaduj wartości — tylko odczytaj to co WYRAŹNIE widać w tekście\n"
+                "- Jeśli wartość nieczytelna → pomiń ten wiersz (nie dopisuj)\n"
+                "- Raportuj TYLKO rzeczywiste różnice między A i B\n\n"
+                "Zwróć WYŁĄCZNIE JSON (bez markdown):\n"
+                '{"table_found_a": true/false, "table_found_b": true/false,\n'
+                ' "rows_a": [{"size": "XS", "value": "5-6"}, ...],\n'
+                ' "rows_b": [{"size": "XS", "value": "5-6"}, ...],\n'
+                ' "differences": ["opis różnicy..."],\n'
+                ' "identical": true/false}'
+            ),
+        },
     ]
 
-    payload = json.dumps({
-        "model": _current_ai_model(),
-        "max_tokens": 800,
-        "system": _ai_system(),
-        "messages": [{"role": "user", "content": content}],
-    }).encode("utf-8")
+    payload = json.dumps(
+        {
+            "model": _current_ai_model(),
+            "max_tokens": 800,
+            "system": _ai_system(),
+            "messages": [{"role": "user", "content": content}],
+        }
+    ).encode("utf-8")
 
     try:
         req = _ur.Request(
-            "https://api.anthropic.com/v1/messages", data=payload,
-            headers={"Content-Type": "application/json", "x-api-key": api_key,
-                     "anthropic-version": "2023-06-01"}, method="POST")
+            "https://api.anthropic.com/v1/messages",
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+            },
+            method="POST",
+        )
         # Bandit B310: URL stały w kodzie (https://api.anthropic.com), schemat nie pochodzi z wejścia.
         with _ur.urlopen(req, timeout=35) as resp:  # nosec B310
             data = json.loads(resp.read())
         try:
             from api_usage_tracker import record_usage
+
             record_usage(_current_ai_model(), data.get("usage", {}), call_type="artwork_size_table")
         except Exception:
             pass
@@ -6713,26 +7882,38 @@ def _compare_size_table_vision(img_a_b64: Optional[str], img_b_b64: Optional[str
                 raw = m.group()
         res = json.loads(raw)
 
-        rows_a = {r["size"]: r.get("value", "?") for r in (res.get("rows_a") or []) if r.get("size")}
-        rows_b = {r["size"]: r.get("value", "?") for r in (res.get("rows_b") or []) if r.get("size")}
+        rows_a = {
+            r["size"]: r.get("value", "?") for r in (res.get("rows_a") or []) if r.get("size")
+        }
+        rows_b = {
+            r["size"]: r.get("value", "?") for r in (res.get("rows_b") or []) if r.get("size")
+        }
         fa = res.get("table_found_a", bool(rows_a))
         fb = res.get("table_found_b", bool(rows_b))
 
         report_rows = []
         if fa and not fb:
-            report_rows.append({
-                "field": "Tabela rozmiarów",
-                "val_a": "obecna", "val_b": "BRAK",
-                "severity": "critical", "changed": True,
-                "note": "Tabela rozmiarów nie znaleziona u dostawcy"
-            })
+            report_rows.append(
+                {
+                    "field": "Tabela rozmiarów",
+                    "val_a": "obecna",
+                    "val_b": "BRAK",
+                    "severity": "critical",
+                    "changed": True,
+                    "note": "Tabela rozmiarów nie znaleziona u dostawcy",
+                }
+            )
         elif not fa and fb:
-            report_rows.append({
-                "field": "Tabela rozmiarów",
-                "val_a": "BRAK", "val_b": "obecna",
-                "severity": "critical", "changed": True,
-                "note": "Tabela rozmiarów nie znaleziona w matrycy"
-            })
+            report_rows.append(
+                {
+                    "field": "Tabela rozmiarów",
+                    "val_a": "BRAK",
+                    "val_b": "obecna",
+                    "severity": "critical",
+                    "changed": True,
+                    "note": "Tabela rozmiarów nie znaleziona w matrycy",
+                }
+            )
         elif not fa and not fb:
             return []  # brak tabeli w obu — nie dotyczy
 
@@ -6740,19 +7921,22 @@ def _compare_size_table_vision(img_a_b64: Optional[str], img_b_b64: Optional[str
         size_order = ["XS", "S", "M", "L", "XL", "XXL"]
         all_sizes = sorted(
             set(list(rows_a.keys()) + list(rows_b.keys())),
-            key=lambda s: size_order.index(s) if s in size_order else 99
+            key=lambda s: size_order.index(s) if s in size_order else 99,
         )
         for sz in all_sizes:
             va = rows_a.get(sz, "N/D")
             vb = rows_b.get(sz, "N/D")
             changed = va != vb
-            report_rows.append({
-                "field": f"Rozmiar {sz} — dł. palców",
-                "val_a": va, "val_b": vb,
-                "severity": "critical" if changed else "ok",
-                "changed": changed,
-                "note": "Tabela rozmiarów — krytyczna dla identyfikacji wyrobu medycznego"
-            })
+            report_rows.append(
+                {
+                    "field": f"Rozmiar {sz} — dł. palców",
+                    "val_a": va,
+                    "val_b": vb,
+                    "severity": "critical" if changed else "ok",
+                    "changed": changed,
+                    "note": "Tabela rozmiarów — krytyczna dla identyfikacji wyrobu medycznego",
+                }
+            )
         return report_rows
     except Exception:
         return []
@@ -6760,24 +7944,34 @@ def _compare_size_table_vision(img_a_b64: Optional[str], img_b_b64: Optional[str
 
 def _ai_analyze(result: "ArtworkCompareResult") -> Optional[dict]:
     import urllib.request
+
     api_key = _get_api_key_artwork()
     if not api_key:
         return None
 
     # Zbierz zmienione pola z analizy regex
-    changed_fields = "\n".join(
-        f"  [{r['severity'].upper()}] {_ai_name(r['field'], 80)}: "
-        f"{_ai_name(r['val_a'], 200)!r} → {_ai_name(r['val_b'], 200)!r}"
-        + (f" ({_ai_name(r['note'], 200)})" if r.get("note") else "")
-        for r in result.field_report if r["changed"]
-    ) or "  (brak wykrytych zmian w polach tekstowych)"
+    changed_fields = (
+        "\n".join(
+            f"  [{r['severity'].upper()}] {_ai_name(r['field'], 80)}: "
+            f"{_ai_name(r['val_a'], 200)!r} → {_ai_name(r['val_b'], 200)!r}"
+            + (f" ({_ai_name(r['note'], 200)})" if r.get("note") else "")
+            for r in result.field_report
+            if r["changed"]
+        )
+        or "  (brak wykrytych zmian w polach tekstowych)"
+    )
     # US-007: frazy prompt injection w wartościach z dokumentów → anomalia w raporcie.
-    _suspect = _ai_injection(*(f"{r.get('val_a', '')} {r.get('val_b', '')} {r.get('note', '')}"
-                               for r in result.field_report))
+    _suspect = _ai_injection(
+        *(
+            f"{r.get('val_a', '')} {r.get('val_b', '')} {r.get('note', '')}"
+            for r in result.field_report
+        )
+    )
 
-    ok_fields = ", ".join(
-        r["field"] for r in result.field_report if not r["changed"] and r["val_a"] != "—"
-    ) or "—"
+    ok_fields = (
+        ", ".join(r["field"] for r in result.field_report if not r["changed"] and r["val_a"] != "—")
+        or "—"
+    )
 
     # Zbuduj wiadomość — z obrazami jeśli dostępne
     content = []
@@ -6794,6 +7988,7 @@ def _ai_analyze(result: "ArtworkCompareResult") -> Optional[dict]:
             try:
                 import base64 as _b64
                 from io import BytesIO
+
                 raw = _b64.b64decode(b64)
                 if not HAS_PIL:
                     return b64
@@ -6823,17 +8018,38 @@ def _ai_analyze(result: "ArtworkCompareResult") -> Optional[dict]:
         img_d = _safe_img(page0.img_diff_b64, max_kb=600)
         content.append({"type": "text", "text": f"ARTWORK A: {_ai_name(result.file_a)}"})
         if img_a:
-            content.append({"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": img_a}})
+            content.append(
+                {
+                    "type": "image",
+                    "source": {"type": "base64", "media_type": "image/jpeg", "data": img_a},
+                }
+            )
         content.append({"type": "text", "text": f"ARTWORK B: {_ai_name(result.file_b)}"})
         if img_b:
-            content.append({"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": img_b}})
+            content.append(
+                {
+                    "type": "image",
+                    "source": {"type": "base64", "media_type": "image/jpeg", "data": img_b},
+                }
+            )
         if img_d:
-            content.append({"type": "text", "text": "MAPA RÓŻNIC (czerwone=duże, żółte=średnie, niebieskie=małe):"})
-            content.append({"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": img_d}})
+            content.append(
+                {
+                    "type": "text",
+                    "text": "MAPA RÓŻNIC (czerwone=duże, żółte=średnie, niebieskie=małe):",
+                }
+            )
+            content.append(
+                {
+                    "type": "image",
+                    "source": {"type": "base64", "media_type": "image/jpeg", "data": img_d},
+                }
+            )
 
-    content.append({
-        "type": "text",
-        "text": f"""Porównaj artwork A vs B. Dane z analizy automatycznej:
+    content.append(
+        {
+            "type": "text",
+            "text": f"""Porównaj artwork A vs B. Dane z analizy automatycznej:
 
 Format: A={result.dims_a or '?'} | B={result.dims_b or '?'}
 Pixel diff: {result.total_pixel_diff:.1f}% | Stron: A={result.pages_a} B={result.pages_b}
@@ -6843,31 +8059,40 @@ WYKRYTE ZMIANY (OCR/regex):
 
 POLA BEZ ZMIAN: {_ai_doc("pola_bez_zmian", ok_fields, 2000)}
 
-{"Zbadaj wizualnie oba artworki i mapę różnic. " if has_images else "Brak obrazów — oceń na podstawie danych tekstowych. "}Wygeneruj szczegółowy raport JSON zgodnie z instrukcją systemową."""
-    })
+{"Zbadaj wizualnie oba artworki i mapę różnic. " if has_images else "Brak obrazów — oceń na podstawie danych tekstowych. "}Wygeneruj szczegółowy raport JSON zgodnie z instrukcją systemową.""",
+        }
+    )
 
     content = [
-        b for b in content
-        if not (b.get("type") == "text" and not (b.get("text") or "").strip())
+        b for b in content if not (b.get("type") == "text" and not (b.get("text") or "").strip())
     ]
 
-    payload = json.dumps({
-        "model": _risk_model(),
-        "max_tokens": 2000,
-        "system": _ai_system(_AI_SYSTEM),
-        "messages": [{"role": "user", "content": content}],
-    }).encode("utf-8")
+    payload = json.dumps(
+        {
+            "model": _risk_model(),
+            "max_tokens": 2000,
+            "system": _ai_system(_AI_SYSTEM),
+            "messages": [{"role": "user", "content": content}],
+        }
+    ).encode("utf-8")
 
     req = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages", data=payload,
-        headers={"Content-Type": "application/json", "x-api-key": api_key,
-                 "anthropic-version": "2023-06-01"}, method="POST")
+        "https://api.anthropic.com/v1/messages",
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+        },
+        method="POST",
+    )
     try:
         # Bandit B310: URL stały w kodzie (https://api.anthropic.com), schemat nie pochodzi z wejścia.
         with urllib.request.urlopen(req, timeout=40) as resp:  # nosec B310
             data = json.loads(resp.read().decode("utf-8"))
         try:
             from api_usage_tracker import record_usage
+
             record_usage(_risk_model(), data.get("usage", {}), call_type="artwork_analysis")
         except Exception:
             pass
@@ -6887,7 +8112,8 @@ POLA BEZ ZMIAN: {_ai_doc("pola_bez_zmian", ok_fields, 2000)}
         if _suspect:
             parsed["injection_warning"] = (
                 "W treści artworku wykryto frazy wyglądające na próbę sterowania analizą AI "
-                "(prompt injection). Ocena AI nie została uwzględniona w rekomendacji.")
+                "(prompt injection). Ocena AI nie została uwzględniona w rekomendacji."
+            )
         return parsed
     except urllib.error.HTTPError as e:
         body = ""
@@ -6939,19 +8165,41 @@ def _claude_detect_diff_boxes(img_a: "Image.Image", img_b: "Image.Image") -> lis
 
         resp = _hx.post(
             "https://api.anthropic.com/v1/messages",
-            headers={"x-api-key": api_key, "anthropic-version": "2023-06-01",
-                     "Content-Type": "application/json"},
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json",
+            },
             json={
                 "model": _current_ai_model(),
                 "max_tokens": 1200,
                 "system": _ai_system(),
-                "messages": [{"role": "user", "content": [
-                    {"type": "text", "text": "ARTWORK A:"},
-                    {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b64_a}},
-                    {"type": "text", "text": "ARTWORK B:"},
-                    {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b64_b}},
-                    {"type": "text", "text": prompt},
-                ]}],
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "ARTWORK A:"},
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": "image/jpeg",
+                                    "data": b64_a,
+                                },
+                            },
+                            {"type": "text", "text": "ARTWORK B:"},
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": "image/jpeg",
+                                    "data": b64_b,
+                                },
+                            },
+                            {"type": "text", "text": prompt},
+                        ],
+                    }
+                ],
             },
             timeout=45,
         )
@@ -6960,12 +8208,19 @@ def _claude_detect_diff_boxes(img_a: "Image.Image", img_b: "Image.Image") -> lis
                 _body = resp.text[:400]
             except Exception:
                 _body = ""
-            logger.warning("Claude diff-detect HTTP %s — model=%s body=%s",
-                           resp.status_code, _current_ai_model(), _body)
+            logger.warning(
+                "Claude diff-detect HTTP %s — model=%s body=%s",
+                resp.status_code,
+                _current_ai_model(),
+                _body,
+            )
             return []
         try:
             from api_usage_tracker import record_usage
-            record_usage(_current_ai_model(), resp.json().get("usage", {}), call_type="claude_diff_detect")
+
+            record_usage(
+                _current_ai_model(), resp.json().get("usage", {}), call_type="claude_diff_detect"
+            )
         except Exception:
             pass
         text = _ai_first_text(resp.json().get("content")).strip()
@@ -6995,15 +8250,19 @@ def _claude_detect_diff_boxes(img_a: "Image.Image", img_b: "Image.Image") -> lis
                 _px_w = int((x2 - x1) / 100 * _img_w)
                 _px_h = int((y2 - y1) / 100 * _img_h)
                 _area = max(1, _px_w * _px_h)
-                regions.append({
-                    "x_pct": x1, "y_pct": y1,
-                    "w_pct": x2 - x1, "h_pct": y2 - y1,
-                    "severity": sev_map.get(str(item.get("severity", "important")), "medium"),
-                    "description": str(item.get("description", ""))[:200],
-                    "source": "claude",
-                    "avg_diff": 80.0,
-                    "area": _area,
-                })
+                regions.append(
+                    {
+                        "x_pct": x1,
+                        "y_pct": y1,
+                        "w_pct": x2 - x1,
+                        "h_pct": y2 - y1,
+                        "severity": sev_map.get(str(item.get("severity", "important")), "medium"),
+                        "description": str(item.get("description", ""))[:200],
+                        "source": "claude",
+                        "avg_diff": 80.0,
+                        "area": _area,
+                    }
+                )
             except (KeyError, TypeError, ValueError):
                 continue
         logger.info("Claude Vision detected %d diff regions", len(regions))
@@ -7028,8 +8287,10 @@ def _draw_claude_boxes(img_annot: "Image.Image", regions: list) -> "Image.Image"
         # Orange fill + thick border — distinct from pixel diff red/yellow
         draw.rectangle([x1, y1, x2, y2], fill=(249, 115, 22, 70))
         for offset in range(3):
-            draw.rectangle([x1 - offset, y1 - offset, x2 + offset, y2 + offset],
-                           outline=(249, 115, 22, max(60, 230 - offset * 60)))
+            draw.rectangle(
+                [x1 - offset, y1 - offset, x2 + offset, y2 + offset],
+                outline=(249, 115, 22, max(60, 230 - offset * 60)),
+            )
     # Return RGB — the result is later encoded as JPEG (_img_to_b64), which
     # cannot write an RGBA image and would raise OSError, failing the page diff.
     return img.convert("RGB")
@@ -7068,18 +8329,19 @@ def extract_pdf_page(path: str, page_idx: int, out_path: str) -> str:
     return out_path
 
 
-
-
-def compare_artworks(path_a: str, path_b: str,
-                      use_ai: bool = False,
-                      use_ai_sections: bool = True,
-                      max_pages: int = 10,
-                      page_a: int = None,
-                      page_b: int = None,
-                      profile_id: int = None,
-                      field_overrides_b: dict = None,
-                      profile_perf: bool = False,
-                      progress_id: str = None) -> ArtworkCompareResult:
+def compare_artworks(
+    path_a: str,
+    path_b: str,
+    use_ai: bool = False,
+    use_ai_sections: bool = True,
+    max_pages: int = 10,
+    page_a: int = None,
+    page_b: int = None,
+    profile_id: int = None,
+    field_overrides_b: dict = None,
+    profile_perf: bool = False,
+    progress_id: str = None,
+) -> ArtworkCompareResult:
     """Porównuje dwa artworki opakowań. Zwraca ArtworkCompareResult.
     page_a / page_b: 0-based page index to extract from multi-page PDFs.
     profile_id: gdy podane, ładuje profil szablonowy z BD i ogranicza raport do zmapowanych pól.
@@ -7095,8 +8357,11 @@ def compare_artworks(path_a: str, path_b: str,
     # Performance profiler — on by default (overhead is negligible: a few perf_counter
     # calls + a dict) so the report's "Wydajność" section is always available. Disable
     # with ARTWORK_PROFILE_OFF=1. (profile_perf / ARTWORK_PROFILE kept as explicit opt-in.)
-    _prof_on = (profile_perf or _env_flag("ARTWORK_PROFILE", "0")
-                or not _env_flag("ARTWORK_PROFILE_OFF", "0"))
+    _prof_on = (
+        profile_perf
+        or _env_flag("ARTWORK_PROFILE", "0")
+        or not _env_flag("ARTWORK_PROFILE_OFF", "0")
+    )
     _prof = _PerfProfiler() if _prof_on else _NullProfiler()
 
     # File sizes in bytes
@@ -7112,14 +8377,16 @@ def compare_artworks(path_a: str, path_b: str,
     if profile_id:
         _explicit_profile = _load_artwork_profile_by_id(profile_id)
         if _explicit_profile:
-            logger.info("Explicit profile loaded: '%s' (id=%d)", _explicit_profile["name"], profile_id)
+            logger.info(
+                "Explicit profile loaded: '%s' (id=%d)", _explicit_profile["name"], profile_id
+            )
 
     # Skip AI for files over 50 MB to avoid timeouts
     _AI_SIZE_LIMIT = 50 * 1024 * 1024
     try:
         _total_size = _size_a + _size_b
         if _total_size > _AI_SIZE_LIMIT:
-            logger.warning("Pliki za duże (%d MB) — AI pominięte", _total_size // (1024*1024))
+            logger.warning("Pliki za duże (%d MB) — AI pominięte", _total_size // (1024 * 1024))
             use_ai = False
             use_ai_sections = False
     except OSError:
@@ -7131,8 +8398,8 @@ def compare_artworks(path_a: str, path_b: str,
     # When an explicit profile with active fields is provided, skip heavy full-page
     # OCR and badge renders — only preview images (RENDER_DPI) are needed.
     _skip_ocr_loads = bool(
-        _explicit_profile and
-        any(not f.get("skip_analysis") for f in _explicit_profile.get("fields", []))
+        _explicit_profile
+        and any(not f.get("skip_analysis") for f in _explicit_profile.get("fields", []))
     )
 
     # Parallel page loading: render every DPI tier (preview / OCR / badge) for both
@@ -7161,8 +8428,10 @@ def compare_artworks(path_a: str, path_b: str,
                 pages_b_b = _fut_bb.result(timeout=120)[:1]
         except FuturesTimeoutError:
             # Czytelny komunikat zamiast surowego TimeoutError z puli wątków.
-            raise RuntimeError("Renderowanie PDF przekroczyło limit czasu (120 s) — "
-                               "plik może być zbyt duży lub uszkodzony.")
+            raise RuntimeError(
+                "Renderowanie PDF przekroczyło limit czasu (120 s) — "
+                "plik może być zbyt duży lub uszkodzony."
+            )
 
     n_a, n_b = len(pages_a_t), len(pages_b_t)
 
@@ -7181,8 +8450,10 @@ def compare_artworks(path_a: str, path_b: str,
     else:
         texts_a = _page_texts(path_a, page_a, max_pages)
         texts_b = _page_texts(path_b, page_b, max_pages)
-        while len(texts_a) < n_a: texts_a.append("")
-        while len(texts_b) < n_b: texts_b.append("")
+        while len(texts_a) < n_a:
+            texts_a.append("")
+        while len(texts_b) < n_b:
+            texts_b.append("")
 
         # OCR: artworki mają tekst w warstwie graficznej (niewidoczny dla PDF parser)
         # Run OCR for all pages of A and B in parallel to avoid sequential Tesseract waits
@@ -7190,11 +8461,13 @@ def compare_artworks(path_a: str, path_b: str,
         with _prof.stage("ocr_fullpage"), ThreadPoolExecutor(max_workers=4) as _ocr_pool:
             _ocr_futs_a = [
                 _ocr_pool.submit(_extract_text_ocr, pages_a_o[i])
-                for i in range(n_a) if i < len(pages_a_o)
+                for i in range(n_a)
+                if i < len(pages_a_o)
             ]
             _ocr_futs_b = [
                 _ocr_pool.submit(_extract_text_ocr, pages_b_o[i])
-                for i in range(n_b) if i < len(pages_b_o)
+                for i in range(n_b)
+                if i < len(pages_b_o)
             ]
             _ocr_results_a = [f.result(timeout=60) for f in _ocr_futs_a]
             _ocr_results_b = [f.result(timeout=60) for f in _ocr_futs_b]
@@ -7202,9 +8475,12 @@ def compare_artworks(path_a: str, path_b: str,
         for i in range(n_a):
             if i < len(_ocr_results_a):
                 ocr_text = _ocr_results_a[i]
-                existing_lines = set(l.strip().lower() for l in texts_a[i].splitlines() if l.strip())
+                existing_lines = set(
+                    l.strip().lower() for l in texts_a[i].splitlines() if l.strip()
+                )
                 extra = "\n".join(
-                    l for l in ocr_text.splitlines()
+                    l
+                    for l in ocr_text.splitlines()
                     if l.strip() and l.strip().lower() not in existing_lines
                 )
                 if extra:
@@ -7212,9 +8488,12 @@ def compare_artworks(path_a: str, path_b: str,
         for i in range(n_b):
             if i < len(_ocr_results_b):
                 ocr_text = _ocr_results_b[i]
-                existing_lines = set(l.strip().lower() for l in texts_b[i].splitlines() if l.strip())
+                existing_lines = set(
+                    l.strip().lower() for l in texts_b[i].splitlines() if l.strip()
+                )
                 extra = "\n".join(
-                    l for l in ocr_text.splitlines()
+                    l
+                    for l in ocr_text.splitlines()
                     if l.strip() and l.strip().lower() not in existing_lines
                 )
                 if extra:
@@ -7228,7 +8507,10 @@ def compare_artworks(path_a: str, path_b: str,
     ocr_failed = len(full_a.strip()) < 10 and len(full_b.strip()) < 10
 
     result = ArtworkCompareResult(
-        file_a=file_a, file_b=file_b, pages_a=n_a, pages_b=n_b,
+        file_a=file_a,
+        file_b=file_b,
+        pages_a=n_a,
+        pages_b=n_b,
         dims_a=f"{dims_a[0]}×{dims_a[1]} mm" if dims_a[0] else "",
         dims_b=f"{dims_b[0]}×{dims_b[1]} mm" if dims_b[0] else "",
         ocr_failed=ocr_failed,
@@ -7237,16 +8519,19 @@ def compare_artworks(path_a: str, path_b: str,
     )
 
     try:
+
         def _md5_chunked(path):
             h = hashlib.md5(usedforsecurity=False)
             with open(path, "rb") as _f:
                 for _chunk in iter(lambda: _f.read(65536), b""):
                     h.update(_chunk)
             return h.hexdigest()
+
         ha = _md5_chunked(path_a)
         hb = _md5_chunked(path_b)
         if ha == hb:
-            result.identical = True; result.risk_level = "ok"
+            result.identical = True
+            result.risk_level = "ok"
             result.summary = "Pliki są identyczne."
             return result
     except Exception:
@@ -7264,7 +8549,8 @@ def compare_artworks(path_a: str, path_b: str,
             result.colorimetry["b"] = _get_colorimetry(pages_b_t[0])
         if result.colorimetry.get("a") and result.colorimetry.get("b"):
             result.colorimetry["global"] = _global_color_compare(
-                result.colorimetry["a"], result.colorimetry["b"])
+                result.colorimetry["a"], result.colorimetry["b"]
+            )
 
     # Count active mapped fields in explicit profile (non-skip)
     if _profile:
@@ -7282,8 +8568,15 @@ def compare_artworks(path_a: str, path_b: str,
 
         set_progress(progress_id, 50, "Porównywanie pól szablonu…")
         with _prof.stage("field_compare"):
-            _template_rows = _apply_profile_comparison(path_a, path_b, _profile, page_a=page_a, page_b=page_b,
-                                                        field_overrides_b=field_overrides_b, profiler=_prof)
+            _template_rows = _apply_profile_comparison(
+                path_a,
+                path_b,
+                _profile,
+                page_a=page_a,
+                page_b=page_b,
+                field_overrides_b=field_overrides_b,
+                profiler=_prof,
+            )
         if _template_rows:
             result.field_report = _template_rows
             result.mapped_field_count = len([r for r in _template_rows if not r.get("skipped")])
@@ -7292,8 +8585,17 @@ def compare_artworks(path_a: str, path_b: str,
         # ── Standard mode: full auto analysis ─────────────────────────────────
         set_progress(progress_id, 50, "Porównywanie treści i pól…")
         with _prof.stage("field_compare"):
-            result.field_report = _build_field_report(full_a, full_b, badges_a, badges_b, dims_a, dims_b, use_ai=use_ai,
-                                                       file_a=path_a, file_b=path_b)
+            result.field_report = _build_field_report(
+                full_a,
+                full_b,
+                badges_a,
+                badges_b,
+                dims_a,
+                dims_b,
+                use_ai=use_ai,
+                file_a=path_a,
+                file_b=path_b,
+            )
 
         # ── Analiza strefowa (automatyczna, bez szablonów) ──────────────────────────
         _zone_regions = []
@@ -7301,8 +8603,7 @@ def compare_artworks(path_a: str, path_b: str,
             try:
                 with _prof.stage("zones"):
                     _zone_rows, _zone_regions = _zone_ocr_compare(
-                        pages_a_o[0], pages_b_o[0],
-                        path_a=path_a, path_b=path_b
+                        pages_a_o[0], pages_b_o[0], path_a=path_a, path_b=path_b
                     )
                 if _zone_rows:
                     result.field_report.extend(_zone_rows)
@@ -7310,26 +8611,49 @@ def compare_artworks(path_a: str, path_b: str,
                 logger.warning("Zone comparison failed: %s", _ze)
 
         # ── Auto-detect profile po EAN/REF (gdy nie podano explicite) ──────────
-        _ean_val = next((f["val_a"] for f in result.field_report if f["field"] == "EAN / GTIN" and f["val_a"] != "N/D"), "")
-        _ref_val = next((f["val_a"] for f in result.field_report if f["field"] == "REF / Nr katalogowy" and f["val_a"] != "N/D"), "")
+        _ean_val = next(
+            (
+                f["val_a"]
+                for f in result.field_report
+                if f["field"] == "EAN / GTIN" and f["val_a"] != "N/D"
+            ),
+            "",
+        )
+        _ref_val = next(
+            (
+                f["val_a"]
+                for f in result.field_report
+                if f["field"] == "REF / Nr katalogowy" and f["val_a"] != "N/D"
+            ),
+            "",
+        )
         _auto_profile = _load_artwork_profile(ean=_ean_val, ref=_ref_val, dims_a=dims_a)
         if _auto_profile:
             _profile = _auto_profile
-            logger.info("Artwork profile matched: '%s' (%d fields)", _profile["name"], len(_profile["fields"]))
+            logger.info(
+                "Artwork profile matched: '%s' (%d fields)",
+                _profile["name"],
+                len(_profile["fields"]),
+            )
             with _prof.stage("field_compare"):
-                _template_rows = _apply_profile_comparison(path_a, path_b, _profile, page_a=page_a, page_b=page_b,
-                                                           profiler=_prof)
+                _template_rows = _apply_profile_comparison(
+                    path_a, path_b, _profile, page_a=page_a, page_b=page_b, profiler=_prof
+                )
             if _template_rows:
                 result.field_report.extend(_template_rows)
 
     try:
         from barcode_validator import validate_artwork_barcodes
+
         _bc_pages_a = pages_a_o[:1] if pages_a_o else (pages_a_t[:1] if pages_a_t else [])
         _bc_pages_b = pages_b_o[:1] if pages_b_o else (pages_b_t[:1] if pages_b_t else [])
         set_progress(progress_id, 64, "Weryfikacja kodów kreskowych…")
         with _prof.stage("barcode"):
             result.barcode_report = validate_artwork_barcodes(
-                full_a, full_b, _bc_pages_a, _bc_pages_b,
+                full_a,
+                full_b,
+                _bc_pages_a,
+                _bc_pages_b,
             )
     except Exception:
         result.barcode_report = {}
@@ -7339,7 +8663,9 @@ def compare_artworks(path_a: str, path_b: str,
         try:
             with _prof.stage("icons"):
                 result.icon_comparison = compare_icon_regions(
-                    pages_a_t[0], pages_b_t[0], RENDER_DPI,
+                    pages_a_t[0],
+                    pages_b_t[0],
+                    RENDER_DPI,
                     hires_a=pages_a_o[0] if pages_a_o else None,
                     hires_b=pages_b_o[0] if pages_b_o else None,
                 )
@@ -7357,11 +8683,11 @@ def compare_artworks(path_a: str, path_b: str,
     for i in range(max(n_a, n_b)):
         img_a_t = pages_a_t[i] if i < n_a else None
         img_b_t = pages_b_t[i] if i < n_b else None
-        text_a  = texts_a[i] if i < len(texts_a) else ""
-        text_b  = texts_b[i] if i < len(texts_b) else ""
+        text_a = texts_a[i] if i < len(texts_a) else ""
+        text_b = texts_b[i] if i < len(texts_b) else ""
 
         diff_pct = 0.0
-        regions  = []
+        regions = []
         img_a_b64 = img_b_b64 = img_a_annot_b64 = img_b_annot_b64 = img_diff_b64 = None
         page_size_mismatch = False
 
@@ -7374,10 +8700,10 @@ def compare_artworks(path_a: str, path_b: str,
                 wb, hb = img_b_t.size
                 # Detect significant dimension mismatch (>8%) — pixel diff would be misleading
                 page_size_mismatch = (
-                    max(wa, wb) / max(min(wa, wb), 1) > 1.08 or
-                    max(ha, hb) / max(min(ha, hb), 1) > 1.08
+                    max(wa, wb) / max(min(wa, wb), 1) > 1.08
+                    or max(ha, hb) / max(min(ha, hb), 1) > 1.08
                 )
-                img_a_b64 = _img_to_b64(img_a_t)        # thumb for reports
+                img_a_b64 = _img_to_b64(img_a_t)  # thumb for reports
                 img_b_b64 = _img_to_b64(img_b_t)
                 img_a_hires_b64 = _img_to_b64(img_a_t, max_width=HIRES_W)  # hires for viewer
                 img_b_hires_b64 = _img_to_b64(img_b_t, max_width=HIRES_W)
@@ -7389,13 +8715,19 @@ def compare_artworks(path_a: str, path_b: str,
                     img_b_annot_hires_b64 = img_b_hires_b64
                 else:
                     _t_px = time.perf_counter()
-                    diff_pct, img_a_annot, img_b_annot, img_diff, regions = \
-                        _compute_pixel_diff(img_a_t, img_b_t)
+                    diff_pct, img_a_annot, img_b_annot, img_diff, regions = _compute_pixel_diff(
+                        img_a_t, img_b_t
+                    )
                     _px_ms = (time.perf_counter() - _t_px) * 1000.0
                     _prof.add("pixel_diff", _px_ms)
-                    _prof.page({"page": i + 1, "ms": round(_px_ms, 1),
-                                "diff_pct": round(diff_pct, 2),
-                                "regions": len(regions)})
+                    _prof.page(
+                        {
+                            "page": i + 1,
+                            "ms": round(_px_ms, 1),
+                            "diff_pct": round(diff_pct, 2),
+                            "regions": len(regions),
+                        }
+                    )
                     pixel_diffs.append(diff_pct)
 
                     # Claude Vision semantic detection — finds differences pixel diff misses
@@ -7413,7 +8745,7 @@ def compare_artworks(path_a: str, path_b: str,
                     img_b_annot_b64 = _img_to_b64(img_b_annot)
                     img_a_annot_hires_b64 = _img_to_b64(img_a_annot, max_width=HIRES_W)
                     img_b_annot_hires_b64 = _img_to_b64(img_b_annot, max_width=HIRES_W)
-                    img_diff_b64    = _img_to_b64(img_diff)
+                    img_diff_b64 = _img_to_b64(img_diff)
             except Exception as _px_exc:
                 logger.warning("Pixel diff failed on page %d: %s", i, _px_exc)
         elif img_a_t:
@@ -7429,57 +8761,80 @@ def compare_artworks(path_a: str, path_b: str,
         else:
             text_diffs = _compare_texts(text_a, text_b)
             if i == 0:
-                sec_diffs = _ai_sec_diffs if _ai_sec_diffs is not None else _compare_sections(text_a, text_b)
+                sec_diffs = (
+                    _ai_sec_diffs
+                    if _ai_sec_diffs is not None
+                    else _compare_sections(text_a, text_b)
+                )
             else:
                 sec_diffs = []
-        field_diffs  = [f for f in result.field_report if f["changed"]] if i == 0 else []
-        has_crit  = (any(d["severity"]=="error"   for d in text_diffs)
-                     or any(f["severity"]=="critical" and f["changed"] for f in result.field_report))
-        has_imp   = (any(d["severity"]=="warning" for d in text_diffs)
-                     or any(f["severity"]=="important" and f["changed"] for f in result.field_report))
+        field_diffs = [f for f in result.field_report if f["changed"]] if i == 0 else []
+        has_crit = any(d["severity"] == "error" for d in text_diffs) or any(
+            f["severity"] == "critical" and f["changed"] for f in result.field_report
+        )
+        has_imp = any(d["severity"] == "warning" for d in text_diffs) or any(
+            f["severity"] == "important" and f["changed"] for f in result.field_report
+        )
 
         parts = []
         if page_size_mismatch:
-            parts.append(f"RÓŻNE FORMATY — pixel diff pominięty ({result.dims_a} vs {result.dims_b})")
+            parts.append(
+                f"RÓŻNE FORMATY — pixel diff pominięty ({result.dims_a} vs {result.dims_b})"
+            )
         elif diff_pct > 20:
             parts.append(f"Duże różnice wizualne ({diff_pct:.0f}%)")
         elif diff_pct > 5:
             parts.append(f"Różnice wizualne ({diff_pct:.0f}%)")
-        n_c = sum(1 for d in text_diffs if d["severity"]=="error")
-        n_i = sum(1 for d in text_diffs if d["severity"]=="warning")
-        if n_c: parts.append(f"{n_c} krytycznych zmian")
-        if n_i: parts.append(f"{n_i} ważnych zmian")
+        n_c = sum(1 for d in text_diffs if d["severity"] == "error")
+        n_i = sum(1 for d in text_diffs if d["severity"] == "warning")
+        if n_c:
+            parts.append(f"{n_c} krytycznych zmian")
+        if n_i:
+            parts.append(f"{n_i} ważnych zmian")
 
-        result.page_diffs.append(PageDiff(
-            page_num=i+1, pixel_diff_pct=diff_pct,
-            diff_regions=regions, text_diffs=text_diffs, field_diffs=field_diffs,
-            img_a_b64=img_a_b64, img_b_b64=img_b_b64,
-            img_a_annot_b64=img_a_annot_b64, img_b_annot_b64=img_b_annot_b64,
-            img_diff_b64=img_diff_b64,
-            img_a_hires_b64=img_a_hires_b64, img_b_hires_b64=img_b_hires_b64,
-            img_a_annot_hires_b64=img_a_annot_hires_b64,
-            img_b_annot_hires_b64=img_b_annot_hires_b64,
-            has_critical=has_crit, has_important=has_imp,
-            size_mismatch=page_size_mismatch,
-            summary=" | ".join(parts) if parts else "Brak istotnych różnic",
-            section_diffs=sec_diffs,
-        ))
+        result.page_diffs.append(
+            PageDiff(
+                page_num=i + 1,
+                pixel_diff_pct=diff_pct,
+                diff_regions=regions,
+                text_diffs=text_diffs,
+                field_diffs=field_diffs,
+                img_a_b64=img_a_b64,
+                img_b_b64=img_b_b64,
+                img_a_annot_b64=img_a_annot_b64,
+                img_b_annot_b64=img_b_annot_b64,
+                img_diff_b64=img_diff_b64,
+                img_a_hires_b64=img_a_hires_b64,
+                img_b_hires_b64=img_b_hires_b64,
+                img_a_annot_hires_b64=img_a_annot_hires_b64,
+                img_b_annot_hires_b64=img_b_annot_hires_b64,
+                has_critical=has_crit,
+                has_important=has_imp,
+                size_mismatch=page_size_mismatch,
+                summary=" | ".join(parts) if parts else "Brak istotnych różnic",
+                section_diffs=sec_diffs,
+            )
+        )
 
-    result.total_pixel_diff = sum(pixel_diffs)/len(pixel_diffs) if pixel_diffs else 0.0
+    result.total_pixel_diff = sum(pixel_diffs) / len(pixel_diffs) if pixel_diffs else 0.0
 
     # Nałóż strefy z różnicami na obraz strony 0 jako kolorowe ramki
     if _zone_regions and result.page_diffs:
         _pd0 = result.page_diffs[0]
         _sev_map = {"critical": "high", "important": "medium", "info": "low"}
         for _zr in _zone_regions:
-            _pd0.diff_regions.append({
-                "x_pct": 0, "y_pct": _zr["y1_pct"],
-                "w_pct": 100, "h_pct": _zr["y2_pct"] - _zr["y1_pct"],
-                "severity": _sev_map.get(_zr["severity"], "medium"),
-                "avg_diff": 100 - _zr["pix_sim"],
-                "area": 0,
-                "label": _zr["name"],
-            })
+            _pd0.diff_regions.append(
+                {
+                    "x_pct": 0,
+                    "y_pct": _zr["y1_pct"],
+                    "w_pct": 100,
+                    "h_pct": _zr["y2_pct"] - _zr["y1_pct"],
+                    "severity": _sev_map.get(_zr["severity"], "medium"),
+                    "avg_diff": 100 - _zr["pix_sim"],
+                    "area": 0,
+                    "label": _zr["name"],
+                }
+            )
 
     # Dedykowana analiza tabeli rozmiarów (Vision) — uruchamiana gdy AI aktywne i są obrazy,
     # ALE tylko gdy:
@@ -7487,36 +8842,41 @@ def compare_artworks(path_a: str, path_b: str,
     #   2. nie ma aktywnego profilu bbox (_profile) — profil definiuje co porównywać,
     #      Vision size halucynuje gdy tabela jest nieczytelna lub produkt nie ma tabeli rozmiarów.
     _bbox_covers_sizes = any(
-        r.get("field", "").startswith("[Rozmiar ")
-        for r in result.field_report
+        r.get("field", "").startswith("[Rozmiar ") for r in result.field_report
     )
     if result.page_diffs and not _bbox_covers_sizes and not _profile:
-      with _prof.stage("size_table"):
-        if use_ai:
-            _p0 = result.page_diffs[0]
-            _size_rows = _compare_size_table_vision(
-                _p0.img_a_hires_b64 or _p0.img_a_b64,
-                _p0.img_b_hires_b64 or _p0.img_b_b64,
-            )
-            if _size_rows:
-                result.field_report.extend(_size_rows)
-        else:
-            # Table Transformer fallback when AI is disabled
-            _img_a_src = pages_a_o[0] if pages_a_o else (pages_a_t[0] if pages_a_t else None)
-            _img_b_src = pages_b_o[0] if pages_b_o else (pages_b_t[0] if pages_b_t else None)
-            if _img_a_src and _img_b_src:
-                try:
-                    _tt_rows = _compare_size_tables_transformer(_img_a_src, _img_b_src)
-                    if _tt_rows:
-                        result.field_report.extend(_tt_rows)
-                except Exception as _tte:
-                    logger.debug("Table Transformer compare failed: %s", _tte)
+        with _prof.stage("size_table"):
+            if use_ai:
+                _p0 = result.page_diffs[0]
+                _size_rows = _compare_size_table_vision(
+                    _p0.img_a_hires_b64 or _p0.img_a_b64,
+                    _p0.img_b_hires_b64 or _p0.img_b_b64,
+                )
+                if _size_rows:
+                    result.field_report.extend(_size_rows)
+            else:
+                # Table Transformer fallback when AI is disabled
+                _img_a_src = pages_a_o[0] if pages_a_o else (pages_a_t[0] if pages_a_t else None)
+                _img_b_src = pages_b_o[0] if pages_b_o else (pages_b_t[0] if pages_b_t else None)
+                if _img_a_src and _img_b_src:
+                    try:
+                        _tt_rows = _compare_size_tables_transformer(_img_a_src, _img_b_src)
+                        if _tt_rows:
+                            result.field_report.extend(_tt_rows)
+                    except Exception as _tte:
+                        logger.debug("Table Transformer compare failed: %s", _tte)
 
     # field_report counts
-    result.critical_count  = sum(1 for f in result.field_report if f["severity"] == "critical"  and f["changed"])
-    result.important_count = sum(1 for f in result.field_report if f["severity"] == "important" and f["changed"])
-    result.info_count      = sum(1 for f in result.field_report if f["severity"] == "info"      and f["changed"])
-    result.ok_count        = sum(1 for f in result.field_report if not f["changed"])
+    result.critical_count = sum(
+        1 for f in result.field_report if f["severity"] == "critical" and f["changed"]
+    )
+    result.important_count = sum(
+        1 for f in result.field_report if f["severity"] == "important" and f["changed"]
+    )
+    result.info_count = sum(
+        1 for f in result.field_report if f["severity"] == "info" and f["changed"]
+    )
+    result.ok_count = sum(1 for f in result.field_report if not f["changed"])
 
     # Icon comparison counts — ikony z innym układem / brakujące MUSZĄ wpłynąć na risk score
     for _ic in result.icon_comparison:
@@ -7530,9 +8890,13 @@ def compare_artworks(path_a: str, path_b: str,
     # Must stay identical to the mapping in field_queue_finalize (~6389):
     #   critical change → critical, important change → error, info change → warning.
     result.risk_level = (
-        "critical" if result.critical_count > 0 else
-        "error"    if result.important_count > 0 else
-        "warning"  if result.info_count > 0      else "ok"
+        "critical"
+        if result.critical_count > 0
+        else "error"
+        if result.important_count > 0
+        else "warning"
+        if result.info_count > 0
+        else "ok"
     )
     result.summary = (
         f"Wykryto {result.critical_count} krytycznych i {result.important_count} ważnych zmian. "
@@ -7545,9 +8909,12 @@ def compare_artworks(path_a: str, path_b: str,
 
     # Finalise the performance breakdown (no-op profiler returns {"enabled": False})
     _prof.set_meta(
-        file_a=file_a, file_b=file_b,
-        pages_a=n_a, pages_b=n_b,
-        render_dpi=RENDER_DPI, ocr_dpi=OCR_DPI,
+        file_a=file_a,
+        file_b=file_b,
+        pages_a=n_a,
+        pages_b=n_b,
+        render_dpi=RENDER_DPI,
+        ocr_dpi=OCR_DPI,
         profile_active=result.profile_active,
         profile_name=result.profile_name,
         mapped_field_count=result.mapped_field_count,
@@ -7555,7 +8922,8 @@ def compare_artworks(path_a: str, path_b: str,
         align_enabled=_ALIGN_ENABLED,
         adaptive_thresh=_ADAPTIVE_THRESH,
         ocr_local_engines=_OCR_LOCAL_ENGINES,
-        file_size_a=_size_a, file_size_b=_size_b,
+        file_size_a=_size_a,
+        file_size_b=_size_b,
     )
     result.performance = _prof.to_dict()
 

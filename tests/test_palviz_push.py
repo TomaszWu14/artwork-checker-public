@@ -4,6 +4,7 @@ Env-gated (PALVIZ_PUSH_URL) — bez konfiguracji push jest inertny (wiersz zosta
 'pending', żadnych wywołań sieciowych). HTTP idzie przez seam _http_post, który
 testy mockują — nie potrzeba realnego `requests` ani sieci.
 """
+
 import sqlite3
 
 import pytest
@@ -23,11 +24,15 @@ def _db():
         push_status TEXT DEFAULT 'pending', push_at TEXT, push_error TEXT DEFAULT '',
         push_attempts INTEGER DEFAULT 0
     )""")
-    con.execute("CREATE TABLE audit_log (id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                "event TEXT, username TEXT, detail TEXT, extra TEXT, "
-                "created_at TEXT DEFAULT (datetime('now')))")
-    con.execute("INSERT INTO artwork_render_registry (ref_norm, variant, source_hash, glb_path) "
-                "VALUES ('BTPC6060','marm','abc123','/tmp/x.glb')")
+    con.execute(
+        "CREATE TABLE audit_log (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        "event TEXT, username TEXT, detail TEXT, extra TEXT, "
+        "created_at TEXT DEFAULT (datetime('now')))"
+    )
+    con.execute(
+        "INSERT INTO artwork_render_registry (ref_norm, variant, source_hash, glb_path) "
+        "VALUES ('BTPC6060','marm','abc123','/tmp/x.glb')"
+    )
     con.commit()
     return con
 
@@ -68,7 +73,9 @@ def test_push_success_marks_sent(monkeypatch):
     db = _db()
     res = pp.push_row(db, 1, user="admin")
     assert res["status"] == "sent"
-    row = db.execute("SELECT push_status, push_at, push_attempts FROM artwork_render_registry WHERE id=1").fetchone()
+    row = db.execute(
+        "SELECT push_status, push_at, push_attempts FROM artwork_render_registry WHERE id=1"
+    ).fetchone()
     assert row["push_status"] == "sent"
     assert row["push_at"] is not None
     assert row["push_attempts"] == 1
@@ -91,7 +98,9 @@ def test_push_failure_marks_failed_with_error(monkeypatch):
     db = _db()
     res = pp.push_row(db, 1)
     assert res["status"] == "failed"
-    row = db.execute("SELECT push_status, push_error FROM artwork_render_registry WHERE id=1").fetchone()
+    row = db.execute(
+        "SELECT push_status, push_error FROM artwork_render_registry WHERE id=1"
+    ).fetchone()
     assert row["push_status"] == "failed"
     assert "500" in row["push_error"]
     assert events == ["palviz_push_failed"]
@@ -107,7 +116,9 @@ def test_network_exception_marks_failed(monkeypatch):
     db = _db()
     res = pp.push_row(db, 1)
     assert res["status"] == "failed"
-    row = db.execute("SELECT push_status, push_error FROM artwork_render_registry WHERE id=1").fetchone()
+    row = db.execute(
+        "SELECT push_status, push_error FROM artwork_render_registry WHERE id=1"
+    ).fetchone()
     assert row["push_status"] == "failed"
     assert "connection refused" in row["push_error"]
 
@@ -116,20 +127,31 @@ def test_recent_deliveries_orders_and_filters():
     """ADMIN-01: ostatnie dostawy — sort po czasie próby DESC, filtr po statusie."""
     db = _db()
     # dołóż drugi i trzeci wiersz o różnych statusach/czasach
-    db.execute("INSERT INTO artwork_render_registry (ref_norm, variant, glb_path, "
-               "push_status, push_at, push_attempts) VALUES "
-               "('R2','dieline','/tmp/2.glb','sent','2026-09-04 10:00:00',1)")
-    db.execute("INSERT INTO artwork_render_registry (ref_norm, variant, glb_path, "
-               "push_status, push_at, push_attempts) VALUES "
-               "('R3','photo','/tmp/3.glb','failed','2026-09-04 11:00:00',2)")
+    db.execute(
+        "INSERT INTO artwork_render_registry (ref_norm, variant, glb_path, "
+        "push_status, push_at, push_attempts) VALUES "
+        "('R2','dieline','/tmp/2.glb','sent','2026-09-04 10:00:00',1)"
+    )
+    db.execute(
+        "INSERT INTO artwork_render_registry (ref_norm, variant, glb_path, "
+        "push_status, push_at, push_attempts) VALUES "
+        "('R3','photo','/tmp/3.glb','failed','2026-09-04 11:00:00',2)"
+    )
     db.commit()
 
     allrows = pp.recent_deliveries(db, limit=10)
     order = [r["ref_norm"] for r in allrows]
     # sort po czasie próby DESC: R3 (11:00) przed R2 (10:00)
     assert order.index("R3") < order.index("R2")
-    assert {"ref_norm", "variant", "push_status", "push_at", "push_error",
-            "push_attempts", "id"} <= set(allrows[0].keys())
+    assert {
+        "ref_norm",
+        "variant",
+        "push_status",
+        "push_at",
+        "push_error",
+        "push_attempts",
+        "id",
+    } <= set(allrows[0].keys())
 
     failed = pp.recent_deliveries(db, status="failed", limit=10)
     assert [r["push_status"] for r in failed] == ["failed"]
@@ -143,23 +165,31 @@ def test_push_group_fids_pushes_latest_per_variant(monkeypatch):
     monkeypatch.setenv("PALVIZ_PUSH_URL", "https://palviz.example/api/renders")
     monkeypatch.setattr(pp, "_log_audit", lambda *a, **k: None)
     pushed = []
-    monkeypatch.setattr(pp, "_http_post", lambda url, p, h, t: (pushed.append(p["registry_id"]), (200, "ok"))[1])
+    monkeypatch.setattr(
+        pp, "_http_post", lambda url, p, h, t: (pushed.append(p["registry_id"]), (200, "ok"))[1]
+    )
 
     db = _db()
     db.execute("DELETE FROM artwork_render_registry")
     # fid=1 dieline: dwa wiersze historii (nowszy id=2 wygrywa)
-    db.execute("INSERT INTO artwork_render_registry (id, fid, variant, glb_path, created_at) "
-               "VALUES (1,1,'dieline','/a.glb','2026-09-01 10:00:00')")
-    db.execute("INSERT INTO artwork_render_registry (id, fid, variant, glb_path, created_at) "
-               "VALUES (2,1,'dieline','/a2.glb','2026-09-02 10:00:00')")
+    db.execute(
+        "INSERT INTO artwork_render_registry (id, fid, variant, glb_path, created_at) "
+        "VALUES (1,1,'dieline','/a.glb','2026-09-01 10:00:00')"
+    )
+    db.execute(
+        "INSERT INTO artwork_render_registry (id, fid, variant, glb_path, created_at) "
+        "VALUES (2,1,'dieline','/a2.glb','2026-09-02 10:00:00')"
+    )
     # fid=2 marm
-    db.execute("INSERT INTO artwork_render_registry (id, fid, variant, glb_path, created_at) "
-               "VALUES (3,2,'marm','/b.glb','2026-09-01 10:00:00')")
+    db.execute(
+        "INSERT INTO artwork_render_registry (id, fid, variant, glb_path, created_at) "
+        "VALUES (3,2,'marm','/b.glb','2026-09-01 10:00:00')"
+    )
     db.commit()
 
     summary = pp.push_group_fids(db, [1, 2], user="admin")
     assert summary["sent"] == 2 and summary["failed"] == 0
-    assert sorted(pushed) == [2, 3]           # najnowszy dieline (2) + marm (3), NIE 1
+    assert sorted(pushed) == [2, 3]  # najnowszy dieline (2) + marm (3), NIE 1
 
 
 def test_retry_backoff_blocks_rapid_retry(monkeypatch):
@@ -167,7 +197,10 @@ def test_retry_backoff_blocks_rapid_retry(monkeypatch):
     monkeypatch.setenv("PALVIZ_PUSH_URL", "https://palviz.example/api/renders")
     monkeypatch.setattr(pp, "_http_post", lambda *a, **k: (500, "boom"))
     db = _db()
-    pp.push_row(db, 1)                       # 1. próba → failed, świeży push_at
+    pp.push_row(db, 1)  # 1. próba → failed, świeży push_at
     res = pp.retry_row(db, 1, user="admin")  # natychmiastowy retry
-    assert res["status"] == "backoff"        # zablokowany, nie kolejna próba
-    assert db.execute("SELECT push_attempts FROM artwork_render_registry WHERE id=1").fetchone()[0] == 1
+    assert res["status"] == "backoff"  # zablokowany, nie kolejna próba
+    assert (
+        db.execute("SELECT push_attempts FROM artwork_render_registry WHERE id=1").fetchone()[0]
+        == 1
+    )

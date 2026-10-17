@@ -87,10 +87,10 @@ def _demo():
     # Strona ma jeden prawdziwy napis (lewa-góra) i jeden wklejony jako grafika (prawa-dół).
     pdf_text = [(0.05, 0.05, 0.35, 0.12)]
     ocr = [
-        ("elastoDERM F-IV", (0.06, 0.06, 0.34, 0.11)),   # pokrywa się z tekstem PDF → OK
-        ("STERILE EO", (0.60, 0.80, 0.88, 0.87)),        # brak w warstwie tekstu → grafika
-        ("  ", (0.10, 0.50, 0.20, 0.55)),                # puste → pomijane
-        ("x", (0.50, 0.50, 0.505, 0.505)),               # mikro-szum → pomijane (min_area)
+        ("elastoDERM F-IV", (0.06, 0.06, 0.34, 0.11)),  # pokrywa się z tekstem PDF → OK
+        ("STERILE EO", (0.60, 0.80, 0.88, 0.87)),  # brak w warstwie tekstu → grafika
+        ("  ", (0.10, 0.50, 0.20, 0.55)),  # puste → pomijane
+        ("x", (0.50, 0.50, 0.505, 0.505)),  # mikro-szum → pomijane (min_area)
     ]
     out = find_text_as_graphic(ocr, pdf_text)
     assert len(out) == 1, out
@@ -102,8 +102,9 @@ def _demo():
     assert {o["text"] for o in out2} == {"elastoDERM F-IV", "STERILE EO"}, out2
 
     # Częściowe pokrycie poniżej progu też łapie (tekst PDF minimalnie zachodzi).
-    out3 = find_text_as_graphic([("LOT 123", (0.0, 0.0, 0.4, 0.1))],
-                                [(0.0, 0.0, 0.05, 0.1)])  # pokrycie ~12% < 30%
+    out3 = find_text_as_graphic(
+        [("LOT 123", (0.0, 0.0, 0.4, 0.1))], [(0.0, 0.0, 0.05, 0.1)]
+    )  # pokrycie ~12% < 30%
     assert len(out3) == 1, out3
     print("artwork_text_layer: OK")
 

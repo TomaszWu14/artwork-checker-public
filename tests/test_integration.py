@@ -10,6 +10,7 @@ CI kończył w sekundy bez torch/paddleocr.
 
 Fixtures: patrz tests/conftest.py. Cały plik pomija się bez Flaska.
 """
+
 import pytest
 
 pytest.importorskip("flask")
@@ -60,11 +61,14 @@ def test_login_success_grants_access(admin_client):
 def test_login_wrong_password_no_redirect(client):
     with client.session_transaction() as sess:
         sess["_csrf_token"] = CSRF_TOKEN
-    resp = client.post("/login", data={
-        "identifier": "it_admin",
-        "password": "zle-haslo",
-        "_csrf_token": CSRF_TOKEN,
-    })
+    resp = client.post(
+        "/login",
+        data={
+            "identifier": "it_admin",
+            "password": "zle-haslo",
+            "_csrf_token": CSRF_TOKEN,
+        },
+    )
     # Błędne hasło → NIE przekierowuje (renderuje formularz z błędem), status 200.
     assert resp.status_code == 200
     assert b"user_id" not in resp.data  # brak sesji
@@ -74,21 +78,27 @@ def test_login_wrong_password_no_redirect(client):
 
 def test_login_without_csrf_is_rejected(client):
     # Brak tokenu CSRF w sesji i w formularzu → csrf_protect zwraca 403.
-    resp = client.post("/login", data={
-        "identifier": "it_admin",
-        "password": "itpass-admin-123",
-    })
+    resp = client.post(
+        "/login",
+        data={
+            "identifier": "it_admin",
+            "password": "itpass-admin-123",
+        },
+    )
     assert resp.status_code == 403
 
 
 def test_login_bad_csrf_is_rejected(client):
     with client.session_transaction() as sess:
         sess["_csrf_token"] = CSRF_TOKEN
-    resp = client.post("/login", data={
-        "identifier": "it_admin",
-        "password": "itpass-admin-123",
-        "_csrf_token": "wrong-token",
-    })
+    resp = client.post(
+        "/login",
+        data={
+            "identifier": "it_admin",
+            "password": "itpass-admin-123",
+            "_csrf_token": "wrong-token",
+        },
+    )
     assert resp.status_code == 403
 
 
@@ -97,19 +107,23 @@ def test_login_non_ascii_csrf_rejected_cleanly(client):
     # hmac.compare_digest TypeError → 500 zamiast czystego 403. Ma być 403.
     with client.session_transaction() as sess:
         sess["_csrf_token"] = CSRF_TOKEN
-    resp = client.post("/login", data={
-        "identifier": "it_admin",
-        "password": "itpass-admin-123",
-        "_csrf_token": "zły-token-ąęó",
-    })
+    resp = client.post(
+        "/login",
+        data={
+            "identifier": "it_admin",
+            "password": "itpass-admin-123",
+            "_csrf_token": "zły-token-ąęó",
+        },
+    )
     assert resp.status_code == 403
 
 
 # ── Wylogowanie ───────────────────────────────────────────────────────────────
 def test_logout_clears_session(admin_client):
     from tests.conftest import logout
+
     assert admin_client.get("/artwork").status_code == 200
-    resp = logout(admin_client)   # US-017: POST + CSRF
+    resp = logout(admin_client)  # US-017: POST + CSRF
     assert resp.status_code == 302
     # Po wylogowaniu chroniona strona znów przekierowuje na login.
     assert admin_client.get("/artwork").status_code == 302

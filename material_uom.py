@@ -10,6 +10,7 @@ dostaje gotowe `w_mm/h_mm/d_mm`.
 Moduł jest „czysty": operuje na połączeniu DB przekazanym z app.py. Tabela jest
 samo-bootstrapująca (wzorzec `uom.py` / `material_master.py`), nie ma jej w migrate_db.
 """
+
 from __future__ import annotations
 
 import re
@@ -30,6 +31,7 @@ def _num(v):
     if isinstance(v, (int, float)):
         return float(v)
     from normalizer import normalize_number
+
     d = normalize_number(str(v))
     return float(d) if d is not None else None
 
@@ -131,8 +133,8 @@ def import_marm_rows(db, raw_rows) -> dict:
         return row[idx] if idx is not None and idx < len(row) else None
 
     batch, refs, skipped = [], set(), 0
-    seen = set()   # (ref_norm, unit) w tej paczce — ostatni wygrywa
-    for row in raw_rows[header_idx + 1:]:
+    seen = set()  # (ref_norm, unit) w tej paczce — ostatni wygrywa
+    for row in raw_rows[header_idx + 1 :]:
         ref = str(g(row, "ref") or "").strip()
         unit = str(g(row, "unit") or "").strip().upper()
         ref_norm = normalize_ref(ref)
@@ -140,19 +142,28 @@ def import_marm_rows(db, raw_rows) -> dict:
             skipped += 1
             continue
         key = (ref_norm, unit)
-        if key in seen:      # duplikat w pliku — pomiń wcześniejszy
+        if key in seen:  # duplikat w pliku — pomiń wcześniejszy
             skipped += 1
         seen.add(key)
         refs.add(ref_norm)
-        batch.append((
-            ref, ref_norm, unit,
-            _num(g(row, "numerator")), _num(g(row, "denominator")),
-            _num(g(row, "width")), _num(g(row, "height")), _num(g(row, "length")),
-            str(g(row, "dim_unit") or "").strip().upper(),
-            _num(g(row, "gross_weight")), str(g(row, "weight_unit") or "").strip().upper(),
-            _num(g(row, "volume")), str(g(row, "volume_unit") or "").strip().upper(),
-            str(g(row, "ean") or "").strip(),
-        ))
+        batch.append(
+            (
+                ref,
+                ref_norm,
+                unit,
+                _num(g(row, "numerator")),
+                _num(g(row, "denominator")),
+                _num(g(row, "width")),
+                _num(g(row, "height")),
+                _num(g(row, "length")),
+                str(g(row, "dim_unit") or "").strip().upper(),
+                _num(g(row, "gross_weight")),
+                str(g(row, "weight_unit") or "").strip().upper(),
+                _num(g(row, "volume")),
+                str(g(row, "volume_unit") or "").strip().upper(),
+                str(g(row, "ean") or "").strip(),
+            )
+        )
 
     sql = """INSERT OR REPLACE INTO material_uom_dims
         (ref_code, ref_norm, unit, numerator, denominator,
@@ -161,7 +172,7 @@ def import_marm_rows(db, raw_rows) -> dict:
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"""
     imported = 0
     for i in range(0, len(batch), 1000):
-        chunk = batch[i:i + 1000]
+        chunk = batch[i : i + 1000]
         db.executemany(sql, chunk)
         imported += len(chunk)
     db.commit()
@@ -170,13 +181,16 @@ def import_marm_rows(db, raw_rows) -> dict:
 
 # ── Odczyt ──────────────────────────────────────────────────────────────────
 
+
 def _dims_mm(row) -> tuple | None:
     """(w,h,d) w mm z wiersza tabeli, albo None gdy niekompletne/poza zakresem."""
     mult = _DIM_UNIT_MM.get((row["dim_unit"] or "").upper(), 10.0)
     try:
-        vals = [float(row["width"] or 0) * mult,
-                float(row["height"] or 0) * mult,
-                float(row["length"] or 0) * mult]
+        vals = [
+            float(row["width"] or 0) * mult,
+            float(row["height"] or 0) * mult,
+            float(row["length"] or 0) * mult,
+        ]
     except (TypeError, ValueError):
         return None
     if all(_MIN_MM <= v <= _MAX_MM for v in vals):
@@ -193,8 +207,8 @@ def get_ref_units(db, ref) -> list:
     if not ref_norm:
         return []
     rows = db.execute(
-        "SELECT * FROM material_uom_dims WHERE ref_norm = ? ORDER BY unit",
-        (ref_norm,)).fetchall()
+        "SELECT * FROM material_uom_dims WHERE ref_norm = ? ORDER BY unit", (ref_norm,)
+    ).fetchall()
     out = []
     for r in rows:
         dims = _dims_mm(r)
@@ -202,12 +216,16 @@ def get_ref_units(db, ref) -> list:
             continue
         num, den = r["numerator"], r["denominator"]
         factor = (num / den) if (num and den) else None
-        out.append({
-            "unit": r["unit"],
-            "w_mm": dims[0], "h_mm": dims[1], "d_mm": dims[2],
-            "ean": r["ean"] or "",
-            "factor": factor,
-        })
+        out.append(
+            {
+                "unit": r["unit"],
+                "w_mm": dims[0],
+                "h_mm": dims[1],
+                "d_mm": dims[2],
+                "ean": r["ean"] or "",
+                "factor": factor,
+            }
+        )
     return out
 
 
@@ -228,10 +246,12 @@ def suggest_refs(db, artwork_ref, limit=5) -> list:
     cand = db.execute(
         "SELECT DISTINCT ref_code, ref_norm FROM material_uom_dims "
         "WHERE ref_norm = ? OR ref_norm LIKE ? OR ref_norm LIKE ? LIMIT 500",
-        (qn, f"{prefix}%", f"%{qn}%")).fetchall()
+        (qn, f"{prefix}%", f"%{qn}%"),
+    ).fetchall()
     if not cand:
         return []
     from rapidfuzz import fuzz
+
     scored = []
     for r in cand:
         rn = r["ref_norm"] or ""
@@ -260,7 +280,8 @@ def search_refs(db, q, limit=20) -> list:
     rows = db.execute(
         "SELECT DISTINCT ref_code, ref_norm FROM material_uom_dims "
         "WHERE ref_norm LIKE ? ORDER BY ref_code LIMIT ?",
-        (f"%{qn}%", limit * 4)).fetchall()
+        (f"%{qn}%", limit * 4),
+    ).fetchall()
     out = []
     for r in rows:
         if get_ref_units(db, r["ref_code"]):

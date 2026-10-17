@@ -7,6 +7,7 @@ logowania (429). Wszystko na lekkich trasach — bez ścieżek ML.
 
 Fixtures: tests/conftest.py. Cały plik pomija się bez Flaska.
 """
+
 import pytest
 
 pytest.importorskip("flask")
@@ -87,9 +88,15 @@ def test_login_rate_limit_blocks_after_max_failures(client):
     _set_csrf(client)
     statuses = []
     for _ in range(7):
-        r = client.post("/login", data={
-            "identifier": "it_admin", "password": "zle-haslo", "_csrf_token": CSRF_TOKEN,
-        }, environ_base=ip)
+        r = client.post(
+            "/login",
+            data={
+                "identifier": "it_admin",
+                "password": "zle-haslo",
+                "_csrf_token": CSRF_TOKEN,
+            },
+            environ_base=ip,
+        )
         statuses.append(r.status_code)
         if r.status_code == 429:
             break

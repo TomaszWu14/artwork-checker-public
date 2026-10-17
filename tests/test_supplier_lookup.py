@@ -1,6 +1,8 @@
 """tests/test_supplier_lookup.py — wyszukiwanie dostawcy jest bez rozróżniania
 wielkości liter (BUGFIX: 'shieldco' nie znajdował 'SHIELDCO', 'fg'≠'FG')."""
+
 import sys, os, sqlite3
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import supplier_master as SUP
 
@@ -8,9 +10,13 @@ import supplier_master as SUP
 def _conn():
     c = sqlite3.connect(":memory:")
     c.row_factory = sqlite3.Row
-    c.execute("CREATE TABLE suppliers (id INTEGER PRIMARY KEY, code TEXT, name TEXT, "
-              "producer_code TEXT, active INTEGER DEFAULT 1)")
-    c.execute("INSERT INTO suppliers(code,name,producer_code,active) VALUES('SHIELDCO','Shieldco','FG',1)")
+    c.execute(
+        "CREATE TABLE suppliers (id INTEGER PRIMARY KEY, code TEXT, name TEXT, "
+        "producer_code TEXT, active INTEGER DEFAULT 1)"
+    )
+    c.execute(
+        "INSERT INTO suppliers(code,name,producer_code,active) VALUES('SHIELDCO','Shieldco','FG',1)"
+    )
     c.commit()
     return c
 

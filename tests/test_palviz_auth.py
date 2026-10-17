@@ -5,6 +5,7 @@ Bug: `if not require_role("manager")` w blueprints/palviz.py nigdy nie blokował
 Fix: dekorator @require_role("manager"). Te testy pilnują, że user dostaje 403,
 a manager przechodzi bramkę uprawnień (nie 403).
 """
+
 from tests.conftest import CSRF_TOKEN, set_session_csrf
 
 

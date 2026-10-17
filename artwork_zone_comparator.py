@@ -12,6 +12,7 @@ import base64, difflib, io, json
 try:
     from PIL import Image
     import numpy as np
+
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
@@ -19,12 +20,13 @@ except ImportError:
 
 # ── Pomocnicze ─────────────────────────────────────────────────────────────────
 
+
 def _b64_to_img(b64: str):
     if not HAS_PIL or not b64:
         return None
     try:
         with Image.open(io.BytesIO(base64.b64decode(b64))) as _im:
-            return _im.convert("RGB")   # convert() zwraca nowy obraz; oryginał zamknięty
+            return _im.convert("RGB")  # convert() zwraca nowy obraz; oryginał zamknięty
     except Exception:
         return None
 
@@ -45,8 +47,8 @@ def _crop(img, zone: dict):
     if img is None or not zone:
         return None
     W, H = img.size
-    x1 = max(0, int(zone.get("x_pct", 0)  / 100 * W))
-    y1 = max(0, int(zone.get("y_pct", 0)  / 100 * H))
+    x1 = max(0, int(zone.get("x_pct", 0) / 100 * W))
+    y1 = max(0, int(zone.get("y_pct", 0) / 100 * H))
     x2 = min(W, int((zone.get("x_pct", 0) + zone.get("w_pct", 100)) / 100 * W))
     y2 = min(H, int((zone.get("y_pct", 0) + zone.get("h_pct", 100)) / 100 * H))
     if x2 <= x1 or y2 <= y1:
@@ -60,8 +62,9 @@ def _ocr(crop) -> str:
         return ""
     try:
         import pytesseract
+
         w, h = crop.size
-        if w == 0 or h == 0:   # BUGFIX: pusty crop → resize(0,0) wywala PIL
+        if w == 0 or h == 0:  # BUGFIX: pusty crop → resize(0,0) wywala PIL
             return ""
         scale = max(1, 1800 // max(w, h, 1))
         if scale > 1:
@@ -97,17 +100,18 @@ def _text_diff(text_a: str, text_b: str) -> list:
     for op, i1, i2, j1, j2 in difflib.SequenceMatcher(None, la, lb).get_opcodes():
         if op == "equal":
             for k in range(i2 - i1):
-                rows.append({"a": la[i1+k], "b": lb[j1+k], "status": "equal"})
+                rows.append({"a": la[i1 + k], "b": lb[j1 + k], "status": "equal"})
         else:
             for k in range(max(i2 - i1, j2 - j1)):
-                a = la[i1+k] if (i1+k) < i2 else ""
-                b = lb[j1+k] if (j1+k) < j2 else ""
+                a = la[i1 + k] if (i1 + k) < i2 else ""
+                b = lb[j1 + k] if (j1 + k) < j2 else ""
                 st = "changed" if a and b else ("only_a" if a else "only_b")
                 rows.append({"a": a, "b": b, "status": st})
     return rows
 
 
 # ── Główna funkcja ─────────────────────────────────────────────────────────────
+
 
 def compare_zone_pairs(img_a_b64: str, img_b_b64: str, zones: list) -> list:
     """
@@ -132,10 +136,10 @@ def compare_zone_pairs(img_a_b64: str, img_b_b64: str, zones: list) -> list:
 
     results = []
     for zone in zones:
-        za    = zone.get("zone_a") or {}
-        zb    = zone.get("zone_b") or {}
+        za = zone.get("zone_a") or {}
+        zb = zone.get("zone_b") or {}
         ztype = zone.get("type", "both")
-        name  = zone.get("name", "Region")
+        name = zone.get("name", "Region")
 
         crop_a = _crop(img_a, za)
         crop_b = _crop(img_b, zb)
@@ -143,7 +147,7 @@ def compare_zone_pairs(img_a_b64: str, img_b_b64: str, zones: list) -> list:
         # OCR
         text_a = _ocr(crop_a) if ztype in ("text", "both") else ""
         text_b = _ocr(crop_b) if ztype in ("text", "both") else ""
-        diffs  = _text_diff(text_a, text_b) if (text_a or text_b) else []
+        diffs = _text_diff(text_a, text_b) if (text_a or text_b) else []
 
         # Pixel similarity
         sim = _pixel_similarity(crop_a, crop_b) if ztype in ("graphic", "both") else None
@@ -157,37 +161,50 @@ def compare_zone_pairs(img_a_b64: str, img_b_b64: str, zones: list) -> list:
         else:
             status, css = "Zgodny", "status-ok"
 
-        results.append({
-            "name":             name,
-            "type":             ztype,
-            "crop_a_b64":       _img_to_b64(crop_a),
-            "crop_b_b64":       _img_to_b64(crop_b),
-            "text_a":           text_a,
-            "text_b":           text_b,
-            "text_diffs":       diffs,
-            "pixel_similarity": sim,
-            "status":           status,
-            "status_class":     css,
-        })
+        results.append(
+            {
+                "name": name,
+                "type": ztype,
+                "crop_a_b64": _img_to_b64(crop_a),
+                "crop_b_b64": _img_to_b64(crop_b),
+                "text_a": text_a,
+                "text_b": text_b,
+                "text_diffs": diffs,
+                "pixel_similarity": sim,
+                "status": status,
+                "status_class": css,
+            }
+        )
 
     return results
 
 
 # ── Szablony stref ─────────────────────────────────────────────────────────────
 
+
 def save_zone_template(name: str, zones: list, file_a: str = "", file_b: str = "") -> str:
     """Zapisuje szablon stref do bazy settings. Zwraca klucz."""
     import time
     from db import get_db
-    db  = get_db()
+
+    db = get_db()
     key = f"ztpl_{int(time.time() * 1000)}"
     try:
         db.execute(
             "INSERT INTO settings(category,key,value) VALUES(?,?,?)",
-            ("artwork_zones", key, json.dumps({
-                "name": name, "zones": zones,
-                "file_a": file_a, "file_b": file_b,
-            }, ensure_ascii=False))
+            (
+                "artwork_zones",
+                key,
+                json.dumps(
+                    {
+                        "name": name,
+                        "zones": zones,
+                        "file_a": file_a,
+                        "file_b": file_b,
+                    },
+                    ensure_ascii=False,
+                ),
+            ),
         )
         db.commit()
     finally:
@@ -199,7 +216,8 @@ def list_zone_templates() -> list:
     """Zwraca listę zapisanych szablonów stref."""
     try:
         from db import get_db
-        db   = get_db()
+
+        db = get_db()
         try:
             rows = db.execute(
                 "SELECT key,value FROM settings WHERE category='artwork_zones' ORDER BY id DESC"
@@ -222,9 +240,12 @@ def list_zone_templates() -> list:
 def delete_zone_template(template_id: str) -> bool:
     try:
         from db import get_db
+
         db = get_db()
         try:
-            db.execute("DELETE FROM settings WHERE category='artwork_zones' AND key=?", (template_id,))
+            db.execute(
+                "DELETE FROM settings WHERE category='artwork_zones' AND key=?", (template_id,)
+            )
             db.commit()
         finally:
             db.close()

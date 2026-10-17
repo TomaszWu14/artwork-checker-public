@@ -21,6 +21,7 @@ Przykład (najpierw test na 40 plikach):
       --batch 20 --limit 40 --dry-run
   # potem bez --dry-run, a na końcu bez --limit
 """
+
 import argparse
 import getpass
 import json
@@ -45,9 +46,12 @@ def login(session, base, user, pw):
     r.raise_for_status()
     m = _CSRF_FORM.search(r.text)
     token = m.group(1) if m else ""
-    r = session.post(base + "/login",
-                     data={"username": user, "password": pw, "_csrf_token": token},
-                     timeout=30, allow_redirects=True)
+    r = session.post(
+        base + "/login",
+        data={"username": user, "password": pw, "_csrf_token": token},
+        timeout=30,
+        allow_redirects=True,
+    )
     if r.status_code >= 400 or r.url.rstrip("/").endswith("/login"):
         sys.exit("Logowanie nieudane — sprawdź login/hasło i rolę (wymagany manager).")
     r = session.get(base + "/artwork/profiles", timeout=30)
@@ -64,7 +68,7 @@ def iter_pdfs(root):
 
 def chunked(seq, n):
     for i in range(0, len(seq), n):
-        yield seq[i:i + n]
+        yield seq[i : i + n]
 
 
 def main():
@@ -72,10 +76,14 @@ def main():
     ap.add_argument("--base-url", required=True, help="np. https://twoja-instancja")
     ap.add_argument("--user", required=True, help="login managera w DocCompare")
     ap.add_argument("--password", default=None, help="hasło (lub env DC_PASSWORD / pytanie)")
-    ap.add_argument("--root", required=True, help='korzeń, np. "Z:\\ISO\\WZORY ETYKIET I INSTRUKCJI"')
+    ap.add_argument(
+        "--root", required=True, help='korzeń, np. "Z:\\ISO\\WZORY ETYKIET I INSTRUKCJI"'
+    )
     ap.add_argument("--batch", type=int, default=20, help="plików na jedno żądanie (domyślnie 20)")
     ap.add_argument("--manifest", default="uploaded_masters.json", help="plik postępu (wznawianie)")
-    ap.add_argument("--limit", type=int, default=0, help="0 = bez limitu; >0 = tylko N plików (test)")
+    ap.add_argument(
+        "--limit", type=int, default=0, help="0 = bez limitu; >0 = tylko N plików (test)"
+    )
     ap.add_argument("--dry-run", action="store_true", help="tylko wypisz, nic nie wysyłaj")
     args = ap.parse_args()
 
@@ -94,7 +102,7 @@ def main():
 
     all_files = [p for p in iter_pdfs(root_abs) if os.path.abspath(p) not in done]
     if args.limit:
-        all_files = all_files[:args.limit]
+        all_files = all_files[: args.limit]
     print(f"Do wgrania: {len(all_files)} PDF (z {root_abs})")
     if not all_files:
         return
@@ -122,16 +130,21 @@ def main():
         rel = os.path.relpath(dpath, root_abs).replace("\\", "/")
         rel = "" if rel == "." else rel
         for batch in chunked(files, args.batch):
-            handles = [("files[]", (os.path.basename(p), open(p, "rb"), "application/pdf"))
-                       for p in batch]
+            handles = [
+                ("files[]", (os.path.basename(p), open(p, "rb"), "application/pdf")) for p in batch
+            ]
             data = [("source_paths[]", p) for p in batch] + [("folder_path", rel)]
             sent = False
             for attempt in range(4):
                 try:
-                    r = session.post(base + "/api/artwork/masters/upload",
-                                     files=handles, data=data,
-                                     headers={"X-CSRF-Token": token}, timeout=900)
-                    if r.status_code == 403:          # token wygasł → przeloguj
+                    r = session.post(
+                        base + "/api/artwork/masters/upload",
+                        files=handles,
+                        data=data,
+                        headers={"X-CSRF-Token": token},
+                        timeout=900,
+                    )
+                    if r.status_code == 403:  # token wygasł → przeloguj
                         token = login(session, base, args.user, pw)
                         continue
                     r.raise_for_status()
@@ -143,7 +156,7 @@ def main():
                     sent = True
                     break
                 except Exception as e:
-                    wait = 2 ** attempt
+                    wait = 2**attempt
                     print(f"   błąd paczki ({str(e)[:120]}); ponawiam za {wait}s")
                     time.sleep(wait)
             if not sent:
@@ -155,7 +168,9 @@ def main():
                     pass
             json.dump(sorted(done), open(args.manifest, "w", encoding="utf-8"))
             processed += len(batch)
-            print(f"  [{rel or '/'}] postęp {processed}/{len(all_files)}  ok={ok_total} err={err_total}")
+            print(
+                f"  [{rel or '/'}] postęp {processed}/{len(all_files)}  ok={ok_total} err={err_total}"
+            )
 
     print(f"\nGOTOWE. Wgrane OK={ok_total}, błędy={err_total}. Manifest: {args.manifest}")
 

@@ -1,4 +1,5 @@
 """tests/test_uom.py — jednostki miary i auto-przeliczanie ilości."""
+
 import sys
 import os
 
@@ -10,7 +11,7 @@ def test_canonical_unit_aliases_and_plural():
     assert uom.canonical_unit("szt.") == "PCS"
     assert uom.canonical_unit("PCS") == "PCS"
     assert uom.canonical_unit("Karton") == "CTN"
-    assert uom.canonical_unit("Kartony") == "CTN"     # liczba mnoga
+    assert uom.canonical_unit("Kartony") == "CTN"  # liczba mnoga
     assert uom.canonical_unit("PIECES") == "PCS"
     assert uom.canonical_unit("") == ""
 
@@ -31,14 +32,14 @@ def test_canonical_unit_polish_plurals():
 def test_get_factor_global_and_inverse():
     conv = [{"ref_norm": "*", "unit_from": "CTN", "unit_to": "PCS", "factor": 1000.0}]
     assert uom.get_factor("karton", "szt", "ANY", conv) == 1000.0
-    assert uom.get_factor("szt", "karton", "ANY", conv) == 0.001   # odwrotny kierunek
+    assert uom.get_factor("szt", "karton", "ANY", conv) == 0.001  # odwrotny kierunek
     assert uom.get_factor("CTN", "PAL", "ANY", conv) is None
-    assert uom.get_factor("PCS", "PCS", "ANY", conv) == 1.0          # ta sama jednostka
+    assert uom.get_factor("PCS", "PCS", "ANY", conv) == 1.0  # ta sama jednostka
 
 
 def test_get_factor_per_ref_overrides_global():
     conv = [
-        {"ref_norm": "*",    "unit_from": "CTN", "unit_to": "PCS", "factor": 1000.0},
+        {"ref_norm": "*", "unit_from": "CTN", "unit_to": "PCS", "factor": 1000.0},
         {"ref_norm": "AB12", "unit_from": "CTN", "unit_to": "PCS", "factor": 500.0},
     ]
     assert uom.get_factor("CTN", "PCS", "AB-12", conv) == 500.0

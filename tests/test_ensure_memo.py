@@ -7,6 +7,7 @@ tanie lokalnie), ale wrapper _PGConnection już tak — i to tam liczy się efek
 Tu symulujemy połączenie przyjmujące atrybuty i sprawdzamy, że drugie wywołanie
 ensure NIE odpala ponownie DDL.
 """
+
 import os
 import sqlite3
 import sys
@@ -21,6 +22,7 @@ import artwork_index as ai
 class _AttrConn:
     """Owija sqlite3.Connection, ale (w przeciwieństwie do niej) przyjmuje
     dowolne atrybuty — jak produkcyjny _PGConnection. Liczy wywołania execute."""
+
     def __init__(self):
         self._c = sqlite3.connect(":memory:")
         self._c.row_factory = sqlite3.Row
@@ -66,5 +68,5 @@ def test_sqlite_connection_still_ensures_each_call():
     db = sqlite3.connect(":memory:")
     db.row_factory = sqlite3.Row
     mm.ensure_table(db)
-    mm.ensure_table(db)        # nie może rzucić
+    mm.ensure_table(db)  # nie może rzucić
     assert mm.get_material(db, "NOPE") is None

@@ -10,23 +10,25 @@ Co robi:
   3. Migruje bazę danych
   4. Weryfikuje składnię
 """
+
 import os, sys, shutil, subprocess
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 FILES_TO_COPY = {
     # źródło (obok deploy.py) → cel (w projekcie)
-    "enhanced_comparator.py":        "enhanced_comparator.py",
-    "ai_validator.py":               "ai_validator.py",
-    "ai_learning.py":                "ai_learning.py",
-    "artwork_comparator.py":         "artwork_comparator.py",
-    "migrate_db.py":                 "migrate_db.py",
-    "app.py":                        "app.py",
+    "enhanced_comparator.py": "enhanced_comparator.py",
+    "ai_validator.py": "ai_validator.py",
+    "ai_learning.py": "ai_learning.py",
+    "artwork_comparator.py": "artwork_comparator.py",
+    "migrate_db.py": "migrate_db.py",
+    "app.py": "app.py",
 }
 TEMPLATES = {
-    "artwork.html":  os.path.join("templates", "artwork.html"),
-    "kpi.html":      os.path.join("templates", "kpi.html"),
+    "artwork.html": os.path.join("templates", "artwork.html"),
+    "kpi.html": os.path.join("templates", "kpi.html"),
 }
+
 
 def run():
     print("=" * 56)
@@ -65,16 +67,16 @@ def run():
     patch_script = os.path.join(HERE, "patch_templates.py")
     if os.path.exists(patch_script):
         print("\n── Patch nawigacji templates ──")
-        result = subprocess.run([sys.executable, patch_script],
-                                capture_output=True, text=True)
+        result = subprocess.run([sys.executable, patch_script], capture_output=True, text=True)
         for line in result.stdout.splitlines():
             if line.strip():
                 print(f"  {line.strip()}")
 
     # Składnia app.py
     print("\n── Weryfikacja ──")
-    r = subprocess.run([sys.executable, "-m", "py_compile", "app.py"],
-                       capture_output=True, text=True)
+    r = subprocess.run(
+        [sys.executable, "-m", "py_compile", "app.py"], capture_output=True, text=True
+    )
     if r.returncode == 0:
         print("  ✅  app.py — składnia OK")
     else:
@@ -84,8 +86,7 @@ def run():
     # Migracja bazy
     if os.path.exists("migrate_db.py"):
         print("\n── Migracja bazy ──")
-        r2 = subprocess.run([sys.executable, "migrate_db.py"],
-                            capture_output=True, text=True)
+        r2 = subprocess.run([sys.executable, "migrate_db.py"], capture_output=True, text=True)
         for line in r2.stdout.splitlines():
             if "✅" in line or "❌" in line or "Migracja" in line:
                 print(f"  {line.strip()}")
@@ -102,6 +103,7 @@ def run():
     print("  Nowe funkcje:")
     print("  → http://192.0.2.196:5000/artwork    🎨 Artwork")
     print("  → http://192.0.2.196:5000/kpi        📊 KPI")
+
 
 if __name__ == "__main__":
     run()

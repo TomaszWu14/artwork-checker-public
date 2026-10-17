@@ -10,6 +10,7 @@ Testy są CZYSTE — artwork_3d importuje na poziomie modułu tylko stdlib (pymu
 są lazy), więc suite nie potrzebuje ani PDF-a, ani zależności ML.
 Uruchom: pytest tests/
 """
+
 import os
 import sys
 
@@ -19,6 +20,7 @@ from artwork_3d import detect_package_type, parse_dimensions_mm, pick_checked_op
 
 
 # ── 1. Wymiary: jednostka ────────────────────────────────────────────────────
+
 
 def test_dims_without_unit_are_mm():
     assert parse_dimensions_mm("Rozmiar [mm] 145 x 66 x 274") == (145.0, 66.0, 274.0)
@@ -61,9 +63,11 @@ def test_dims_none_when_absent():
 # ── 2. Checkbox typu opakowania ──────────────────────────────────────────────
 # Współrzędne odwzorowują tabelkę z mastera 805016_box.pdf (zaznaczone "pośrednie").
 
-OPCJE = [("indywidualne", 1264.0, 187.0),
-         ("pośrednie", 1264.0, 198.8),
-         ("karton transportowy", 1264.0, 210.6)]
+OPCJE = [
+    ("indywidualne", 1264.0, 187.0),
+    ("pośrednie", 1264.0, 198.8),
+    ("karton transportowy", 1264.0, 210.6),
+]
 PUSTY_1 = (1255.1, 184.5, 1261.0, 190.2, False)
 PELNY_2 = (1255.4, 196.1, 1261.3, 201.8, True)
 PUSTY_3 = (1255.2, 208.3, 1261.1, 214.0, False)
@@ -105,6 +109,7 @@ def test_empty_inputs():
 
 
 # ── 3. Fallback tekstowy ─────────────────────────────────────────────────────
+
 
 def test_text_fallback_cannot_tell_which_is_checked():
     # Tabelka wymienia wszystkie trzy etykiety, więc po samym tekście nie da się poznać

@@ -3,6 +3,7 @@
 Dockerfile.slim musi budować z tego samego obrazu, który workflow publikuje — inaczej deploy
 pobierze stary, niezablokowany obraz `doccompare-ml-base` starej aplikacji.
 """
+
 import pathlib
 import re
 

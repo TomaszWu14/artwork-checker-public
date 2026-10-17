@@ -10,6 +10,7 @@ tylko metadane (REF, ścieżka, rewizja), żeby:
 
 Moduł jest „czysty": operuje na połączeniu DB przekazanym z app.py.
 """
+
 from __future__ import annotations
 
 import re
@@ -33,18 +34,24 @@ def normalize_ref(raw) -> str:
 # rozróżniamy. Dzięki temu dla kartonu proponujemy „...carton..." a nie „...pouch".
 _LEVEL_KEYWORDS = {
     "sztuka": ("single", "unit", "piece", "pcs"),
-    "op":     ("pouch", "saszetka", "sachet", "torebka", "blister"),
-    "opz":    ("inner", "zbiorcze", "wrap"),
+    "op": ("pouch", "saszetka", "sachet", "torebka", "blister"),
+    "opz": ("inner", "zbiorcze", "wrap"),
     "karton": ("karton", "carton", "case"),
 }
 # Etykiety z UI (SZT/OP/OPZ/KAR) i synonimy → klucz _LEVEL_KEYWORDS.
 _LEVEL_ALIASES = {
-    "szt": "sztuka", "sztuka": "sztuka", "single": "sztuka",
-    "op": "op", "pouch": "op",
+    "szt": "sztuka",
+    "sztuka": "sztuka",
+    "single": "sztuka",
+    "op": "op",
+    "pouch": "op",
     "opz": "opz",
-    "kar": "karton", "karton": "karton", "carton": "karton", "box": "karton",
+    "kar": "karton",
+    "karton": "karton",
+    "carton": "karton",
+    "box": "karton",
 }
-_LEVEL_SEP = "\x1f"   # rozdziela REF od poziomu w kluczu potwierdzenia (niewidoczny)
+_LEVEL_SEP = "\x1f"  # rozdziela REF od poziomu w kluczu potwierdzenia (niewidoczny)
 
 
 def _norm_level(level) -> str:
@@ -92,8 +99,9 @@ def _pick_level(rows: list, level=None) -> dict | None:
     if matching:
         return matching[0]
     other = _other_level_keywords(level)
-    non_conflict = [r for r in rows
-                    if not any(k in str(r.get("filename", "")).lower() for k in other)]
+    non_conflict = [
+        r for r in rows if not any(k in str(r.get("filename", "")).lower() for k in other)
+    ]
     return non_conflict[0] if non_conflict else None
 
 
@@ -198,8 +206,10 @@ def ensure_alias_table(db) -> None:
 
 def _load_aliases(db) -> list:
     ensure_alias_table(db)
-    return [dict(r) for r in db.execute(
-        "SELECT ref_norm, ref_code, pattern FROM artwork_alias").fetchall()]
+    return [
+        dict(r)
+        for r in db.execute("SELECT ref_norm, ref_code, pattern FROM artwork_alias").fetchall()
+    ]
 
 
 def add_alias(db, ref_code, pattern, replace: bool = False) -> dict:
@@ -221,20 +231,26 @@ def add_alias(db, ref_code, pattern, replace: bool = False) -> dict:
         db.execute("UPDATE artwork_index SET ref_norm='', ref_code='' WHERE ref_norm=?", (rn,))
     db.execute(
         "INSERT INTO artwork_alias(ref_norm, ref_code, pattern) VALUES(?,?,?) "
-        "ON CONFLICT(ref_norm, pattern) DO NOTHING", (rn, str(ref_code)[:100], pat[:300]))
+        "ON CONFLICT(ref_norm, pattern) DO NOTHING",
+        (rn, str(ref_code)[:100], pat[:300]),
+    )
     esc = pat.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
     cur = db.execute(
         "UPDATE artwork_index SET ref_norm=?, ref_code=? WHERE filename LIKE ? ESCAPE '\\'",
-        (rn, str(ref_code)[:100], f"%{esc}%"))
+        (rn, str(ref_code)[:100], f"%{esc}%"),
+    )
     db.commit()
     return {"ok": True, "matched": cur.rowcount}
 
 
 def list_aliases(db) -> list:
     ensure_alias_table(db)
-    return [dict(r) for r in db.execute(
-        "SELECT id, ref_code, ref_norm, pattern FROM artwork_alias ORDER BY ref_code LIMIT 1000"
-    ).fetchall()]
+    return [
+        dict(r)
+        for r in db.execute(
+            "SELECT id, ref_code, ref_norm, pattern FROM artwork_alias ORDER BY ref_code LIMIT 1000"
+        ).fetchall()
+    ]
 
 
 def delete_alias(db, alias_id) -> dict:
@@ -275,9 +291,17 @@ def sync_entries(db, entries: list) -> dict:
             "packaging_type=excluded.packaging_type, revision=excluded.revision, "
             "revision_rank=excluded.revision_rank, ean=excluded.ean, "
             "source_mtime=excluded.source_mtime, scanned_at=datetime('now')",
-            (rec["ref_norm"], rec["ref_code"], rec["filename"], rec["rel_path"],
-             rec["packaging_type"], rec["revision"], rec["revision_rank"],
-             rec["ean"], rec["source_mtime"]),
+            (
+                rec["ref_norm"],
+                rec["ref_code"],
+                rec["filename"],
+                rec["rel_path"],
+                rec["packaging_type"],
+                rec["revision"],
+                rec["revision_rank"],
+                rec["ean"],
+                rec["source_mtime"],
+            ),
         )
         indexed += 1
     db.commit()
@@ -308,8 +332,8 @@ def import_listing(db, rows: list) -> dict:
     header = [str(c or "").strip().lower() for c in rows[0]]
 
     def _find(*needles):
-        return next((i for i, h in enumerate(header)
-                     if any(n in h for n in needles)), None)
+        return next((i for i, h in enumerate(header) if any(n in h for n in needles)), None)
+
     path_i = _find("fullname", "rel_path", "ścież", "sciez", "path", "plik", "filename")
     has_header = path_i is not None
     mtime_i = _find("write", "modif", "mtime", "data", "zmod") if has_header else None
@@ -320,11 +344,18 @@ def import_listing(db, rows: list) -> dict:
     for r in data:
         total += 1
         if has_header:
-            if folder_i is not None and folder_i < len(r) and \
-               str(r[folder_i]).strip().lower() in ("true", "1", "prawda", "tak", "yes"):
+            if (
+                folder_i is not None
+                and folder_i < len(r)
+                and str(r[folder_i]).strip().lower() in ("true", "1", "prawda", "tak", "yes")
+            ):
                 continue
-            cells = [(str(r[path_i]) if path_i < len(r) else "",
-                      str(r[mtime_i]) if (mtime_i is not None and mtime_i < len(r)) else "")]
+            cells = [
+                (
+                    str(r[path_i]) if path_i < len(r) else "",
+                    str(r[mtime_i]) if (mtime_i is not None and mtime_i < len(r)) else "",
+                )
+            ]
         else:
             cells = [(str(c or ""), "") for c in r]
         for cell, mtime in cells:
@@ -335,8 +366,9 @@ def import_listing(db, rows: list) -> dict:
             fn = norm.rsplit("/", 1)[-1].strip()
             if not fn.lower().endswith(".pdf"):
                 continue
-            entries.append({"filename": fn[:300], "rel_path": norm[:600],
-                            "source_mtime": _norm_mtime(mtime)})
+            entries.append(
+                {"filename": fn[:300], "rel_path": norm[:600], "source_mtime": _norm_mtime(mtime)}
+            )
     res = sync_entries(db, entries)
     res["total_lines"] = total
     res["candidates"] = len(entries)
@@ -369,10 +401,13 @@ def index_stats(db) -> dict:
 def packaging_types(db) -> list:
     """Lista niepustych typów opakowań w indeksie (do filtra biblioteki)."""
     ensure_table(db)
-    return [r[0] for r in db.execute(
-        "SELECT DISTINCT packaging_type FROM artwork_index "
-        "WHERE packaging_type<>'' ORDER BY packaging_type"
-    ).fetchall()]
+    return [
+        r[0]
+        for r in db.execute(
+            "SELECT DISTINCT packaging_type FROM artwork_index "
+            "WHERE packaging_type<>'' ORDER BY packaging_type"
+        ).fetchall()
+    ]
 
 
 # ponytail: cap the q-present in-memory rerank at 500 WHERE-matched candidates;
@@ -381,8 +416,17 @@ def packaging_types(db) -> list:
 _RERANK_CAP = 500
 
 
-def browse(db, q="", packaging="", current_only=False, hide_ignored=False,
-           variant="", marm_linked=False, page=1, per_page=50) -> dict:
+def browse(
+    db,
+    q="",
+    packaging="",
+    current_only=False,
+    hide_ignored=False,
+    variant="",
+    marm_linked=False,
+    page=1,
+    per_page=50,
+) -> dict:
     """Przeszukiwalna, stronicowana lista masterów (biblioteka, 31k plików).
 
     q          — fragment nazwy pliku / REF (LIKE substring; ref też po ref_norm)
@@ -409,10 +453,12 @@ def browse(db, q="", packaging="", current_only=False, hide_ignored=False,
     qn = ""
     if q:
         from db import escape_like
-        qn = normalize_ref(q)          # tylko [A-Z0-9] → bez wildcardów LIKE
-        qe = escape_like(q)            # literalne %/_/\ (ESCAPE '\'); jedno źródło w db.py
-        where.append("(filename LIKE ? ESCAPE '\\' OR ref_code LIKE ? ESCAPE '\\' "
-                     "OR ref_norm LIKE ?)")
+
+        qn = normalize_ref(q)  # tylko [A-Z0-9] → bez wildcardów LIKE
+        qe = escape_like(q)  # literalne %/_/\ (ESCAPE '\'); jedno źródło w db.py
+        where.append(
+            "(filename LIKE ? ESCAPE '\\' OR ref_code LIKE ? ESCAPE '\\' OR ref_norm LIKE ?)"
+        )
         params += [f"%{qe}%", f"%{qe}%", f"%{qn}%"]
     if packaging:
         where.append("packaging_type = ?")
@@ -420,17 +466,20 @@ def browse(db, q="", packaging="", current_only=False, hide_ignored=False,
     # FACET-01: filtr po wariancie renderu 3D (ma dieline/marm/photo w rejestrze).
     variant = (variant or "").strip()
     from constants import RenderVariant as _RV
+
     if variant in {v.value for v in _RV}:
         where.append(
             "EXISTS (SELECT 1 FROM artwork_render_registry r "
             "WHERE r.ref_norm=artwork_index.ref_norm AND artwork_index.ref_norm<>'' "
-            "AND r.variant=?)")
+            "AND r.variant=?)"
+        )
         params.append(variant)
     # FACET-01: filtr „ma powiązanie MARM" (artwork_marm_link po REF).
     if marm_linked:
         where.append(
             "EXISTS (SELECT 1 FROM artwork_marm_link l "
-            "WHERE l.art_ref_norm=artwork_index.ref_norm AND artwork_index.ref_norm<>'')")
+            "WHERE l.art_ref_norm=artwork_index.ref_norm AND artwork_index.ref_norm<>'')"
+        )
     if current_only:
         # Odrzuć rekord, jeśli dla tego samego REF istnieje wyższy revision_rank.
         where.append(
@@ -441,6 +490,7 @@ def browse(db, q="", packaging="", current_only=False, hide_ignored=False,
         # Ukryj pliki ręcznie oznaczone do pominięcia (Faza 4 portalu zarządzania).
         # Lazy import — cykl tylko przy imporcie modułu; tu wykonuje się dopiero w runtime.
         import artwork_manage as _am
+
         _am.ensure_status_table(db)
         where.append(
             "NOT EXISTS (SELECT 1 FROM artwork_file_status s "
@@ -456,8 +506,9 @@ def browse(db, q="", packaging="", current_only=False, hide_ignored=False,
         per_page, page = 50, 1
     offset = (page - 1) * per_page
 
-    select_cols = ("ref_norm, ref_code, filename, rel_path, packaging_type, "
-                   "revision, revision_rank, ean")
+    select_cols = (
+        "ref_norm, ref_code, filename, rel_path, packaging_type, revision, revision_rank, ean"
+    )
     order_params = []
     order_sql = "ORDER BY "
     if qn:
@@ -469,37 +520,53 @@ def browse(db, q="", packaging="", current_only=False, hide_ignored=False,
     order_sql += "ref_code, revision_rank DESC, filename"
 
     if qn:
-        candidates = [dict(r) for r in db.execute(
-            # Bandit B608: SQL złożony wyłącznie ze stałych fragmentów w kodzie; dane użytkownika idą jako parametry ?.
-            f"SELECT {select_cols} FROM artwork_index{wsql} {order_sql} LIMIT ?",  # nosec B608
-            params + order_params + [_RERANK_CAP + 1]
-        ).fetchall()]
+        candidates = [
+            dict(r)
+            for r in db.execute(
+                # Bandit B608: SQL złożony wyłącznie ze stałych fragmentów w kodzie; dane użytkownika idą jako parametry ?.
+                f"SELECT {select_cols} FROM artwork_index{wsql} {order_sql} LIMIT ?",  # nosec B608
+                params + order_params + [_RERANK_CAP + 1],
+            ).fetchall()
+        ]
         if len(candidates) > _RERANK_CAP:
             # Candidate set too large to rerank in memory — SQL LIMIT/OFFSET
             # fallback; the exact-pin CASE still applies, only the rapidfuzz
             # secondary ordering of the rest is skipped for this query.
-            rows = [dict(r) for r in db.execute(
-                # Bandit B608: SQL złożony wyłącznie ze stałych fragmentów w kodzie; dane użytkownika idą jako parametry ?.
-                f"SELECT {select_cols} FROM artwork_index{wsql} {order_sql} "  # nosec B608
-                "LIMIT ? OFFSET ?", params + order_params + [per_page, offset]
-            ).fetchall()]
+            rows = [
+                dict(r)
+                for r in db.execute(
+                    # Bandit B608: SQL złożony wyłącznie ze stałych fragmentów w kodzie; dane użytkownika idą jako parametry ?.
+                    f"SELECT {select_cols} FROM artwork_index{wsql} {order_sql} "  # nosec B608
+                    "LIMIT ? OFFSET ?",
+                    params + order_params + [per_page, offset],
+                ).fetchall()
+            ]
         else:
             from rapidfuzz import fuzz
 
             def _rank_key(row):
                 pinned = 0 if row["ref_norm"] == qn else 1
                 score = 100.0 if pinned == 0 else fuzz.ratio(qn, row["ref_norm"] or "")
-                return (pinned, -score, row["ref_code"] or "",
-                        -(row["revision_rank"] or 0), row["filename"] or "")
+                return (
+                    pinned,
+                    -score,
+                    row["ref_code"] or "",
+                    -(row["revision_rank"] or 0),
+                    row["filename"] or "",
+                )
 
             candidates.sort(key=_rank_key)
-            rows = candidates[offset:offset + per_page]
+            rows = candidates[offset : offset + per_page]
     else:
-        rows = [dict(r) for r in db.execute(
-            # Bandit B608: SQL złożony wyłącznie ze stałych fragmentów w kodzie; dane użytkownika idą jako parametry ?.
-            f"SELECT {select_cols} FROM artwork_index{wsql} {order_sql} "  # nosec B608
-            "LIMIT ? OFFSET ?", params + order_params + [per_page, offset]
-        ).fetchall()]
+        rows = [
+            dict(r)
+            for r in db.execute(
+                # Bandit B608: SQL złożony wyłącznie ze stałych fragmentów w kodzie; dane użytkownika idą jako parametry ?.
+                f"SELECT {select_cols} FROM artwork_index{wsql} {order_sql} "  # nosec B608
+                "LIMIT ? OFFSET ?",
+                params + order_params + [per_page, offset],
+            ).fetchall()
+        ]
 
     _attach_has_3d(db, rows)
     _attach_status(db, rows)
@@ -507,9 +574,14 @@ def browse(db, q="", packaging="", current_only=False, hide_ignored=False,
     pages = (total + per_page - 1) // per_page if per_page else 1
     # Lista typów opakowań zmienia się tylko przy sync — licz DISTINCT tylko dla 1. strony
     # (UI wczytuje ją raz), by paginacja nie robiła skanu 31k wierszy na każde kliknięcie.
-    return {"rows": rows, "total": total, "page": page, "pages": pages,
-            "per_page": per_page,
-            "packaging_types": packaging_types(db) if page == 1 else []}
+    return {
+        "rows": rows,
+        "total": total,
+        "page": page,
+        "pages": pages,
+        "per_page": per_page,
+        "packaging_types": packaging_types(db) if page == 1 else [],
+    }
 
 
 def _attach_status(db, rows: list) -> None:
@@ -526,7 +598,7 @@ def _attach_status(db, rows: list) -> None:
         found = db.execute(
             # Bandit B608: interpolowane są tylko placeholdery ? (liczba = długość listy); wartości jako parametry.
             f"SELECT rel_path, status FROM artwork_file_status WHERE rel_path IN ({ph})",  # nosec B608
-            paths
+            paths,
         ).fetchall()
     except Exception:
         return
@@ -543,13 +615,15 @@ def _attach_has_3d(db, rows: list) -> None:
     Mirrors artwork_render_registry.coverage()'s batched-join shape, ref_norm-
     only (artwork_index has no fid, D-04/Phase-1)."""
     from constants import RenderVariant
+
     refnorms = sorted({r["ref_norm"] for r in rows if r.get("ref_norm")})
     by_refnorm: dict = {}
     if refnorms:
         reg_rows = db.execute(
             # Bandit B608: interpolowane są tylko placeholdery ? (liczba = długość listy); wartości jako parametry.
             "SELECT ref_norm, variant FROM artwork_render_registry "  # nosec B608
-            f"WHERE ref_norm IN ({','.join('?' * len(refnorms))})", refnorms
+            f"WHERE ref_norm IN ({','.join('?' * len(refnorms))})",
+            refnorms,
         ).fetchall()
         for rr in reg_rows:
             if rr["ref_norm"]:
@@ -570,10 +644,14 @@ def lookup_best(db, ref, level=None) -> dict | None:
     rn = normalize_ref(ref)
     if not rn:
         return None
-    rows = [dict(r) for r in db.execute(
-        "SELECT * FROM artwork_index WHERE ref_norm=? "
-        "ORDER BY revision_rank DESC, source_mtime DESC, id DESC LIMIT 50", (rn,)
-    ).fetchall()]
+    rows = [
+        dict(r)
+        for r in db.execute(
+            "SELECT * FROM artwork_index WHERE ref_norm=? "
+            "ORDER BY revision_rank DESC, source_mtime DESC, id DESC LIMIT 50",
+            (rn,),
+        ).fetchall()
+    ]
     best = _pick_level(rows, level)
     if best:
         return best
@@ -585,10 +663,14 @@ def lookup_best(db, ref, level=None) -> dict | None:
         for pr in pats:
             pat = pr[0]
             esc = str(pat).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-            alias_rows += [dict(r) for r in db.execute(
-                "SELECT * FROM artwork_index WHERE filename LIKE ? ESCAPE '\\' "
-                "ORDER BY revision_rank DESC, source_mtime DESC, id DESC LIMIT 20", (f"%{esc}%",)
-            ).fetchall()]
+            alias_rows += [
+                dict(r)
+                for r in db.execute(
+                    "SELECT * FROM artwork_index WHERE filename LIKE ? ESCAPE '\\' "
+                    "ORDER BY revision_rank DESC, source_mtime DESC, id DESC LIMIT 20",
+                    (f"%{esc}%",),
+                ).fetchall()
+            ]
         return _pick_level(alias_rows, level)
     except Exception:
         pass
@@ -603,7 +685,8 @@ def all_revisions(db, ref) -> list:
         return []
     rows = db.execute(
         "SELECT * FROM artwork_index WHERE ref_norm=? "
-        "ORDER BY revision_rank DESC, source_mtime DESC, id DESC LIMIT 50", (rn,)
+        "ORDER BY revision_rank DESC, source_mtime DESC, id DESC LIMIT 50",
+        (rn,),
     ).fetchall()
     return [dict(r) for r in rows]
 
@@ -626,12 +709,12 @@ def _tok(s) -> set:
     toks = set(words)
     extra = set()
     for t in words:
-        m = re.fullmatch(r"a(\d{1,4})", t)   # A8 / A10 / A25 → też 8/10/25
+        m = re.fullmatch(r"a(\d{1,4})", t)  # A8 / A10 / A25 → też 8/10/25
         if m:
             extra.add(m.group(1))
-        elif t.isdigit():                     # 8 → też a8
+        elif t.isdigit():  # 8 → też a8
             extra.add("a" + t)
-    for i in range(len(words) - 1):           # sklejone sąsiednie słowa
+    for i in range(len(words) - 1):  # sklejone sąsiednie słowa
         if words[i].isalpha() and words[i + 1].isalpha():
             extra.add(words[i] + words[i + 1])
     return toks | extra
@@ -657,7 +740,8 @@ def suggest_by_text(db, text, limit: int = 10, level=None) -> list:
         esc = k.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         for r in db.execute(
             "SELECT id, filename, ref_code, rel_path, revision, source_mtime FROM artwork_index "
-            "WHERE filename LIKE ? ESCAPE '\\' LIMIT 400", (f"%{esc}%",)
+            "WHERE filename LIKE ? ESCAPE '\\' LIMIT 400",
+            (f"%{esc}%",),
         ).fetchall():
             seen[r["id"]] = dict(r)
     scored = []
@@ -668,7 +752,7 @@ def suggest_by_text(db, text, limit: int = 10, level=None) -> list:
         inter = len(toks & ft)
         if inter < 2:
             continue
-        score = inter / len(toks | ft)   # Jaccard
+        score = inter / len(toks | ft)  # Jaccard
         scored.append((score, inter, d))
     # Korekta wg poziomu opakowania: +0.30 gdy nazwa pasuje do poziomu, −0.30 gdy
     # pasuje do INNEGO poziomu (np. pouch przy szukaniu kartonu).
@@ -688,10 +772,18 @@ def suggest_by_text(db, text, limit: int = 10, level=None) -> list:
     # malejąco), na końcu liczba wspólnych tokenów. Sortowanie najpierw po mtime
     # (string, bywa puste) zakopywało trafne pliki.
     scored.sort(key=lambda x: (x[0], (x[2].get("source_mtime") or ""), x[1]), reverse=True)
-    return [{"filename": d["filename"], "rel_path": d["rel_path"],
-             "ref_code": d["ref_code"], "revision": d.get("revision", ""),
-             "source_mtime": d.get("source_mtime", "") or "",
-             "score": round(s, 2), "shared": i} for s, i, d in scored[:limit]]
+    return [
+        {
+            "filename": d["filename"],
+            "rel_path": d["rel_path"],
+            "ref_code": d["ref_code"],
+            "revision": d.get("revision", ""),
+            "source_mtime": d.get("source_mtime", "") or "",
+            "score": round(s, 2),
+            "shared": i,
+        }
+        for s, i, d in scored[:limit]
+    ]
 
 
 # ── Potwierdzone mapowania artworków + wykrywanie zmiany rewizji ───────────────
@@ -716,7 +808,7 @@ def ensure_confirmed_table(db) -> None:
         pass
 
 
-_MFILE_DATA_COL_ENSURED = False   # czy próbowano już ALTER ADD COLUMN data (raz na proces)
+_MFILE_DATA_COL_ENSURED = False  # czy próbowano już ALTER ADD COLUMN data (raz na proces)
 
 
 def ensure_master_file_table(db) -> None:
@@ -757,8 +849,12 @@ def ensure_master_file_table(db) -> None:
 def available_master_paths(db) -> set:
     """rel_path masterów, których BAJTY mamy w bazie (gotowe do podglądu)."""
     ensure_master_file_table(db)
-    return {r["rel_path"] for r in db.execute(
-        "SELECT rel_path FROM artwork_master_file WHERE data IS NOT NULL").fetchall()}
+    return {
+        r["rel_path"]
+        for r in db.execute(
+            "SELECT rel_path FROM artwork_master_file WHERE data IS NOT NULL"
+        ).fetchall()
+    }
 
 
 def wanted_master_paths(db) -> list:
@@ -769,17 +865,19 @@ def wanted_master_paths(db) -> list:
     have = available_master_paths(db)
     want = set()
     for r in db.execute(
-            "SELECT DISTINCT rel_path FROM artwork_confirmed WHERE COALESCE(rel_path,'')<>''").fetchall():
+        "SELECT DISTINCT rel_path FROM artwork_confirmed WHERE COALESCE(rel_path,'')<>''"
+    ).fetchall():
         want.add(r["rel_path"])
     for r in db.execute(
-            "SELECT master_rel_path FROM artwork_mapping_group "
-            "WHERE COALESCE(master_rel_path,'')<>''").fetchall():
+        "SELECT master_rel_path FROM artwork_mapping_group WHERE COALESCE(master_rel_path,'')<>''"
+    ).fetchall():
         want.add(r["master_rel_path"])
     return sorted(want - have)
 
 
-def record_master_file(db, rel_path, stored_name, content_type="application/pdf",
-                       size=0, data=None) -> None:
+def record_master_file(
+    db, rel_path, stored_name, content_type="application/pdf", size=0, data=None
+) -> None:
     """Zapisz master do bazy (bajty w kolumnie `data`) — trwale, niezależnie od dysku.
     Niezmiennik: wpis ZAWSZE ma bajty. Bez bajtów nie tworzymy/aktualizujemy rekordu
     (inaczej powstałby wpis 'niedostępny' i agent ponawiałby go w nieskończoność)."""
@@ -788,15 +886,17 @@ def record_master_file(db, rel_path, stored_name, content_type="application/pdf"
     if blob is not None and not isinstance(blob, (bytes, bytearray)):
         blob = bytes(blob)
     if not blob:
-        raise ValueError("record_master_file: brak bajtów (data) — wpis bez treści jest niedozwolony")
+        raise ValueError(
+            "record_master_file: brak bajtów (data) — wpis bez treści jest niedozwolony"
+        )
     blob = bytes(blob)
     db.execute(
         "INSERT INTO artwork_master_file(rel_path, stored_name, content_type, size, data, uploaded_at) "
         "VALUES(?,?,?,?,?, datetime('now')) ON CONFLICT(rel_path) DO UPDATE SET "
         "stored_name=excluded.stored_name, content_type=excluded.content_type, "
         "size=excluded.size, data=excluded.data, uploaded_at=datetime('now')",
-        (str(rel_path)[:600], stored_name, content_type or "application/pdf",
-         int(size or 0), blob))
+        (str(rel_path)[:600], stored_name, content_type or "application/pdf", int(size or 0), blob),
+    )
     db.commit()
 
 
@@ -804,7 +904,8 @@ def master_file_for(db, rel_path) -> dict | None:
     ensure_master_file_table(db)
     r = db.execute(
         "SELECT stored_name, content_type FROM artwork_master_file WHERE rel_path=?",
-        (str(rel_path or ""),)).fetchone()
+        (str(rel_path or ""),),
+    ).fetchone()
     return dict(r) if r else None
 
 
@@ -813,14 +914,14 @@ def master_file_blob(db, rel_path):
     ensure_master_file_table(db)
     r = db.execute(
         "SELECT content_type, data FROM artwork_master_file WHERE rel_path=?",
-        (str(rel_path or ""),)).fetchone()
+        (str(rel_path or ""),),
+    ).fetchone()
     if not r or r["data"] is None:
         return None
     data = r["data"]
     if not isinstance(data, bytes):
         data = bytes(data)
     return (r["content_type"] or "application/pdf", data)
-
 
 
 def confirm_artwork(db, ref, rel_path, user: str = "", level: str = "") -> dict:
@@ -848,8 +949,13 @@ def confirm_artwork(db, ref, rel_path, user: str = "", level: str = "") -> dict:
         (key, str(ref)[:100], rp[:600], fn, rev, rank, str(user)[:80]),
     )
     db.commit()
-    return {"ok": True, "ref_code": str(ref), "filename": fn, "revision": rev,
-            "level": _norm_level(level)}
+    return {
+        "ok": True,
+        "ref_code": str(ref),
+        "filename": fn,
+        "revision": rev,
+        "level": _norm_level(level),
+    }
 
 
 def unconfirm_artwork(db, ref, level: str = "") -> dict:
@@ -871,8 +977,9 @@ def get_confirmed(db, ref, level: str = "") -> dict | None:
     lv = _norm_level(level)
     # 1. Dokładne potwierdzenie per-poziom.
     if lv:
-        row = db.execute("SELECT * FROM artwork_confirmed WHERE ref_norm=?",
-                         (_conf_key(ref, lv),)).fetchone()
+        row = db.execute(
+            "SELECT * FROM artwork_confirmed WHERE ref_norm=?", (_conf_key(ref, lv),)
+        ).fetchone()
         if row:
             return dict(row)
     # 2. Stare potwierdzenie (bez poziomu) — użyj tylko gdy NIE należy do innego
@@ -882,20 +989,22 @@ def get_confirmed(db, ref, level: str = "") -> dict | None:
         return None
     if lv:
         fn = str(row["filename"] or "").lower()
-        if (any(k in fn for k in _other_level_keywords(level))
-                and not any(k in fn for k in _level_keywords(level))):
+        if any(k in fn for k in _other_level_keywords(level)) and not any(
+            k in fn for k in _level_keywords(level)
+        ):
             return None
     return dict(row)
 
 
 def lookup_for_comparison(db, ref, level: str = "") -> dict:
     """Sterownik flow porównania:
-      - newest: najnowsza rewizja z indeksu (dla danego poziomu),
-      - confirmed: potwierdzony plik (lub None),
-      - needs_confirmation: brak potwierdzenia → zapytaj usera,
-      - revision_changed: potwierdzony jest STARSZY niż najnowszy w indeksie."""
+    - newest: najnowsza rewizja z indeksu (dla danego poziomu),
+    - confirmed: potwierdzony plik (lub None),
+    - needs_confirmation: brak potwierdzenia → zapytaj usera,
+    - revision_changed: potwierdzony jest STARSZY niż najnowszy w indeksie."""
     newest = lookup_best(db, ref, level)
     confirmed = get_confirmed(db, ref, level)
+
     # Dryf rewizji: najlepszy master w indeksie jest NOWSZY niż potwierdzony —
     # wyższy revision_rank, albo (przy równym rank) nowsza data modyfikacji.
     # Sam inny rel_path NIE wystarcza (mógł być nowszy-potwierdzony lub równy rank).
@@ -907,6 +1016,7 @@ def lookup_for_comparison(db, ref, level: str = "") -> dict:
         if nr != cr:
             return nr > cr
         return (nw.get("source_mtime") or "") > (cf.get("source_mtime") or "")
+
     revision_changed = _drifted(newest, confirmed)
     # Fallback przez GRUPĘ MAPOWAŃ: gdy REF nie ma własnego mastera (ani potwierdzonego,
     # ani w indeksie), dziedziczy master z grupy, do której należy. Bezpośredni master
@@ -940,8 +1050,10 @@ def ensure_groups_table(db) -> None:
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now'))
     )""")
-    db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_artwork_group_name "
-               "ON artwork_mapping_group(group_name)")
+    db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_artwork_group_name "
+        "ON artwork_mapping_group(group_name)"
+    )
     db.commit()
     try:
         db._ai_grp_ensured = True
@@ -973,25 +1085,26 @@ def _group_master_view(db, rel_path, group_name="", group_id=None) -> dict | Non
 def list_groups(db) -> list:
     ensure_groups_table(db)
     out = []
-    for r in db.execute(
-            "SELECT * FROM artwork_mapping_group ORDER BY group_name").fetchall():
+    for r in db.execute("SELECT * FROM artwork_mapping_group ORDER BY group_name").fetchall():
         d = dict(r)
         try:
             refs = json.loads(d.get("refs_json") or "[]")
         except Exception:
             refs = []
         rec = _master_record_by_path(db, d.get("master_rel_path"))
-        out.append({
-            "id": d["id"],
-            "group_name": d["group_name"],
-            "master_rel_path": d.get("master_rel_path") or "",
-            "master_filename": (rec or {}).get("filename")
+        out.append(
+            {
+                "id": d["id"],
+                "group_name": d["group_name"],
+                "master_rel_path": d.get("master_rel_path") or "",
+                "master_filename": (rec or {}).get("filename")
                 or (os.path.basename(d["master_rel_path"]) if d.get("master_rel_path") else ""),
-            "master_revision": (rec or {}).get("revision") or "",
-            "master_in_index": rec is not None,
-            "refs": refs,
-            "refs_count": len(refs),
-        })
+                "master_revision": (rec or {}).get("revision") or "",
+                "master_in_index": rec is not None,
+                "refs": refs,
+                "refs_count": len(refs),
+            }
+        )
     return out
 
 
@@ -1002,7 +1115,7 @@ def save_group(db, group_name, master_rel_path, refs, created_by=None, gid=None)
     if not name:
         raise ValueError("Nazwa grupy jest wymagana")
     norm, seen = [], set()
-    for r in (refs or []):
+    for r in refs or []:
         rc = str(r or "").strip()
         if not rc:
             continue
@@ -1017,12 +1130,15 @@ def save_group(db, group_name, master_rel_path, refs, created_by=None, gid=None)
         db.execute(
             "UPDATE artwork_mapping_group SET group_name=?, master_rel_path=?, "
             "refs_json=?, updated_at=datetime('now') WHERE id=?",
-            (name, mp, refs_json, gid))
+            (name, mp, refs_json, gid),
+        )
         db.commit()
         return int(gid)
     cur = db.execute(
         "INSERT INTO artwork_mapping_group(group_name, master_rel_path, refs_json, created_by) "
-        "VALUES(?,?,?,?)", (name, mp, refs_json, created_by))
+        "VALUES(?,?,?,?)",
+        (name, mp, refs_json, created_by),
+    )
     db.commit()
     return cur.lastrowid
 
@@ -1040,8 +1156,8 @@ def lookup_group_master(db, ref, level: str = "") -> dict | None:
     if not rn:
         return None
     for r in db.execute(
-            "SELECT id, group_name, master_rel_path, refs_json "
-            "FROM artwork_mapping_group").fetchall():
+        "SELECT id, group_name, master_rel_path, refs_json FROM artwork_mapping_group"
+    ).fetchall():
         d = dict(r)
         if not d.get("master_rel_path"):
             continue
@@ -1054,7 +1170,6 @@ def lookup_group_master(db, ref, level: str = "") -> dict | None:
     return None
 
 
-
 def stale_confirmations(db) -> list:
     """REF-y, dla których w indeksie pojawiła się NOWSZA rewizja niż potwierdzona.
     Per-poziom: klucz potwierdzenia może zawierać poziom (REF␟poziom), więc dobór
@@ -1063,24 +1178,29 @@ def stale_confirmations(db) -> list:
     ensure_confirmed_table(db)
     rows = db.execute(
         "SELECT ref_norm, ref_code, rel_path, filename, revision FROM artwork_confirmed "
-        "ORDER BY ref_code LIMIT 2000").fetchall()
+        "ORDER BY ref_code LIMIT 2000"
+    ).fetchall()
     out = []
     for c in rows:
         key = str(c["ref_norm"] or "")
-        _, _, lv = key.partition(_LEVEL_SEP)   # poziom z klucza ('' gdy brak)
+        _, _, lv = key.partition(_LEVEL_SEP)  # poziom z klucza ('' gdy brak)
         ref = c["ref_code"] or key.split(_LEVEL_SEP, 1)[0]
         newest = lookup_best(db, ref, lv or None)
         if not newest or not newest.get("rel_path"):
             continue
         if newest["rel_path"] != c["rel_path"]:
-            out.append({
-                "ref_code": c["ref_code"], "level": lv,
-                "confirmed_path": c["rel_path"], "confirmed_file": c["filename"],
-                "confirmed_rev": c["revision"],
-                "newest_path": newest.get("rel_path", ""),
-                "newest_file": newest.get("filename", ""),
-                "newest_rev": newest.get("revision", ""),
-            })
+            out.append(
+                {
+                    "ref_code": c["ref_code"],
+                    "level": lv,
+                    "confirmed_path": c["rel_path"],
+                    "confirmed_file": c["filename"],
+                    "confirmed_rev": c["revision"],
+                    "newest_path": newest.get("rel_path", ""),
+                    "newest_file": newest.get("filename", ""),
+                    "newest_rev": newest.get("revision", ""),
+                }
+            )
         if len(out) >= 1000:
             break
     return out

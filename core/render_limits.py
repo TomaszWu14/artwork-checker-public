@@ -13,6 +13,7 @@ Konfiguracja (env):
   ARTWORK_MAX_PDF_PAGES  — maks. liczba renderowanych stron jednego pliku (domyślnie 50)
   ARTWORK_MAX_RENDER_PX  — maks. dłuższy bok renderowanej bitmapy w px (domyślnie 6000)
 """
+
 from __future__ import annotations
 
 import os

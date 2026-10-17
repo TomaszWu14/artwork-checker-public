@@ -33,11 +33,11 @@ MM_TO_PT = 72.0 / 25.4
 
 # Nazwy paneli i ich wymiary docelowe (szer_panelu, wys_panelu) jako funkcja (W, H, D)
 PANEL_TARGETS = {
-    "front":  lambda w, h, d: (w, h),
-    "back":   lambda w, h, d: (w, h),
-    "left":   lambda w, h, d: (d, h),
-    "right":  lambda w, h, d: (d, h),
-    "top":    lambda w, h, d: (w, d),
+    "front": lambda w, h, d: (w, h),
+    "back": lambda w, h, d: (w, h),
+    "left": lambda w, h, d: (d, h),
+    "right": lambda w, h, d: (d, h),
+    "top": lambda w, h, d: (w, d),
     "bottom": lambda w, h, d: (w, d),
 }
 
@@ -47,10 +47,16 @@ PANEL_TARGETS = {
 PANEL_ROTATION = {"front": 0, "back": 0, "left": 0, "right": 0, "top": 180, "bottom": 180}
 
 # Fallback: gdy panelu brak w siatce, użyj tekstury panelu lustrzanego
-PANEL_MIRROR = {"back": "front", "right": "left", "bottom": "top",
-                "front": "back", "left": "right", "top": "bottom"}
+PANEL_MIRROR = {
+    "back": "front",
+    "right": "left",
+    "bottom": "top",
+    "front": "back",
+    "left": "right",
+    "top": "bottom",
+}
 
-MAX_TEXTURE_PX = 2048   # dłuższy bok tekstury ściany
+MAX_TEXTURE_PX = 2048  # dłuższy bok tekstury ściany
 DEFAULT_DPI = 220
 
 
@@ -62,8 +68,8 @@ class DielineInfo:
     page_w_mm: float = 0.0
     page_h_mm: float = 0.0
     page_index: int = 0
-    package_type: str = ""      # indywidualne / pośrednie / karton transportowy
-    finish: str = ""            # np. "matt foil" — wpływa na roughness materiału
+    package_type: str = ""  # indywidualne / pośrednie / karton transportowy
+    finish: str = ""  # np. "matt foil" — wpływa na roughness materiału
     ean: str = ""
     warnings: list = field(default_factory=list)
 
@@ -156,9 +162,9 @@ def pick_checked_option(options, marks, row_tol: float = 4.0, max_gap: float = 4
             if not filled:
                 continue
             if abs((y0 + y1) / 2.0 - ly) > row_tol:
-                continue          # inny wiersz tabelki
+                continue  # inny wiersz tabelki
             if not (0.0 <= lx - x1 <= max_gap):
-                continue          # checkbox musi być tuż na lewo od etykiety
+                continue  # checkbox musi być tuż na lewo od etykiety
             hits.append(name)
             break
     # Zaznaczona ma być dokładnie jedna. Dwie = tabelka wypełniona błędnie — wtedy
@@ -194,7 +200,7 @@ def package_type_from_page(page) -> str:
         if not (1.0 <= r.width <= 16.0 and 1.0 <= r.height <= 16.0):
             continue
         if abs(r.width - r.height) > 0.35 * max(r.width, r.height):
-            continue          # checkbox jest kwadratem, nie kreską czy strzałką
+            continue  # checkbox jest kwadratem, nie kreską czy strzałką
         marks.append((r.x0, r.y0, r.x1, r.y1, item.get("fill") is not None))
 
     return pick_checked_option(options, marks)
@@ -208,8 +214,7 @@ def extract_dieline_info(pdf_path: str, page_index=None) -> DielineInfo:
     info = DielineInfo()
     with pymupdf.open(pdf_path) as doc:
         if page_index is None:
-            page_index = max(range(len(doc)),
-                             key=lambda i: doc[i].rect.width * doc[i].rect.height)
+            page_index = max(range(len(doc)), key=lambda i: doc[i].rect.width * doc[i].rect.height)
         page = doc[page_index]
         info.page_index = page_index
         info.page_w_mm = page.rect.width * PT_TO_MM
@@ -226,7 +231,8 @@ def extract_dieline_info(pdf_path: str, page_index=None) -> DielineInfo:
     if not checked and info.package_type:
         info.warnings.append(
             f"Typ opakowania zgadnięty z tekstu ({info.package_type}) — nie odczytano "
-            "zaznaczonego checkboxa w tabelce.")
+            "zaznaczonego checkboxa w tabelce."
+        )
     if "foil" in text.lower():
         info.finish = "matt foil"
     ean = _EAN_RE.search(text)
@@ -236,6 +242,7 @@ def extract_dieline_info(pdf_path: str, page_index=None) -> DielineInfo:
 
 
 # ───────────────────────────── 2. Lokalizacja paneli ─────────────────────────────
+
 
 def cluster_coords(values, tol: float):
     """Klastruj posortowane współrzędne 1D: wartości bliższe niż tol → jeden klaster.
@@ -269,13 +276,16 @@ def _iter_segments_mm(page):
                 pairs = [(item[1], item[2])]
             elif op == "re":  # prostokąt → 4 krawędzie
                 r = item[1]
-                pairs = [(r.top_left, r.top_right), (r.bottom_left, r.bottom_right),
-                         (r.top_left, r.bottom_left), (r.top_right, r.bottom_right)]
+                pairs = [
+                    (r.top_left, r.top_right),
+                    (r.bottom_left, r.bottom_right),
+                    (r.top_left, r.bottom_left),
+                    (r.top_right, r.bottom_right),
+                ]
             else:
                 continue
             for p1, p2 in pairs:
-                out.append(((p1.x * PT_TO_MM, p1.y * PT_TO_MM),
-                            (p2.x * PT_TO_MM, p2.y * PT_TO_MM)))
+                out.append(((p1.x * PT_TO_MM, p1.y * PT_TO_MM), (p2.x * PT_TO_MM, p2.y * PT_TO_MM)))
     return out
 
 
@@ -285,9 +295,9 @@ def _axis_line_coords(segments, min_len_mm: float):
     xs, ys = [], []
     for (x0, y0), (x1, y1) in segments:
         dx, dy = abs(x1 - x0), abs(y1 - y0)
-        if dx <= 1.0 and dy >= min_len_mm:      # pionowa
+        if dx <= 1.0 and dy >= min_len_mm:  # pionowa
             xs.append((x0 + x1) / 2)
-        elif dy <= 1.0 and dx >= min_len_mm:    # pozioma
+        elif dy <= 1.0 and dx >= min_len_mm:  # pozioma
             ys.append((y0 + y1) / 2)
     return xs, ys
 
@@ -301,11 +311,11 @@ def _find_cells(xs, ys, tw: float, th: float, tol: float):
     """Wszystkie komórki (x0,y0,x1,y1) o wymiarach ≈ (tw × th) rozpięte na klastrach linii."""
     cells = []
     for i, x0 in enumerate(xs):
-        for x1 in xs[i + 1:]:
+        for x1 in xs[i + 1 :]:
             if abs((x1 - x0) - tw) > tol:
                 continue
             for j, y0 in enumerate(ys):
-                for y1 in ys[j + 1:]:
+                for y1 in ys[j + 1 :]:
                     if abs((y1 - y0) - th) > tol:
                         continue
                     cells.append((x0, y0, x1, y1))
@@ -320,9 +330,11 @@ def _overlap(a, b) -> float:
 
 
 # Pary paneli (primary, secondary) + rozmiar jako klucze wymiarów (szer × wys).
-_PANEL_PAIRS = (("front", "back", ("w", "h")),
-                ("left", "right", ("d", "h")),
-                ("top", "bottom", ("w", "d")))
+_PANEL_PAIRS = (
+    ("front", "back", ("w", "h")),
+    ("left", "right", ("d", "h")),
+    ("top", "bottom", ("w", "d")),
+)
 
 
 def _assign_pairs(candidates_for, w: float, h: float, d: float, cx: float, cy: float):
@@ -338,8 +350,9 @@ def _assign_pairs(candidates_for, w: float, h: float, d: float, cx: float, cy: f
     found, used = {}, []
     for primary, secondary, (ka, kb) in _PANEL_PAIRS:
         tw, th = dims[ka], dims[kb]
-        cand = [c for c in candidates_for(tw, th)
-                if all(_overlap(c, u) < 0.25 * tw * th for u in used)]
+        cand = [
+            c for c in candidates_for(tw, th) if all(_overlap(c, u) < 0.25 * tw * th for u in used)
+        ]
         cand.sort(key=cdist)
         picked = []
         for c in cand:
@@ -375,8 +388,11 @@ def _polygonize_faces(segments, min_len_mm: float, min_area_mm2: float):
         from shapely.ops import unary_union, polygonize
     except Exception:
         return []
-    lines = [LineString([a, b]) for a, b in segments
-             if ((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2) ** 0.5 >= min_len_mm]
+    lines = [
+        LineString([a, b])
+        for a, b in segments
+        if ((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2) ** 0.5 >= min_len_mm
+    ]
     if not lines:
         return []
     try:
@@ -397,11 +413,11 @@ def _match_faces_to_panels(faces, w: float, h: float, d: float, tol: float):
 
     def size_ok(f, tw, th):
         fw, fh = f[2] - f[0], f[3] - f[1]
-        return ((abs(fw - tw) <= tol and abs(fh - th) <= tol) or
-                (abs(fw - th) <= tol and abs(fh - tw) <= tol))
+        return (abs(fw - tw) <= tol and abs(fh - th) <= tol) or (
+            abs(fw - th) <= tol and abs(fh - tw) <= tol
+        )
 
-    return _assign_pairs(lambda tw, th: [f for f in faces if size_ok(f, tw, th)],
-                         w, h, d, cx, cy)
+    return _assign_pairs(lambda tw, th: [f for f in faces if size_ok(f, tw, th)], w, h, d, cx, cy)
 
 
 def _infer_dims_from_faces(faces):
@@ -414,7 +430,7 @@ def _infer_dims_from_faces(faces):
     if len(faces) < 4:
         return None
     edges = []
-    for f in faces[:6]:                       # 4–6 największych = ściany boczne
+    for f in faces[:6]:  # 4–6 największych = ściany boczne
         edges.append(round(f[2] - f[0], 1))
         edges.append(round(f[3] - f[1], 1))
     clusters = []
@@ -426,7 +442,7 @@ def _infer_dims_from_faces(faces):
     centers = [(sum(c) / len(c), len(c)) for c in clusters]
     if len(centers) < 2:
         return None
-    h = max(centers, key=lambda c: c[1])[0]   # wysokość = najliczniejszy klaster
+    h = max(centers, key=lambda c: c[1])[0]  # wysokość = najliczniejszy klaster
     others = sorted((c[0] for c in centers if abs(c[0] - h) > 6), reverse=True)
     if len(others) < 2:
         return None
@@ -441,7 +457,7 @@ def locate_panels(page, info: DielineInfo, allow_dim_inference: bool = True):
     warnings = []
     w, h, d = info.w_mm, info.h_mm, info.d_mm
     min_len = 0.5 * min(w, h, d)
-    segments = _iter_segments_mm(page)          # jeden odczyt get_drawings dla obu ścieżek
+    segments = _iter_segments_mm(page)  # jeden odczyt get_drawings dla obu ścieżek
     xs_raw, ys_raw = _axis_line_coords(segments, min_len)
     tol = max(3.0, 0.02 * max(w, h, d))
     xs = cluster_coords(xs_raw, tol=min(tol, 2.5))
@@ -458,7 +474,7 @@ def locate_panels(page, info: DielineInfo, allow_dim_inference: bool = True):
     # bierzemy tę, która trafia więcej paneli. Tanie (match_panels to arytmetyka na już
     # sklastrowanych współrzędnych) i samo się weryfikuje. Nie ruszamy wymiarów podanych
     # ręcznie (allow_dim_inference=False) — tam kolejność jest deklaracją użytkownika.
-    if (allow_dim_inference and xs and ys and len(rects) < len(PANEL_TARGETS)):
+    if allow_dim_inference and xs and ys and len(rects) < len(PANEL_TARGETS):
         # Bierzemy tylko permutacje trafiające ŚCIŚLE więcej paneli niż zapis z tabelki —
         # pliki działające dziś zostają nietknięte. Remis między nimi rozstrzyga większe
         # pole frontu: na dielinie artworkowym twarzą opakowania jest największa ściana,
@@ -470,8 +486,9 @@ def locate_panels(page, info: DielineInfo, allow_dim_inference: bool = True):
             alt = match_panels(xs, ys, *cand, tol=tol)
             if len(alt) <= len(rects):
                 continue
-            if best_dims is None or ((len(alt), cand[0] * cand[1])
-                                     > (len(best), best_dims[0] * best_dims[1])):
+            if best_dims is None or (
+                (len(alt), cand[0] * cand[1]) > (len(best), best_dims[0] * best_dims[1])
+            ):
                 best_dims, best = cand, alt
         if best_dims is not None:
             rects = best
@@ -479,7 +496,8 @@ def locate_panels(page, info: DielineInfo, allow_dim_inference: bool = True):
             info.w_mm, info.h_mm, info.d_mm = best_dims
             warnings.append(
                 f"Kolejność wymiarów poprawiona wg rysunku: {w:.0f}×{h:.0f}×{d:.0f} mm "
-                f"(W×H×D) — zapis w tabelce miał inną kolejność.")
+                f"(W×H×D) — zapis w tabelce miał inną kolejność."
+            )
 
     # Fallback geometryczny (shapely): gdy metoda wymiarowa nie dała kompletu 6 paneli
     # (typowe dla kartonów RSC i gdy wymiary nie pasują 1:1 do siatki), spróbuj wykryć
@@ -500,17 +518,21 @@ def locate_panels(page, info: DielineInfo, allow_dim_inference: bool = True):
             inferred = _infer_dims_from_faces(faces)
             if inferred:
                 iw, ih, id_ = inferred
-                alt2 = _match_faces_to_panels(faces, iw, ih, id_,
-                                              tol=max(3.0, 0.06 * max(iw, ih, id_)))
+                alt2 = _match_faces_to_panels(
+                    faces, iw, ih, id_, tol=max(3.0, 0.06 * max(iw, ih, id_))
+                )
                 if len(alt2) >= 4 and len(alt2) >= len(rects):
                     rects = alt2
-                    info.w_mm, info.h_mm, info.d_mm = iw, ih, id_   # popraw też bryłę 3D
+                    info.w_mm, info.h_mm, info.d_mm = iw, ih, id_  # popraw też bryłę 3D
                     warnings.append(
                         f"Wymiary wywnioskowane z wykrojnika: {iw:.0f}×{ih:.0f}×{id_:.0f} mm "
-                        "(tekst nie pasował do rysunku).")
+                        "(tekst nie pasował do rysunku)."
+                    )
 
     if not rects:
-        warnings.append("Nie udało się dopasować paneli do siatki — użyto całej strony jako frontu.")
+        warnings.append(
+            "Nie udało się dopasować paneli do siatki — użyto całej strony jako frontu."
+        )
     else:
         missing = [p for p in PANEL_TARGETS if p not in rects]
         if missing:
@@ -519,6 +541,7 @@ def locate_panels(page, info: DielineInfo, allow_dim_inference: bool = True):
 
 
 # ───────────────────────────── 3. Render paneli ─────────────────────────────
+
 
 def _rotation_for_dir(dx: float, dy: float) -> int:
     """Kąt (CCW, stopnie) obrotu obrazu, po którym tekst o kierunku pisma (dx, dy)
@@ -598,8 +621,9 @@ def orient_panel(img, name: str):
     longest = max(img.size)
     if longest > MAX_TEXTURE_PX:
         scale = MAX_TEXTURE_PX / longest
-        img = img.resize((max(1, int(img.width * scale)),
-                          max(1, int(img.height * scale))), Image.LANCZOS)
+        img = img.resize(
+            (max(1, int(img.width * scale)), max(1, int(img.height * scale))), Image.LANCZOS
+        )
     return img
 
 
@@ -611,6 +635,7 @@ def _corner_color(img):
 
 def _blank_panel(size_mm, color=(240, 240, 240)):
     from PIL import Image
+
     w = max(2, min(MAX_TEXTURE_PX, int(size_mm[0] * 4)))
     h = max(2, min(MAX_TEXTURE_PX, int(size_mm[1] * 4)))
     return Image.new("RGB", (w, h), color)
@@ -629,7 +654,7 @@ def complete_panels(panels: dict, info: DielineInfo) -> dict:
     Puste pole nieoczekiwane dla danego typu opakowania dopisuje ostrzeżenie do info."""
     fallback_color = _corner_color(panels["front"]) if "front" in panels else (240, 240, 240)
     out = dict(panels)
-    blanks = set()          # lustro pustego pola to nadal puste pole — nie chowaj go
+    blanks = set()  # lustro pustego pola to nadal puste pole — nie chowaj go
     for name in PANEL_TARGETS:
         if name in out:
             continue
@@ -643,7 +668,8 @@ def complete_panels(panels: dict, info: DielineInfo) -> dict:
             if not _blank_is_expected(name, info.package_type):
                 info.warnings.append(
                     f"Nie wykryto ścianki '{name}' — wypełniona kolorem tła. "
-                    f"Model nie odzwierciedla nadruku na tej ścianie.")
+                    f"Model nie odzwierciedla nadruku na tej ścianie."
+                )
     return out
 
 
@@ -651,11 +677,13 @@ def colorfulness(img) -> float:
     """Miara barwności obrazu (metryka Haslera-Süsstrunka, uproszczona).
     Panel brandowany (logo, kolory Pantone) >> panel z blokiem tekstu prawnego."""
     import numpy as np
+
     a = np.asarray(img.convert("RGB").resize((64, 64)), dtype=np.float32)
     rg = a[..., 0] - a[..., 1]
     yb = 0.5 * (a[..., 0] + a[..., 1]) - a[..., 2]
-    return float((rg.std() ** 2 + yb.std() ** 2) ** 0.5
-                 + 0.3 * ((rg.mean() ** 2 + yb.mean() ** 2) ** 0.5))
+    return float(
+        (rg.std() ** 2 + yb.std() ** 2) ** 0.5 + 0.3 * ((rg.mean() ** 2 + yb.mean() ** 2) ** 0.5)
+    )
 
 
 def pick_front_by_color(panels: dict) -> dict:
@@ -689,29 +717,38 @@ def enforce_plain_top_bottom(panels: dict, info: DielineInfo) -> dict:
         return panels
     out = dict(panels)
     if plain_pair == "tb":
-        return out                          # już dobrze (pusta para = góra/dół)
-    if plain_pair == "fb":                   # front/back puste → na górę/dół; h↔d
-        out["top"], out["bottom"], out["front"], out["back"] = \
-            panels["front"], panels["back"], panels["top"], panels["bottom"]
+        return out  # już dobrze (pusta para = góra/dół)
+    if plain_pair == "fb":  # front/back puste → na górę/dół; h↔d
+        out["top"], out["bottom"], out["front"], out["back"] = (
+            panels["front"],
+            panels["back"],
+            panels["top"],
+            panels["bottom"],
+        )
         info.h_mm, info.d_mm = info.d_mm, info.h_mm
-    else:                                    # left/right puste → na górę/dół; h↔w
-        out["top"], out["bottom"], out["left"], out["right"] = \
-            panels["left"], panels["right"], panels["top"], panels["bottom"]
+    else:  # left/right puste → na górę/dół; h↔w
+        out["top"], out["bottom"], out["left"], out["right"] = (
+            panels["left"],
+            panels["right"],
+            panels["top"],
+            panels["bottom"],
+        )
         info.h_mm, info.w_mm = info.w_mm, info.h_mm
     return out
 
 
 # ───────────────────────────── 4. Budowa GLB ─────────────────────────────
 
+
 def _face_quads(w: float, h: float, d: float):
     """Definicje 6 ścian: origin + wektory u,v (normalna = u×v skierowana na zewnątrz).
     Wymiary w metrach. UV: (0,0) = lewy-dolny róg tekstury (konwencja trimesh/OBJ)."""
     return {
-        "front":  ((-w / 2, -h / 2, +d / 2), (w, 0, 0), (0, h, 0)),
-        "back":   ((+w / 2, -h / 2, -d / 2), (-w, 0, 0), (0, h, 0)),
-        "left":   ((-w / 2, -h / 2, -d / 2), (0, 0, d), (0, h, 0)),
-        "right":  ((+w / 2, -h / 2, +d / 2), (0, 0, -d), (0, h, 0)),
-        "top":    ((-w / 2, +h / 2, +d / 2), (w, 0, 0), (0, 0, -d)),
+        "front": ((-w / 2, -h / 2, +d / 2), (w, 0, 0), (0, h, 0)),
+        "back": ((+w / 2, -h / 2, -d / 2), (-w, 0, 0), (0, h, 0)),
+        "left": ((-w / 2, -h / 2, -d / 2), (0, 0, d), (0, h, 0)),
+        "right": ((+w / 2, -h / 2, +d / 2), (0, 0, -d), (0, h, 0)),
+        "top": ((-w / 2, +h / 2, +d / 2), (w, 0, 0), (0, 0, -d)),
         "bottom": ((-w / 2, -h / 2, -d / 2), (w, 0, 0), (0, 0, d)),
     }
 
@@ -725,8 +762,10 @@ def _to_power_of_two(img, max_side: int = 1024):
     z każdym trybem zawijania na każdym WebGL. UV mapuje pełny obraz na ścianę, więc
     zmiana proporcji pikseli jest niewidoczna. Przy okazji zmniejsza plik GLB."""
     from PIL import Image
+
     def _pot(n):
         return min(max_side, 1 << max(1, (max(1, n) - 1).bit_length()))
+
     w, h = _pot(img.width), _pot(img.height)
     return img.resize((w, h), Image.LANCZOS) if (w, h) != img.size else img
 
@@ -752,12 +791,18 @@ def build_glb(panels: dict, info: DielineInfo, out_path: str) -> str:
         vertices = np.array([o, o + uvec, o + uvec + vvec, o + vvec])
         faces = np.array([[0, 1, 2], [0, 2, 3]])
         uv = np.array([[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]])
-        material = PBRMaterial(baseColorTexture=_to_power_of_two(panels[name]),
-                               metallicFactor=metallic, roughnessFactor=roughness,
-                               name=f"panel_{name}")
-        mesh = trimesh.Trimesh(vertices=vertices, faces=faces,
-                               visual=TextureVisuals(uv=uv, material=material),
-                               process=False)
+        material = PBRMaterial(
+            baseColorTexture=_to_power_of_two(panels[name]),
+            metallicFactor=metallic,
+            roughnessFactor=roughness,
+            name=f"panel_{name}",
+        )
+        mesh = trimesh.Trimesh(
+            vertices=vertices,
+            faces=faces,
+            visual=TextureVisuals(uv=uv, material=material),
+            process=False,
+        )
         scene.add_geometry(mesh, node_name=name, geom_name=name)
 
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
@@ -776,9 +821,11 @@ def orientation_matrix(roll: float, pitch: float, yaw: float):
     from trimesh.transformations import rotation_matrix
 
     r = np.radians
-    return (rotation_matrix(r(yaw), [0, 1, 0])
-            @ rotation_matrix(r(pitch), [1, 0, 0])
-            @ rotation_matrix(r(roll), [0, 0, 1]))
+    return (
+        rotation_matrix(r(yaw), [0, 1, 0])
+        @ rotation_matrix(r(pitch), [1, 0, 0])
+        @ rotation_matrix(r(roll), [0, 0, 1])
+    )
 
 
 def bake_orientation(glb_path: str, roll: float, pitch: float, yaw: float) -> bool:
@@ -817,8 +864,10 @@ def render_glb_preview(glb_path: str, png_path: str, size=(900, 700)) -> bool:
 
 # ───────────────────────────── Orkiestracja ─────────────────────────────
 
-def generate_artwork_3d(pdf_path: str, out_path: str, dims_override=None,
-                        dpi: int = DEFAULT_DPI) -> dict:
+
+def generate_artwork_3d(
+    pdf_path: str, out_path: str, dims_override=None, dpi: int = DEFAULT_DPI
+) -> dict:
     """Pełny pipeline: PDF dieline → GLB. Zwraca metadane generacji.
 
     dims_override: (w_mm, h_mm, d_mm) — wymiary podane ręcznie (nadpisują odczytane).
@@ -830,12 +879,13 @@ def generate_artwork_3d(pdf_path: str, out_path: str, dims_override=None,
         info.w_mm, info.h_mm, info.d_mm = (float(x) for x in dims_override)
         info.warnings = [wrn for wrn in info.warnings if "wymiar" not in wrn.lower()]
     if not info.has_dims:
-        raise ValueError("Brak wymiarów opakowania — nie znaleziono ich w PDF i nie podano ręcznie.")
+        raise ValueError(
+            "Brak wymiarów opakowania — nie znaleziono ich w PDF i nie podano ręcznie."
+        )
 
     with pymupdf.open(pdf_path) as doc:
         page = doc[info.page_index]
-        rects, loc_warnings = locate_panels(page, info,
-                                            allow_dim_inference=dims_override is None)
+        rects, loc_warnings = locate_panels(page, info, allow_dim_inference=dims_override is None)
     info.warnings.extend(loc_warnings)
 
     if not rects:

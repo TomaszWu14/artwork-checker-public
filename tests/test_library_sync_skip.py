@@ -6,6 +6,7 @@ całą zawartość przez SMB tylko po to, żeby stwierdzić „bez zmian". Te te
 niezmieniony plik jest pomijany po samych metadanych (mtime + rozmiar), a realna zmiana
 treści nadal jest wykrywana.
 """
+
 import os
 import sys
 
@@ -23,9 +24,11 @@ def sync_env(tmp_path, monkeypatch):
     monkeypatch.setattr(ls, "LIBRARY_ROOT", str(root))
     monkeypatch.setattr(ls, "STATE_FILE", str(tmp_path / "state.json"))
     sent = []
-    monkeypatch.setattr(ls, "_sync_file",
-                        lambda rel, abs_, checksum, dry, send_file=False:
-                        (sent.append(rel), "created")[1])
+    monkeypatch.setattr(
+        ls,
+        "_sync_file",
+        lambda rel, abs_, checksum, dry, send_file=False: (sent.append(rel), "created")[1],
+    )
     return root, sent
 
 
@@ -39,7 +42,7 @@ def test_unchanged_file_skipped_without_reading_content(sync_env, monkeypatch):
     root, sent = sync_env
     _write(root, "a.pdf", b"%PDF-1.4 tresc")
 
-    ls.run_sync()                                  # pierwszy przebieg — wysyła
+    ls.run_sync()  # pierwszy przebieg — wysyła
     assert sent == ["a.pdf"]
 
     # Drugi przebieg: MD5 ma prawo NIE zostać policzone. Każde wywołanie = czytanie
@@ -82,9 +85,11 @@ def test_failed_sync_is_retried_next_run(sync_env, monkeypatch):
     inaczej plik zostaje wyciszony na zawsze (pominięcie po stamp jest przed MD5)."""
     root, sent = sync_env
     _write(root, "a.pdf", b"tresc")
-    monkeypatch.setattr(ls, "_sync_file",
-                        lambda rel, abs_, checksum, dry, send_file=False:
-                        (sent.append(rel), "error")[1])
+    monkeypatch.setattr(
+        ls,
+        "_sync_file",
+        lambda rel, abs_, checksum, dry, send_file=False: (sent.append(rel), "error")[1],
+    )
     ls.run_sync()
     ls.run_sync()
     assert sent == ["a.pdf", "a.pdf"], "plik po błędzie nie został ponowiony"

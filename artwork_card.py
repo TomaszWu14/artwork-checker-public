@@ -10,6 +10,7 @@ Zwraca zwykły dict, gotowy dla szablonu artwork_card.html. Rekord jest per REF,
 ale `levels` to lista arkuszy per poziom (§1a — jeden arkusz = jeden komplet danych,
 pod OCR). Brak ciężkich importów — moduł ładuje się w CI bez ML.
 """
+
 import json
 
 import material_master as _mm
@@ -50,14 +51,16 @@ def _levels_for(db, ref_code, levels_data: dict, revisions: list) -> list:
         # Fallback EAN z pliku, gdy master nie ma kodu dla poziomu.
         if not ean and best:
             ean = str(best.get("ean") or "").strip()
-        out.append({
-            "level": key,
-            "ean": ean or "NO-EAN",
-            "dims": str(d.get("wymiar") or "").strip(),
-            "qty_base": str(d.get("qty_base") or "").strip(),
-            "artwork_ref": str(d.get("artwork_ref") or "").strip(),
-            "file": best,   # dict artwork_index lub None (brak pliku dla poziomu)
-        })
+        out.append(
+            {
+                "level": key,
+                "ean": ean or "NO-EAN",
+                "dims": str(d.get("wymiar") or "").strip(),
+                "qty_base": str(d.get("qty_base") or "").strip(),
+                "artwork_ref": str(d.get("artwork_ref") or "").strip(),
+                "file": best,  # dict artwork_index lub None (brak pliku dla poziomu)
+            }
+        )
     return out
 
 
@@ -67,8 +70,8 @@ def build_card(db, ref) -> dict | None:
     if not ref:
         return None
 
-    material = _mm.get_material(db, ref)          # ensure_table w środku
-    revisions = _ai.all_revisions(db, ref)        # ensure_table w środku; sort rank DESC
+    material = _mm.get_material(db, ref)  # ensure_table w środku
+    revisions = _ai.all_revisions(db, ref)  # ensure_table w środku; sort rank DESC
     if not material and not revisions:
         return None
 

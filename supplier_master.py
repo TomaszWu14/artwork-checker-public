@@ -10,6 +10,7 @@ Kolumny importu (jednowierszowy nagłówek, nazwy tolerancyjne):
 kod_producenta spina master data dostawców z master data materiałów
 (material_master.producer_code) → „który dostawca produkuje dany materiał”.
 """
+
 from __future__ import annotations
 
 import json
@@ -67,11 +68,29 @@ _HEADER = {
     "country": ("kraj", "country"),
     "currency": ("waluta", "currency"),
     "incoterms": ("incoterms", "warunki dostawy", "warunki_dostawy", "incoterm"),
-    "payment_terms_default": ("warunki_platnosci", "warunki platnosci", "warunki płatności",
-                              "payment", "payment terms", "platnosc"),
-    "lead_time_days": ("lead_time_dni", "lead time", "lead_time", "czas produkcji", "lead time dni"),
+    "payment_terms_default": (
+        "warunki_platnosci",
+        "warunki platnosci",
+        "warunki płatności",
+        "payment",
+        "payment terms",
+        "platnosc",
+    ),
+    "lead_time_days": (
+        "lead_time_dni",
+        "lead time",
+        "lead_time",
+        "czas produkcji",
+        "lead time dni",
+    ),
     "keywords": ("slowa_kluczowe", "słowa kluczowe", "slowa kluczowe", "keywords", "detect"),
-    "contact_person": ("osoba_kontaktowa", "kontakt", "contact", "osoba kontaktowa", "contact person"),
+    "contact_person": (
+        "osoba_kontaktowa",
+        "kontakt",
+        "contact",
+        "osoba kontaktowa",
+        "contact person",
+    ),
     "email": ("email", "e-mail", "mail"),
     "phone": ("telefon", "phone", "tel", "nr telefonu"),
     "notes": ("uwagi", "notes", "notatki", "komentarz"),
@@ -153,11 +172,21 @@ def import_workbook(db, rows: list) -> dict:
             "phone=COALESCE(NULLIF(excluded.phone,''), suppliers.phone), "
             "notes=COALESCE(NULLIF(excluded.notes,''), suppliers.notes), "
             "detect_keywords_json=COALESCE(excluded.detect_keywords_json, suppliers.detect_keywords_json)",
-            (code, r["name"][:200], r.get("country", "")[:8],
-             r.get("currency", "")[:8], r.get("producer_code", "")[:60],
-             r.get("incoterms", "")[:60], lead_val, r.get("payment_terms_default", "")[:120],
-             r.get("contact_person", "")[:120], r.get("email", "")[:120],
-             r.get("phone", "")[:50], r.get("notes", "")[:1000], kw),
+            (
+                code,
+                r["name"][:200],
+                r.get("country", "")[:8],
+                r.get("currency", "")[:8],
+                r.get("producer_code", "")[:60],
+                r.get("incoterms", "")[:60],
+                lead_val,
+                r.get("payment_terms_default", "")[:120],
+                r.get("contact_person", "")[:120],
+                r.get("email", "")[:120],
+                r.get("phone", "")[:50],
+                r.get("notes", "")[:1000],
+                kw,
+            ),
         )
         imported += 1
     db.commit()
@@ -174,7 +203,8 @@ def list_suppliers(db, q: str = "") -> list:
             "SELECT code, name, country, currency, producer_code, incoterms FROM suppliers "
             "WHERE COALESCE(active,1)=1 AND (code LIKE ? ESCAPE '\\' OR name LIKE ? ESCAPE '\\' "
             "OR producer_code LIKE ? ESCAPE '\\') "
-            "ORDER BY name LIMIT 300", (like, like, like)
+            "ORDER BY name LIMIT 300",
+            (like, like, like),
         ).fetchall()
     else:
         rows = db.execute(
@@ -189,8 +219,9 @@ def get_supplier(db, code) -> dict | None:
     # BUGFIX: kod dostawcy to identyfikator — dopasowanie bez rozróżniania wielkości
     # liter (URL /api/sup-master/<code> jest sterowany przez użytkownika; import nie
     # normalizuje wielkości), więc 'shieldco' nie znajdował 'SHIELDCO'.
-    row = db.execute("SELECT * FROM suppliers WHERE UPPER(code)=UPPER(?)",
-                     (str(code or "").strip(),)).fetchone()
+    row = db.execute(
+        "SELECT * FROM suppliers WHERE UPPER(code)=UPPER(?)", (str(code or "").strip(),)
+    ).fetchone()
     return dict(row) if row else None
 
 
@@ -205,11 +236,14 @@ def update_contact(db, code, email=None, contact_person=None, phone=None) -> dic
         return {"error": "Nie znaleziono dostawcy"}
     sets, vals = [], []
     if email is not None:
-        sets.append("email=?"); vals.append(str(email)[:120])
+        sets.append("email=?")
+        vals.append(str(email)[:120])
     if contact_person is not None:
-        sets.append("contact_person=?"); vals.append(str(contact_person)[:120])
+        sets.append("contact_person=?")
+        vals.append(str(contact_person)[:120])
     if phone is not None:
-        sets.append("phone=?"); vals.append(str(phone)[:60])
+        sets.append("phone=?")
+        vals.append(str(phone)[:60])
     if not sets:
         return {"error": "Brak pól do aktualizacji"}
     vals.append(code)
@@ -229,6 +263,7 @@ def supplier_for_producer(db, producer_code) -> dict | None:
     # liter, a żaden import nie normalizuje wielkości — 'fg' nie łączył się z 'FG'.
     row = db.execute(
         "SELECT * FROM suppliers WHERE UPPER(producer_code)=UPPER(?) "
-        "AND COALESCE(active,1)=1 LIMIT 1", (pc,)
+        "AND COALESCE(active,1)=1 LIMIT 1",
+        (pc,),
     ).fetchone()
     return dict(row) if row else None

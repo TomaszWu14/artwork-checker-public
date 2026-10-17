@@ -7,6 +7,7 @@ Kryteria akceptacji (docs/analiza/HISTORYJKI.md, US-001):
   * _save_comparison nie odwołuje się do usuniętych helperów transportu;
   * SEC-006: resolver nie wychodzi poza LIBRARY_FOLDER (traversal, ścieżki absolutne).
 """
+
 import os
 
 import pytest
@@ -47,7 +48,9 @@ def test_resolver_finds_file_under_library_folder(library):
 def test_resolver_accepts_backslash_rel_path_and_filename_variant(library):
     db = _db()
     try:
-        got = _app_mod._resolve_artwork_master_path(db, "BRAND\\BOX\\other.pdf", "REF123_box_rev2.pdf")
+        got = _app_mod._resolve_artwork_master_path(
+            db, "BRAND\\BOX\\other.pdf", "REF123_box_rev2.pdf"
+        )
     finally:
         db.close()
     assert got == os.path.realpath(str(library["pdf"]))
@@ -70,12 +73,15 @@ def test_resolver_uses_library_files_record_when_inside_library(library):
     assert got == os.path.realpath(str(library["pdf"]))
 
 
-@pytest.mark.parametrize("rel", [
-    "../outside.pdf",
-    "BRAND/../../outside.pdf",
-    "",
-    "BRAND/BOX/missing.pdf",
-])
+@pytest.mark.parametrize(
+    "rel",
+    [
+        "../outside.pdf",
+        "BRAND/../../outside.pdf",
+        "",
+        "BRAND/BOX/missing.pdf",
+    ],
+)
 def test_resolver_rejects_traversal_and_missing(library, rel):
     db = _db()
     try:
@@ -123,6 +129,7 @@ def test_from_path_route_imports_existing_master(manager_client, library):
     db = _db()
     try:
         import artwork_index as _ai
+
         rec = _ai.master_file_for(db, library["rel"])
         blob = _ai.master_file_blob(db, library["rel"])
     finally:
@@ -164,7 +171,9 @@ def test_save_comparison_with_po_header_does_not_reference_removed_helpers():
         db.close()
     result = {
         "status": "ok",
-        "modules": {"table": {"headers": [{"key": "Numer PO", "val_a": "PO-4500001234", "val_b": ""}]}},
+        "modules": {
+            "table": {"headers": [{"key": "Numer PO", "val_a": "PO-4500001234", "val_b": ""}]}
+        },
     }
     with _app_mod.app.test_request_context("/"):
         cid = _app_mod._save_comparison(uid, "artwork", "a.pdf", "b.pdf", result)

@@ -17,18 +17,21 @@ _logger = _logging.getLogger(__name__)
 
 try:
     import zxingcpp
+
     HAS_ZXING = True
 except ImportError:
     HAS_ZXING = False
 
 try:
     from pyzbar import pyzbar as _pyzbar
+
     HAS_PYZBAR = True
 except ImportError:
     HAS_PYZBAR = False
 
 try:
     from PIL import Image as _PIL_Image
+
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
@@ -36,6 +39,7 @@ except ImportError:
 
 
 # ─── EAN NORMALISATION ───────────────────────────────────────────────────────
+
 
 def _normalize_ean(ean_str: str) -> str:
     """Normalise an EAN string to 13 zero-padded digits for safe comparison.
@@ -55,6 +59,7 @@ def _normalize_ean(ean_str: str) -> str:
 
 # ─── EAN-13 WALIDACJA ─────────────────────────────────────────────────────────
 
+
 def validate_ean13(ean: str) -> dict:
     """Waliduje EAN-13 algorytmem sumy kontrolnej GS1. Zwraca wynik walidacji."""
     digits = re.sub(r'\D', '', ean)
@@ -62,15 +67,21 @@ def validate_ean13(ean: str) -> dict:
     if len(digits) == 14:
         if digits[0] != '0':
             return {
-                "ean": ean, "digits": digits, "valid": False,
-                "check_digit_expected": None, "check_digit_actual": None,
+                "ean": ean,
+                "digits": digits,
+                "valid": False,
+                "check_digit_expected": None,
+                "check_digit_actual": None,
                 "error": f"GTIN-14 z indicator digit '{digits[0]}' — nie jest EAN-13",
             }
         digits = digits[1:]
     if len(digits) != 13:
         return {
-            "ean": ean, "digits": digits, "valid": False,
-            "check_digit_expected": None, "check_digit_actual": None,
+            "ean": ean,
+            "digits": digits,
+            "valid": False,
+            "check_digit_expected": None,
+            "check_digit_actual": None,
             "error": f"Nieprawidłowa długość: {len(digits)} cyfr (oczekiwano 13)",
         }
     total = sum(int(d) * (1 if i % 2 == 0 else 3) for i, d in enumerate(digits[:12]))
@@ -80,10 +91,14 @@ def validate_ean13(ean: str) -> dict:
         # "ean" preserves the original caller-supplied value (may include
         # spaces, dashes, or leading zeros before stripping); "digits" is
         # the cleaned 13-digit string used for the checksum calculation.
-        "ean": ean, "digits": digits, "valid": expected == actual,
-        "check_digit_expected": expected, "check_digit_actual": actual,
-        "error": None if expected == actual else
-            f"Błędna cyfra kontrolna: jest {actual}, powinno być {expected}",
+        "ean": ean,
+        "digits": digits,
+        "valid": expected == actual,
+        "check_digit_expected": expected,
+        "check_digit_actual": actual,
+        "error": None
+        if expected == actual
+        else f"Błędna cyfra kontrolna: jest {actual}, powinno być {expected}",
     }
 
 
@@ -91,17 +106,28 @@ def validate_ean8(ean: str) -> dict:
     """Waliduje EAN-8 algorytmem sumy kontrolnej GS1."""
     digits = re.sub(r'\D', '', ean)
     if len(digits) != 8:
-        return {"ean": ean, "digits": digits, "valid": False,
-                "check_digit_expected": None, "check_digit_actual": None,
-                "error": f"Nieprawidłowa długość: {len(digits)} cyfr (oczekiwano 8)"}
+        return {
+            "ean": ean,
+            "digits": digits,
+            "valid": False,
+            "check_digit_expected": None,
+            "check_digit_actual": None,
+            "error": f"Nieprawidłowa długość: {len(digits)} cyfr (oczekiwano 8)",
+        }
     # Wagi EAN-8: cyfry na pozycjach nieparzystych (0-idx parzystych) ×3, parzystych ×1.
     total = sum(int(d) * (3 if i % 2 == 0 else 1) for i, d in enumerate(digits[:7]))
     expected = (10 - (total % 10)) % 10
     actual = int(digits[7])
-    return {"ean": ean, "digits": digits, "valid": expected == actual,
-            "check_digit_expected": expected, "check_digit_actual": actual,
-            "error": None if expected == actual else
-                f"Błędna cyfra kontrolna: jest {actual}, powinno być {expected}"}
+    return {
+        "ean": ean,
+        "digits": digits,
+        "valid": expected == actual,
+        "check_digit_expected": expected,
+        "check_digit_actual": actual,
+        "error": None
+        if expected == actual
+        else f"Błędna cyfra kontrolna: jest {actual}, powinno być {expected}",
+    }
 
 
 def validate_upca(upc: str) -> dict:
@@ -109,9 +135,14 @@ def validate_upca(upc: str) -> dict:
     przez normalizację do 13 cyfr i ponowne użycie algorytmu EAN-13."""
     digits = re.sub(r'\D', '', upc)
     if len(digits) != 12:
-        return {"ean": upc, "digits": digits, "valid": False,
-                "check_digit_expected": None, "check_digit_actual": None,
-                "error": f"Nieprawidłowa długość: {len(digits)} cyfr (oczekiwano 12)"}
+        return {
+            "ean": upc,
+            "digits": digits,
+            "valid": False,
+            "check_digit_expected": None,
+            "check_digit_actual": None,
+            "error": f"Nieprawidłowa długość: {len(digits)} cyfr (oczekiwano 12)",
+        }
     res = validate_ean13("0" + digits)
     res["ean"] = upc
     res["upca"] = digits
@@ -125,9 +156,13 @@ def validate_barcode_number(code: str) -> dict:
     digits = re.sub(r'\D', '', code)
     n = len(digits)
     if n == 8:
-        r = validate_ean8(code); r["type"] = "EAN-8"; return r
+        r = validate_ean8(code)
+        r["type"] = "EAN-8"
+        return r
     if n == 12:
-        r = validate_upca(code); r["type"] = "UPC-A"; return r
+        r = validate_upca(code)
+        r["type"] = "UPC-A"
+        return r
     r = validate_ean13(code)
     r["type"] = "GTIN-14" if n == 14 else "EAN-13"
     return r
@@ -137,31 +172,31 @@ def validate_barcode_number(code: str) -> dict:
 
 # (AI) → (maks. długość wartości, opis, 'fixed'|'var')
 _GS1_AI = {
-    "00": (18, "SSCC",              "fixed"),
-    "01": (14, "GTIN",              "fixed"),
-    "02": (14, "GTIN zawartości",   "fixed"),
-    "10": (20, "LOT/Partia",        "var"),
-    "11": (6,  "Data produkcji",    "fixed"),
-    "13": (6,  "Data pakowania",    "fixed"),
-    "15": (6,  "Data best-by",      "fixed"),
-    "17": (6,  "Data ważności",     "fixed"),
-    "20": (2,  "Wariant produktu",  "fixed"),
-    "21": (20, "Nr seryjny",        "var"),
-    "22": (29, "Kod konsumenta",    "var"),
-    "30": (8,  "Ilość zmienna",     "var"),
-    "37": (8,  "Ilość w kartonie",  "var"),
-    "240": (30, "Nr dodatkowy",     "var"),
-    "241": (30, "Nr klienta",       "var"),
-    "310": (6,  "Masa netto [kg]",  "fixed"),
-    "320": (6,  "Masa netto [lb]",  "fixed"),
-    "330": (6,  "Masa brutto [kg]", "fixed"),
-    "400": (30, "Nr zamówienia",    "var"),
-    "401": (30, "Nr przesyłki",     "var"),
-    "410": (13, "Kod dostawcy",     "fixed"),
-    "420": (20, "Kod pocztowy",     "var"),
-    "710": (30, "NHRN Germany",     "var"),
-    "711": (30, "NHRN France",      "var"),
-    "713": (30, "NHRN Poland",      "var"),
+    "00": (18, "SSCC", "fixed"),
+    "01": (14, "GTIN", "fixed"),
+    "02": (14, "GTIN zawartości", "fixed"),
+    "10": (20, "LOT/Partia", "var"),
+    "11": (6, "Data produkcji", "fixed"),
+    "13": (6, "Data pakowania", "fixed"),
+    "15": (6, "Data best-by", "fixed"),
+    "17": (6, "Data ważności", "fixed"),
+    "20": (2, "Wariant produktu", "fixed"),
+    "21": (20, "Nr seryjny", "var"),
+    "22": (29, "Kod konsumenta", "var"),
+    "30": (8, "Ilość zmienna", "var"),
+    "37": (8, "Ilość w kartonie", "var"),
+    "240": (30, "Nr dodatkowy", "var"),
+    "241": (30, "Nr klienta", "var"),
+    "310": (6, "Masa netto [kg]", "fixed"),
+    "320": (6, "Masa netto [lb]", "fixed"),
+    "330": (6, "Masa brutto [kg]", "fixed"),
+    "400": (30, "Nr zamówienia", "var"),
+    "401": (30, "Nr przesyłki", "var"),
+    "410": (13, "Kod dostawcy", "fixed"),
+    "420": (20, "Kod pocztowy", "var"),
+    "710": (30, "NHRN Germany", "var"),
+    "711": (30, "NHRN France", "var"),
+    "713": (30, "NHRN Poland", "var"),
 }
 
 
@@ -181,8 +216,9 @@ def _parse_gs1_date(s: str) -> Optional[str]:
     if not (1 <= mm_int <= 12):
         return None
     import calendar
+
     max_day = calendar.monthrange(year, mm_int)[1]
-    if dd == "00":                       # GS1: DD=00 → ostatni dzień miesiąca
+    if dd == "00":  # GS1: DD=00 → ostatni dzień miesiąca
         dd = str(max_day)
     elif not (1 <= int(dd) <= max_day):  # odrzuć niemożliwe dni (np. (17)310230 = 30 lutego)
         return None
@@ -195,8 +231,7 @@ def gtin_check_digit_valid(gtin: str) -> bool:
     if len(g) not in (8, 12, 13, 14):
         return False
     body, check = g[:-1], int(g[-1])
-    total = sum(int(ch) * (3 if i % 2 == 0 else 1)
-                for i, ch in enumerate(reversed(body)))
+    total = sum(int(ch) * (3 if i % 2 == 0 else 1) for i, ch in enumerate(reversed(body)))
     return (10 - total % 10) % 10 == check
 
 
@@ -214,8 +249,7 @@ def _finalize_gs1(result: dict) -> dict:
             result["errors"].append(f"Błędna cyfra kontrolna GTIN: {result['gtin']}")
     present = {f["ai"] for f in result.get("fields", [])}
     result["missing_mandatory_ai"] = [
-        _GS1_AI[ai][1] for ai in _MANDATORY_MEDICAL_AI
-        if ai not in present and ai in _GS1_AI
+        _GS1_AI[ai][1] for ai in _MANDATORY_MEDICAL_AI if ai not in present and ai in _GS1_AI
     ]
     return result
 
@@ -233,10 +267,16 @@ def parse_gs1_128(raw: str) -> dict:
     if isinstance(raw, bytes):
         raw = raw.decode("utf-8", errors="replace")
     result = {
-        "raw": raw, "fields": [], "errors": [],
-        "gtin": None, "lot": None, "exp_date": None,
-        "prod_date": None, "serial": None,
-        "gtin_valid": None, "missing_mandatory_ai": [],
+        "raw": raw,
+        "fields": [],
+        "errors": [],
+        "gtin": None,
+        "lot": None,
+        "exp_date": None,
+        "prod_date": None,
+        "serial": None,
+        "gtin_valid": None,
+        "missing_mandatory_ai": [],
     }
 
     # Fast path: parenthesised format (AI)value(AI)value… preserves field boundaries
@@ -279,7 +319,7 @@ def parse_gs1_128(raw: str) -> dict:
                 _glued = False
                 for _i in range(1, len(_val)):
                     for _ai_len in (4, 3, 2):
-                        _cand = _val[_i:_i + _ai_len]
+                        _cand = _val[_i : _i + _ai_len]
                         _ci = _GS1_AI.get(_cand)
                         if _ci and _ci[2] == "fixed" and len(_val) - (_i + _ai_len) == _ci[0]:
                             _glued = True
@@ -305,12 +345,15 @@ def parse_gs1_128(raw: str) -> dict:
                     else:
                         # BUGFIX: niemożliwa data (np. 260230 = 30 lutego) była cicho
                         # przepuszczana jako surowy ciąg — zgłoś błąd walidacji.
-                        result["errors"].append(
-                            f"Nieprawidłowa data {_name} (AI {ai}): '{value}'")
-                result["fields"].append({
-                    "ai": ai, "name": _name,
-                    "value": value, "value_parsed": parsed_val,
-                })
+                        result["errors"].append(f"Nieprawidłowa data {_name} (AI {ai}): '{value}'")
+                result["fields"].append(
+                    {
+                        "ai": ai,
+                        "name": _name,
+                        "value": value,
+                        "value_parsed": parsed_val,
+                    }
+                )
                 if ai == "01":
                     result["gtin"] = value
                 elif ai == "10":
@@ -340,19 +383,21 @@ def parse_gs1_128(raw: str) -> dict:
             continue
         matched_ai = None
         for ai_len in (4, 3, 2):
-            candidate = normalized[pos:pos + ai_len]
+            candidate = normalized[pos : pos + ai_len]
             if candidate in _GS1_AI:
                 matched_ai = candidate
                 break
         if not matched_ai:
-            result["errors"].append(f"Nierozpoznany AI przy poz. {pos}: '{normalized[pos:pos+4]}'")
+            result["errors"].append(
+                f"Nierozpoznany AI przy poz. {pos}: '{normalized[pos : pos + 4]}'"
+            )
             break
 
         max_len, name, vtype = _GS1_AI[matched_ai]
         pos += len(matched_ai)
 
         if vtype == "fixed":
-            value = normalized[pos:pos + max_len]
+            value = normalized[pos : pos + max_len]
             pos += max_len
         elif (_gs := normalized.find("\x1d", pos, pos + max_len)) != -1:
             # FNC1/GS jednoznacznie kończy pole zmiennej długości w realnych kodach
@@ -373,7 +418,7 @@ def parse_gs1_128(raw: str) -> dict:
             while e <= limit:
                 hit = False
                 for ai_len in (4, 3, 2):
-                    cand = normalized[pos + e:pos + e + ai_len]
+                    cand = normalized[pos + e : pos + e + ai_len]
                     if cand in _GS1_AI:
                         _ml, _nm, _vt = _GS1_AI[cand]
                         if _vt != "fixed" or (n - (pos + e + ai_len)) >= _ml:
@@ -383,7 +428,7 @@ def parse_gs1_128(raw: str) -> dict:
                 if hit:
                     break
                 e += 1
-            value = normalized[pos:pos + end]
+            value = normalized[pos : pos + end]
             # Ensure we always advance; if no data, consume remainder to avoid loop
             pos += len(value) if value else (n - pos)
 
@@ -394,13 +439,16 @@ def parse_gs1_128(raw: str) -> dict:
                 parsed_val = _d
             else:
                 # BUGFIX: niemożliwa data → zgłoś błąd zamiast cicho zostawiać surowiec
-                result["errors"].append(
-                    f"Nieprawidłowa data {name} (AI {matched_ai}): '{value}'")
+                result["errors"].append(f"Nieprawidłowa data {name} (AI {matched_ai}): '{value}'")
 
-        result["fields"].append({
-            "ai": matched_ai, "name": name,
-            "value": value, "value_parsed": parsed_val,
-        })
+        result["fields"].append(
+            {
+                "ai": matched_ai,
+                "name": name,
+                "value": value,
+                "value_parsed": parsed_val,
+            }
+        )
         if matched_ai == "01":
             result["gtin"] = value
         elif matched_ai == "10":
@@ -416,6 +464,7 @@ def parse_gs1_128(raw: str) -> dict:
 
 
 # ─── ODCZYT KODÓW Z OBRAZU ────────────────────────────────────────────────────
+
 
 def read_barcodes_from_image(img) -> list:
     """
@@ -443,6 +492,7 @@ def _upscale_for_barcode(img):
             scale = min(3.0, 2600 / max(longest, 1))
             if scale > 1.05:
                 from PIL import Image as _Im
+
                 _lz = _Im.LANCZOS if hasattr(_Im, "LANCZOS") else _Im.BICUBIC
                 return img.resize((int(w * scale), int(h * scale)), _lz)
     except Exception:
@@ -453,6 +503,7 @@ def _upscale_for_barcode(img):
 def _read_zxing(img) -> list:
     try:
         import numpy as np
+
         rgb = img.convert("RGB")
         arr = np.array(rgb)
 
@@ -461,7 +512,9 @@ def _read_zxing(img) -> list:
             # rotated / small / inverted codes. Older zxingcpp lacks these kwargs → fall
             # back to the plain call.
             try:
-                return zxingcpp.read_barcodes(a, try_rotate=True, try_downscale=True, try_invert=True)
+                return zxingcpp.read_barcodes(
+                    a, try_rotate=True, try_downscale=True, try_invert=True
+                )
             except TypeError:
                 try:
                     return zxingcpp.read_barcodes(a, try_rotate=True, try_downscale=True)
@@ -474,9 +527,14 @@ def _read_zxing(img) -> list:
             up = _upscale_for_barcode(rgb)
             if up is not rgb:
                 barcodes = _decode(np.array(up))
-        return [{"format": str(bc.format).replace("BarcodeFormat.", ""),
-                 "raw_data": bc.text,
-                 "parsed": _classify(str(bc.format), bc.text)} for bc in barcodes]
+        return [
+            {
+                "format": str(bc.format).replace("BarcodeFormat.", ""),
+                "raw_data": bc.text,
+                "parsed": _classify(str(bc.format), bc.text),
+            }
+            for bc in barcodes
+        ]
     except Exception as e:
         return [{"format": "error", "raw_data": "", "parsed": {}, "error": str(e)[:200]}]
 
@@ -502,11 +560,11 @@ def _read_pyzbar(img) -> list:
     for bc in barcodes:
         try:
             raw = bc.data.decode("utf-8", errors="replace")
-            results.append({"format": bc.type,
-                             "raw_data": raw,
-                             "parsed": _classify(bc.type, raw)})
+            results.append({"format": bc.type, "raw_data": raw, "parsed": _classify(bc.type, raw)})
         except Exception as e:
-            results.append({"format": str(bc.type), "raw_data": "", "parsed": {}, "error": str(e)[:200]})
+            results.append(
+                {"format": str(bc.type), "raw_data": "", "parsed": {}, "error": str(e)[:200]}
+            )
     return results
 
 
@@ -529,6 +587,7 @@ def _classify(fmt: str, raw: str) -> dict:
 
 
 # ─── WALIDACJA KOMPLETNA ─────────────────────────────────────────────────────
+
 
 def _norm_ean13(code) -> str:
     """Normalizuje kod numeryczny do postaci EAN-13 na potrzeby porównania A↔B:
@@ -555,8 +614,11 @@ def _decoded_eans(barcodes: list) -> list:
             continue
         parsed = bc.get("parsed", {})
         ean = None
-        if "EAN-13" in parsed.get("type", "") or "EAN-8" in parsed.get("type", "") \
-                or "UPC-A" in parsed.get("type", ""):
+        if (
+            "EAN-13" in parsed.get("type", "")
+            or "EAN-8" in parsed.get("type", "")
+            or "UPC-A" in parsed.get("type", "")
+        ):
             v = parsed.get("validation", {})
             if v.get("valid"):
                 # validate_upca stores the original 12-digit code in 'ean' → normalize
@@ -623,16 +685,27 @@ def validate_artwork_barcodes(
             v = validate_barcode_number(ean)
             _ct = v.get("type", "EAN")
             if v["valid"]:
-                messages.append({
-                    "level": "OK", "source": src, "code_type": _ct, "check": "checksum",
-                    "text": (f"{_ct} ({ean}): cyfra kontrolna "
-                             f"{v['check_digit_actual']} — poprawna."),
-                })
+                messages.append(
+                    {
+                        "level": "OK",
+                        "source": src,
+                        "code_type": _ct,
+                        "check": "checksum",
+                        "text": (
+                            f"{_ct} ({ean}): cyfra kontrolna {v['check_digit_actual']} — poprawna."
+                        ),
+                    }
+                )
             else:
-                messages.append({
-                    "level": "KRYTYCZNY", "source": src, "code_type": _ct, "check": "checksum",
-                    "text": f"{_ct} ({ean}): {v['error']}",
-                })
+                messages.append(
+                    {
+                        "level": "KRYTYCZNY",
+                        "source": src,
+                        "code_type": _ct,
+                        "check": "checksum",
+                        "text": f"{_ct} ({ean}): {v['error']}",
+                    }
+                )
 
     # 2. Zgodność EAN A vs B — zdekodowany kod ma pierwszeństwo nad OCR.
     #    Dla każdej strony bierzemy zdekodowane EAN-y, a OCR tylko gdy kodu nie odczytano.
@@ -640,42 +713,65 @@ def validate_artwork_barcodes(
     # zdekodowany jako UPC-A i 13-cyfrowy odczyt OCR dawały fałszywą niezgodność.
     cmp_a = [_norm_ean13(e) for e in (decoded_eans_a or eans_a)]
     cmp_b = [_norm_ean13(e) for e in (decoded_eans_b or eans_b)]
-    _src_note = (" (z kodu kreskowego)"
-                 if (decoded_eans_a or decoded_eans_b) else " (z tekstu OCR)")
+    _src_note = " (z kodu kreskowego)" if (decoded_eans_a or decoded_eans_b) else " (z tekstu OCR)"
     if cmp_a or cmp_b:
         sa, sb = set(cmp_a), set(cmp_b)
         if sa and sb:
             if sa == sb:
-                messages.append({
-                    "level": "OK", "source": "A+B", "code_type": "EAN-13",
-                    "text": f"EAN-13 zgodny między artworkami{_src_note}: {', '.join(sorted(sa))}",
-                })
+                messages.append(
+                    {
+                        "level": "OK",
+                        "source": "A+B",
+                        "code_type": "EAN-13",
+                        "text": f"EAN-13 zgodny między artworkami{_src_note}: {', '.join(sorted(sa))}",
+                    }
+                )
             else:
                 for ean in sorted(sa - sb):
-                    messages.append({
-                        "level": "KRYTYCZNY", "source": "A+B", "code_type": "EAN-13",
-                        "text": f"EAN {ean} obecny tylko w wersji A — brak w wersji B.",
-                    })
+                    messages.append(
+                        {
+                            "level": "KRYTYCZNY",
+                            "source": "A+B",
+                            "code_type": "EAN-13",
+                            "text": f"EAN {ean} obecny tylko w wersji A — brak w wersji B.",
+                        }
+                    )
                 for ean in sorted(sb - sa):
-                    messages.append({
-                        "level": "KRYTYCZNY", "source": "A+B", "code_type": "EAN-13",
-                        "text": f"EAN {ean} obecny tylko w wersji B — brak w wersji A.",
-                    })
+                    messages.append(
+                        {
+                            "level": "KRYTYCZNY",
+                            "source": "A+B",
+                            "code_type": "EAN-13",
+                            "text": f"EAN {ean} obecny tylko w wersji B — brak w wersji A.",
+                        }
+                    )
     else:
-        messages.append({
-            "level": "INFO", "source": "A+B", "code_type": "EAN-13",
-            "text": ("Nie wykryto EAN-13 (ani w kodzie kreskowym, ani w tekście OCR) — "
-                     "sprawdź kod kreskowy wizualnie."),
-        })
+        messages.append(
+            {
+                "level": "INFO",
+                "source": "A+B",
+                "code_type": "EAN-13",
+                "text": (
+                    "Nie wykryto EAN-13 (ani w kodzie kreskowym, ani w tekście OCR) — "
+                    "sprawdź kod kreskowy wizualnie."
+                ),
+            }
+        )
 
     # 3. Spójność kod kreskowy ↔ tekst OCR (reużywa kodów zdekodowanych w sekcji 0)
     if not has_lib:
-        messages.append({
-            "level": "INFO", "source": "system", "code_type": "Odczyt",
-            "text": ("Biblioteka odczytu kodów (zxingcpp/pyzbar) nie jest zainstalowana. "
-                     "EAN-13 sprawdzono wyłącznie na podstawie tekstu OCR. "
-                     "Zainstaluj: pip install zxingcpp"),
-        })
+        messages.append(
+            {
+                "level": "INFO",
+                "source": "system",
+                "code_type": "Odczyt",
+                "text": (
+                    "Biblioteka odczytu kodów (zxingcpp/pyzbar) nie jest zainstalowana. "
+                    "EAN-13 sprawdzono wyłącznie na podstawie tekstu OCR. "
+                    "Zainstaluj: pip install zxingcpp"
+                ),
+            }
+        )
     else:
         for src, barcodes, txt in (("A", barcodes_a, ocr_text_a), ("B", barcodes_b, ocr_text_b)):
             if not barcodes:
@@ -729,56 +825,86 @@ def _check_barcodes_vs_text(barcodes: list, ocr_text: str, source: str) -> list:
             v = parsed.get("validation", {})
             ean = v.get("ean", bc.get("raw_data", ""))
             if not v.get("valid"):
-                messages.append({
-                    "level": "KRYTYCZNY", "source": source, "code_type": "EAN-13", "check": "checksum",
-                    "text": f"EAN-13 z kodu ({ean}): {v.get('error', 'błąd')}",
-                })
+                messages.append(
+                    {
+                        "level": "KRYTYCZNY",
+                        "source": source,
+                        "code_type": "EAN-13",
+                        "check": "checksum",
+                        "text": f"EAN-13 z kodu ({ean}): {v.get('error', 'błąd')}",
+                    }
+                )
                 continue
             if ean in eans_in_text:
-                messages.append({
-                    "level": "OK", "source": source, "code_type": "EAN-13",
-                    "text": f"EAN-13 z kodu ({ean}) zgodny z tekstem na opakowaniu.",
-                })
+                messages.append(
+                    {
+                        "level": "OK",
+                        "source": source,
+                        "code_type": "EAN-13",
+                        "text": f"EAN-13 z kodu ({ean}) zgodny z tekstem na opakowaniu.",
+                    }
+                )
             else:
-                messages.append({
-                    "level": "KRYTYCZNY", "source": source, "code_type": "EAN-13",
-                    "text": (f"EAN-13 z kodu ({ean}) NIE ZGADZA SIĘ z tekstem OCR! "
-                             f"Tekst zawiera: {', '.join(eans_in_text) or 'brak EAN'}"),
-                })
+                messages.append(
+                    {
+                        "level": "KRYTYCZNY",
+                        "source": source,
+                        "code_type": "EAN-13",
+                        "text": (
+                            f"EAN-13 z kodu ({ean}) NIE ZGADZA SIĘ z tekstem OCR! "
+                            f"Tekst zawiera: {', '.join(eans_in_text) or 'brak EAN'}"
+                        ),
+                    }
+                )
 
         elif "EAN-8" in bc_type or "UPC-A" in bc_type:
             code_type = "EAN-8" if "EAN-8" in bc_type else "UPC-A"
             v = parsed.get("validation", {})
             code = v.get("ean", bc.get("raw_data", ""))
             if not v.get("valid"):
-                messages.append({
-                    "level": "KRYTYCZNY", "source": source, "code_type": code_type, "check": "checksum",
-                    "text": f"{code_type} z kodu ({code}): {v.get('error', 'błąd')}",
-                })
+                messages.append(
+                    {
+                        "level": "KRYTYCZNY",
+                        "source": source,
+                        "code_type": code_type,
+                        "check": "checksum",
+                        "text": f"{code_type} z kodu ({code}): {v.get('error', 'błąd')}",
+                    }
+                )
                 continue
             # UPC-A (12) bywa drukowane jako EAN-13 z wiodącym zerem — porównaj obie formy.
             variants = {code}
             if code_type == "UPC-A" and len(code) == 12:
                 variants.add("0" + code)
             if variants & set(eans_in_text):
-                messages.append({
-                    "level": "OK", "source": source, "code_type": code_type,
-                    "text": f"{code_type} z kodu ({code}) zgodny z tekstem na opakowaniu.",
-                })
+                messages.append(
+                    {
+                        "level": "OK",
+                        "source": source,
+                        "code_type": code_type,
+                        "text": f"{code_type} z kodu ({code}) zgodny z tekstem na opakowaniu.",
+                    }
+                )
             else:
-                messages.append({
-                    "level": "KRYTYCZNY", "source": source, "code_type": code_type,
-                    "text": (f"{code_type} z kodu ({code}) NIE ZGADZA SIĘ z tekstem OCR! "
-                             f"Tekst zawiera: {', '.join(eans_in_text) or 'brak kodu'}"),
-                })
+                messages.append(
+                    {
+                        "level": "KRYTYCZNY",
+                        "source": source,
+                        "code_type": code_type,
+                        "text": (
+                            f"{code_type} z kodu ({code}) NIE ZGADZA SIĘ z tekstem OCR! "
+                            f"Tekst zawiera: {', '.join(eans_in_text) or 'brak kodu'}"
+                        ),
+                    }
+                )
 
         elif any(k in bc_type for k in ("Code128", "GS1", "DataMatrix")):
             gs1 = parsed.get("gs1", {})
             if not gs1:
                 continue
             gtin = gs1.get("gtin")
-            lot  = gs1.get("lot")
-            exp  = gs1.get("exp_date")
+            lot = gs1.get("lot")
+            exp = gs1.get("exp_date")
             prod = gs1.get("prod_date")
 
             if gtin:
@@ -787,66 +913,112 @@ def _check_barcodes_vs_text(barcodes: list, ocr_text: str, source: str) -> list:
                         ean13 = gtin[1:]
                     else:
                         # Non-retail GTIN-14 — validate as-is but skip false EAN-13 check
-                        messages.append({"level": "INFO", "source": source, "code_type": bc_type,
-                                         "text": f"GS1-128 GTIN-14 (01){gtin} — indykator={gtin[0]}, pomijam weryfikację EAN-13."})
+                        messages.append(
+                            {
+                                "level": "INFO",
+                                "source": source,
+                                "code_type": bc_type,
+                                "text": f"GS1-128 GTIN-14 (01){gtin} — indykator={gtin[0]}, pomijam weryfikację EAN-13.",
+                            }
+                        )
                         ean13 = None
                 else:
                     ean13 = gtin
                 if ean13 is not None:
                     v = validate_ean13(ean13)
                     level = "OK" if v["valid"] else "KRYTYCZNY"
-                    msg = (f"GS1-128 GTIN (01){gtin}: EAN-13={ean13} — poprawny."
-                           if v["valid"] else
-                           f"GS1-128 GTIN (01){gtin}: {v['error']}")
-                    messages.append({"level": level, "source": source, "code_type": bc_type,
-                                     "check": "checksum", "text": msg})
+                    msg = (
+                        f"GS1-128 GTIN (01){gtin}: EAN-13={ean13} — poprawny."
+                        if v["valid"]
+                        else f"GS1-128 GTIN (01){gtin}: {v['error']}"
+                    )
+                    messages.append(
+                        {
+                            "level": level,
+                            "source": source,
+                            "code_type": bc_type,
+                            "check": "checksum",
+                            "text": msg,
+                        }
+                    )
 
                 if ean13 is not None and eans_in_text and ean13 not in eans_in_text:
-                    messages.append({
-                        "level": "KRYTYCZNY", "source": source, "code_type": bc_type,
-                        "text": (f"GTIN z GS1-128 ({ean13}) NIE ZGADZA SIĘ "
-                                 f"z EAN w tekście: {', '.join(eans_in_text)}"),
-                    })
+                    messages.append(
+                        {
+                            "level": "KRYTYCZNY",
+                            "source": source,
+                            "code_type": bc_type,
+                            "text": (
+                                f"GTIN z GS1-128 ({ean13}) NIE ZGADZA SIĘ "
+                                f"z EAN w tekście: {', '.join(eans_in_text)}"
+                            ),
+                        }
+                    )
 
             if lot:
                 m = re.search(
                     r'(?:LOT|BATCH|SERIA)[:\s#]+([A-Za-z0-9][A-Za-z0-9\-]{2,20})',
-                    ocr_text, re.IGNORECASE)
+                    ocr_text,
+                    re.IGNORECASE,
+                )
                 lot_text = m.group(1) if m else None
                 if lot_text:
                     if lot.upper() == lot_text.upper():
-                        messages.append({
-                            "level": "OK", "source": source, "code_type": bc_type,
-                            "text": f"GS1-128 LOT (10){lot} zgodny z tekstem na opakowaniu.",
-                        })
+                        messages.append(
+                            {
+                                "level": "OK",
+                                "source": source,
+                                "code_type": bc_type,
+                                "text": f"GS1-128 LOT (10){lot} zgodny z tekstem na opakowaniu.",
+                            }
+                        )
                     else:
-                        messages.append({
-                            "level": "KRYTYCZNY", "source": source, "code_type": bc_type,
-                            "text": f"LOT w kodzie (10){lot} ≠ LOT w tekście '{lot_text}'.",
-                        })
+                        messages.append(
+                            {
+                                "level": "KRYTYCZNY",
+                                "source": source,
+                                "code_type": bc_type,
+                                "text": f"LOT w kodzie (10){lot} ≠ LOT w tekście '{lot_text}'.",
+                            }
+                        )
                 else:
-                    messages.append({
-                        "level": "INFO", "source": source, "code_type": bc_type,
-                        "text": (f"GS1-128 LOT (10){lot} — "
-                                 "brak tekstu LOT do porównania (może być placeholder)."),
-                    })
+                    messages.append(
+                        {
+                            "level": "INFO",
+                            "source": source,
+                            "code_type": bc_type,
+                            "text": (
+                                f"GS1-128 LOT (10){lot} — "
+                                "brak tekstu LOT do porównania (może być placeholder)."
+                            ),
+                        }
+                    )
 
             if exp:
-                messages.append({
-                    "level": "OK", "source": source, "code_type": bc_type,
-                    "text": f"GS1-128 data ważności (17): {exp}",
-                })
+                messages.append(
+                    {
+                        "level": "OK",
+                        "source": source,
+                        "code_type": bc_type,
+                        "text": f"GS1-128 data ważności (17): {exp}",
+                    }
+                )
 
             if prod:
-                messages.append({
-                    "level": "OK", "source": source, "code_type": bc_type,
-                    "text": f"GS1-128 data produkcji (11): {prod}",
-                })
+                messages.append(
+                    {
+                        "level": "OK",
+                        "source": source,
+                        "code_type": bc_type,
+                        "text": f"GS1-128 data produkcji (11): {prod}",
+                    }
+                )
 
     return messages
 
 
 # ─── DEEP VALIDATE PRINTED DATA ───────────────────────────────────────────────
+
 
 def deep_validate_printed_data(ocr_text: str, img_b64: Optional[str] = None) -> dict:
     """
@@ -863,9 +1035,9 @@ def deep_validate_printed_data(ocr_text: str, img_b64: Optional[str] = None) -> 
         "ok": True,
         "issues": [],
         "details": [],
-        "lot":        None,
-        "ean":        None,
-        "exp_date":   None,
+        "lot": None,
+        "ean": None,
+        "exp_date": None,
         "barcode_gs1": None,
     }
 
@@ -891,8 +1063,8 @@ def deep_validate_printed_data(ocr_text: str, img_b64: Optional[str] = None) -> 
             ocr_exp = m.group(1).strip()
             break
 
-    result["lot"]      = ocr_lot
-    result["ean"]      = ocr_ean
+    result["lot"] = ocr_lot
+    result["ean"] = ocr_ean
     result["exp_date"] = ocr_exp
 
     # ── 2. Odczytaj kody kreskowe z obrazu ───────────────────────────────────
@@ -904,22 +1076,35 @@ def deep_validate_printed_data(ocr_text: str, img_b64: Optional[str] = None) -> 
             img = _PIL_Image.open(buf)
             if img.width * img.height > 50_000_000:  # 50 megapixels max
                 img.close()
-                _logger.warning(
-                    "Barcode image too large (%dx%d), skipping", img.width, img.height
-                )
-                return {"ok": False, "issues": ["Obraz zbyt duży do analizy kodów kreskowych"],
-                        "details": [], "lot": None, "ean": None, "exp_date": None,
-                        "barcode_gs1": None, "scan_error": "Image too large"}
+                _logger.warning("Barcode image too large (%dx%d), skipping", img.width, img.height)
+                return {
+                    "ok": False,
+                    "issues": ["Obraz zbyt duży do analizy kodów kreskowych"],
+                    "details": [],
+                    "lot": None,
+                    "ean": None,
+                    "exp_date": None,
+                    "barcode_gs1": None,
+                    "scan_error": "Image too large",
+                }
             img_rgb = img.convert("RGB")
             img.close()
             barcodes_read = read_barcodes_from_image(img_rgb)
             img_rgb.close()
         except Exception as _e:
             import logging as _log
+
             _log.getLogger(__name__).warning("deep_validate: image decode failed: %s", _e)
-            return {"ok": False, "issues": [f"Nie można odczytać obrazu kodu kreskowego: {str(_e)[:200]}"],
-                    "details": [], "lot": None, "ean": None, "exp_date": None,
-                    "barcode_gs1": None, "scan_error": str(_e)[:200]}
+            return {
+                "ok": False,
+                "issues": [f"Nie można odczytać obrazu kodu kreskowego: {str(_e)[:200]}"],
+                "details": [],
+                "lot": None,
+                "ean": None,
+                "exp_date": None,
+                "barcode_gs1": None,
+                "scan_error": str(_e)[:200],
+            }
 
     # Parsuj GS1 z odczytanych kodów
     gs1_data = None
@@ -929,7 +1114,11 @@ def deep_validate_printed_data(ocr_text: str, img_b64: Optional[str] = None) -> 
             gs1_data = parsed["gs1"]
             break
         if parsed.get("type") == "EAN-13":
-            gs1_data = {"gtin": parsed.get("ean") or bc.get("raw_data"), "lot": None, "exp_date": None}
+            gs1_data = {
+                "gtin": parsed.get("ean") or bc.get("raw_data"),
+                "lot": None,
+                "exp_date": None,
+            }
             break
 
     result["barcode_gs1"] = gs1_data
@@ -938,17 +1127,15 @@ def deep_validate_printed_data(ocr_text: str, img_b64: Optional[str] = None) -> 
     if ocr_ean:
         v = validate_ean13(ocr_ean)
         if v["valid"]:
-            result["details"].append({
-                "level": "OK",
-                "text": f"EAN-13 ({ocr_ean}) — cyfra kontrolna poprawna"
-            })
+            result["details"].append(
+                {"level": "OK", "text": f"EAN-13 ({ocr_ean}) — cyfra kontrolna poprawna"}
+            )
         else:
             result["ok"] = False
             result["issues"].append(f"EAN-13 ({ocr_ean}): {v['error']}")
-            result["details"].append({
-                "level": "KRYTYCZNY",
-                "text": f"EAN-13 ({ocr_ean}): {v['error']}"
-            })
+            result["details"].append(
+                {"level": "KRYTYCZNY", "text": f"EAN-13 ({ocr_ean}): {v['error']}"}
+            )
     else:
         result["details"].append({"level": "INFO", "text": "Nie znaleziono EAN-13 w tekście OCR"})
 
@@ -957,36 +1144,46 @@ def deep_validate_printed_data(ocr_text: str, img_b64: Optional[str] = None) -> 
         # EAN vs GTIN — compare with zero-padding to 13 digits to avoid
         # false matches from lstrip('0') (e.g. '0123456789012' ≠ '123456789012')
         bc_gtin = _normalize_ean(gs1_data.get("gtin") or "")
-        oc_ean  = _normalize_ean(ocr_ean or "")
+        oc_ean = _normalize_ean(ocr_ean or "")
         if bc_gtin and oc_ean:
             if bc_gtin == oc_ean:
-                result["details"].append({
-                    "level": "OK",
-                    "text": f"EAN barcode ({gs1_data['gtin']}) zgodny z tekstem OCR ({ocr_ean})"
-                })
+                result["details"].append(
+                    {
+                        "level": "OK",
+                        "text": f"EAN barcode ({gs1_data['gtin']}) zgodny z tekstem OCR ({ocr_ean})",
+                    }
+                )
             else:
                 result["ok"] = False
-                result["issues"].append(f"EAN w barcode ({gs1_data['gtin']}) ≠ EAN w tekście ({ocr_ean})")
-                result["details"].append({
-                    "level": "KRYTYCZNY",
-                    "text": f"EAN w barcode ({gs1_data['gtin']}) ≠ EAN w tekście OCR ({ocr_ean})"
-                })
+                result["issues"].append(
+                    f"EAN w barcode ({gs1_data['gtin']}) ≠ EAN w tekście ({ocr_ean})"
+                )
+                result["details"].append(
+                    {
+                        "level": "KRYTYCZNY",
+                        "text": f"EAN w barcode ({gs1_data['gtin']}) ≠ EAN w tekście OCR ({ocr_ean})",
+                    }
+                )
 
         # LOT
         bc_lot = gs1_data.get("lot")
         if bc_lot and ocr_lot:
             if bc_lot.upper() == ocr_lot.upper():
-                result["details"].append({
-                    "level": "OK",
-                    "text": f"LOT w barcode ({bc_lot}) zgodny z tekstem OCR ({ocr_lot})"
-                })
+                result["details"].append(
+                    {
+                        "level": "OK",
+                        "text": f"LOT w barcode ({bc_lot}) zgodny z tekstem OCR ({ocr_lot})",
+                    }
+                )
             else:
                 result["ok"] = False
                 result["issues"].append(f"LOT w barcode ({bc_lot}) ≠ LOT w tekście ({ocr_lot})")
-                result["details"].append({
-                    "level": "KRYTYCZNY",
-                    "text": f"LOT w barcode ({bc_lot}) ≠ LOT w tekście OCR ({ocr_lot})"
-                })
+                result["details"].append(
+                    {
+                        "level": "KRYTYCZNY",
+                        "text": f"LOT w barcode ({bc_lot}) ≠ LOT w tekście OCR ({ocr_lot})",
+                    }
+                )
 
         # Data ważności
         bc_exp = gs1_data.get("exp_date")
@@ -997,21 +1194,31 @@ def deep_validate_printed_data(ocr_text: str, img_b64: Optional[str] = None) -> 
             bc_exp_n = re.sub(r"\D", "", bc_exp)[-6:]
             oc_exp_n = re.sub(r"\D", "", ocr_exp)[-6:]
             if bc_exp_n and oc_exp_n and bc_exp_n == oc_exp_n:
-                result["details"].append({
-                    "level": "OK",
-                    "text": f"Data ważności w barcode ({bc_exp}) zgodna z tekstem OCR ({ocr_exp})"
-                })
+                result["details"].append(
+                    {
+                        "level": "OK",
+                        "text": f"Data ważności w barcode ({bc_exp}) zgodna z tekstem OCR ({ocr_exp})",
+                    }
+                )
             else:
                 result["ok"] = False
                 result["issues"].append(f"Data ważności w barcode ({bc_exp}) ≠ tekst ({ocr_exp})")
-                result["details"].append({
-                    "level": "KRYTYCZNY",
-                    "text": f"Data ważności w barcode ({bc_exp}) ≠ tekst OCR ({ocr_exp})"
-                })
+                result["details"].append(
+                    {
+                        "level": "KRYTYCZNY",
+                        "text": f"Data ważności w barcode ({bc_exp}) ≠ tekst OCR ({ocr_exp})",
+                    }
+                )
     elif barcodes_read:
-        result["details"].append({"level": "INFO", "text": "Odczytano kody kreskowe, brak danych GS1-128"})
+        result["details"].append(
+            {"level": "INFO", "text": "Odczytano kody kreskowe, brak danych GS1-128"}
+        )
     else:
-        result["details"].append({"level": "INFO", "text": "Nie odczytano kodów kreskowych z obrazu (brak biblioteki zxingcpp/pyzbar)"})
+        result["details"].append(
+            {
+                "level": "INFO",
+                "text": "Nie odczytano kodów kreskowych z obrazu (brak biblioteki zxingcpp/pyzbar)",
+            }
+        )
 
     return result
-

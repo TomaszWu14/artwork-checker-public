@@ -3,6 +3,7 @@
 Plik z rozszerzeniem .pdf, ale treścią nie-PDF, musi zostać odrzucony (400),
 zanim trafi do ciężkiego przetwarzania.
 """
+
 import io
 
 from tests.conftest import CSRF_TOKEN, set_session_csrf
@@ -43,6 +44,7 @@ def test_stream_and_path_agree(tmp_path):
 
     class _FS:
         stream = io.BytesIO(payload)
+
     assert _app_mod._validate_upload_magic(str(p)) is True
     assert _app_mod._validate_upload_magic_stream(_FS()) is True
 
@@ -54,8 +56,7 @@ def test_compare_rejects_spoofed_pdf(admin_client):
         "file_a": (io.BytesIO(b"this is not a pdf"), "a.pdf"),
         "file_b": (io.BytesIO(b"this is not a pdf either"), "b.pdf"),
     }
-    r = admin_client.post("/api/artwork/compare", data=data,
-                          content_type="multipart/form-data")
+    r = admin_client.post("/api/artwork/compare", data=data, content_type="multipart/form-data")
     assert r.status_code == 400, f"spoofowany PDF powinien dać 400, dostał {r.status_code}"
     body = r.get_data(as_text=True).lower()
     assert "rozszerzenie" in body, body  # komunikat: "...rozszerzenie nie zgadza się z treścią"

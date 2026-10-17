@@ -305,6 +305,7 @@ def build_card(db, ref) -> dict | None:
     # revisions: artwork_index.all_revisions(db, ref)          → historia + rewizja obow.
     # zwraca {"ref","common","levels":[...],"revisions":[...],"current_rev"}
 
+
 def _levels_for(db, ref) -> list:
     """Scal poziomy z material_master (per-level dims/EAN) z plikami z artwork_index.
     Dla każdego poziomu: {level, role, ean|'NO-EAN', dims, file (lookup_best), rev}."""
@@ -321,6 +322,7 @@ na tymczasowym SQLite — bez ML, bez sieci.
 @login_required
 def page_artwork_card(ref):
     import artwork_card
+
     db = get_db()
     try:
         card = artwork_card.build_card(db, artwork_card.normalize_ref(ref))
@@ -328,10 +330,12 @@ def page_artwork_card(ref):
         db.close()
     if not card:
         abort(404)
-    return render_template("artwork_card.html", card=card,
-                           username=session.get("username"), role=session.get("role"))
+    return render_template(
+        "artwork_card.html", card=card, username=session.get("username"), role=session.get("role")
+    )
 
-@app.route("/api/artwork/card/<ref>")   # ten sam agregat jako JSON — pod testy i przyszły JS
+
+@app.route("/api/artwork/card/<ref>")  # ten sam agregat jako JSON — pod testy i przyszły JS
 @login_required
 def api_artwork_card(ref): ...
 ```

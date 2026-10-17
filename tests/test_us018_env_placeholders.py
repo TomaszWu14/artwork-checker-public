@@ -4,6 +4,7 @@ Kryteria: SECRET_KEY=YOUR_SECRET_KEY_HERE + DATABASE_URL ustawione → aplikacja
 startu; DATABASE_URL=YOUR_DATABASE_URL_HERE → czytelny błąd zamiast psycopg2;
 .env.example / .env.staging.example nie zawierają wartości sekretów.
 """
+
 import re
 from pathlib import Path
 
@@ -17,20 +18,23 @@ import db as _db_mod
 ROOT = Path(__file__).resolve().parents[1]
 
 
-@pytest.mark.parametrize("value,expected", [
-    ("", True),
-    ("   ", True),
-    (None, True),
-    ("YOUR_SECRET_KEY_HERE", True),
-    ("your_database_url_here", True),
-    ("changeme", True),
-    ("change-me", True),
-    ("dev-secret", True),
-    ("doccompare-local-secret-2024", True),
-    ("password", True),
-    ("test-integration-secret", False),
-    ("4f3c2b1a" * 8, False),
-])
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("", True),
+        ("   ", True),
+        (None, True),
+        ("YOUR_SECRET_KEY_HERE", True),
+        ("your_database_url_here", True),
+        ("changeme", True),
+        ("change-me", True),
+        ("dev-secret", True),
+        ("doccompare-local-secret-2024", True),
+        ("password", True),
+        ("test-integration-secret", False),
+        ("4f3c2b1a" * 8, False),
+    ],
+)
 def test_is_placeholder_secret(value, expected):
     assert _app_mod._is_placeholder_secret(value) is expected
 
@@ -52,13 +56,13 @@ def test_startup_validation_fatal_on_placeholder_database_url(monkeypatch):
 def test_startup_validation_passes_with_real_values(monkeypatch):
     monkeypatch.setenv("DATABASE_URL", "postgresql://user:pw@db.example.test:5432/app")
     monkeypatch.setenv("SECRET_KEY", "4f3c2b1a" * 8)
-    _app_mod._validate_startup_config()   # nie rzuca
+    _app_mod._validate_startup_config()  # nie rzuca
 
 
 def test_startup_validation_only_warns_in_dev(monkeypatch):
     monkeypatch.delenv("DATABASE_URL", raising=False)
     monkeypatch.setenv("SECRET_KEY", "YOUR_SECRET_KEY_HERE")
-    _app_mod._validate_startup_config()   # dev: ostrzeżenie, nie SystemExit
+    _app_mod._validate_startup_config()  # dev: ostrzeżenie, nie SystemExit
 
 
 def test_db_rejects_placeholder_database_url():
@@ -69,9 +73,16 @@ def test_db_rejects_placeholder_database_url():
 
 
 _SECRET_KEYS = {
-    "SECRET_KEY", "DATABASE_URL", "APP_BASE_URL", "RESEND_API_KEY", "EMAIL_FROM",
-    "ANTHROPIC_API_KEY", "MISTRAL_API_KEY", "GLM_OCR_API_KEY",
-    "SENTRY_DSN", "REDIS_URL",
+    "SECRET_KEY",
+    "DATABASE_URL",
+    "APP_BASE_URL",
+    "RESEND_API_KEY",
+    "EMAIL_FROM",
+    "ANTHROPIC_API_KEY",
+    "MISTRAL_API_KEY",
+    "GLM_OCR_API_KEY",
+    "SENTRY_DSN",
+    "REDIS_URL",
 }
 
 

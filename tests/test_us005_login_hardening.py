@@ -6,6 +6,7 @@ Kryteria (docs/analiza/HISTORYJKI.md, US-005):
     wpis `login_lockout`; ten sam komunikat dla nieistniejącego konta (brak enumeracji);
   * blokada wygasa po oknie; polityka haseł przy resecie i zmianie hasła.
 """
+
 import pytest
 
 pytest.importorskip("flask")
@@ -21,8 +22,10 @@ def _clear_login_state():
     db = _app_mod.get_db()
     try:
         db.execute("DELETE FROM audit_log WHERE event IN ('login_fail','login_lockout','login')")
-        db.execute("UPDATE users SET password_hash=? WHERE username='it_user'",
-                   (_app_mod.generate_password_hash(USER_PW),))
+        db.execute(
+            "UPDATE users SET password_hash=? WHERE username='it_user'",
+            (_app_mod.generate_password_hash(USER_PW),),
+        )
         db.commit()
     finally:
         db.close()
@@ -40,17 +43,20 @@ def clean_login_state():
 def _attempt(client, identifier, password, ip):
     with client.session_transaction() as sess:
         sess["_csrf_token"] = CSRF_TOKEN
-    return client.post("/login",
-                       data={"identifier": identifier, "password": password, "_csrf_token": CSRF_TOKEN},
-                       headers={"X-Forwarded-For": ip})
+    return client.post(
+        "/login",
+        data={"identifier": identifier, "password": password, "_csrf_token": CSRF_TOKEN},
+        headers={"X-Forwarded-For": ip},
+    )
 
 
 def _audit_count(event, username=None):
     db = _app_mod.get_db()
     try:
         if username:
-            return db.execute("SELECT COUNT(*) FROM audit_log WHERE event=? AND username=?",
-                              (event, username)).fetchone()[0]
+            return db.execute(
+                "SELECT COUNT(*) FROM audit_log WHERE event=? AND username=?", (event, username)
+            ).fetchone()[0]
         return db.execute("SELECT COUNT(*) FROM audit_log WHERE event=?", (event,)).fetchone()[0]
     finally:
         db.close()
@@ -61,7 +67,7 @@ def test_ip_limit_counts_in_database_not_only_in_process_memory(client, clean_lo
     ip = "203.0.113.5"
     for _ in range(_app_mod._RATE_LIMIT_MAX):
         with _app_mod._login_attempts_lock:
-            _app_mod._login_attempts.clear()   # „inny worker” — pamięć procesu pusta
+            _app_mod._login_attempts.clear()  # „inny worker” — pamięć procesu pusta
         r = _attempt(client, "it_user", "wrong-password-xx", ip)
         assert r.status_code == 200
     with _app_mod._login_attempts_lock:
@@ -77,7 +83,7 @@ def test_account_lockout_across_rotating_ips(client, clean_login_state):
         r = _attempt(client, "IT_USER", "wrong-password-xx", f"198.51.100.{i + 1}")
         assert r.status_code == 200, f"próba {i + 1}: {r.status_code}"
     assert _audit_count("login_lockout", "it_user") == 1
-    r = _attempt(client, "it_user", USER_PW, "198.51.100.250")   # poprawne hasło, nowy IP
+    r = _attempt(client, "it_user", USER_PW, "198.51.100.250")  # poprawne hasło, nowy IP
     assert r.status_code == 429
     assert "Zbyt wiele prób" in r.get_data(as_text=True)
 
@@ -112,18 +118,21 @@ def test_lockout_expires_after_window(client, clean_login_state):
 
 
 # ── Polityka haseł ────────────────────────────────────────────────────────────
-@pytest.mark.parametrize("pw,username,ok", [
-    ("short1", "", False),
-    ("abcdefghijklm", "", False),          # brak cyfry
-    ("123456789012", "", False),           # brak litery (i popularne)
-    ("password1234", "", False),           # popularne
-    ("password-1234", "", False),          # popularne po usunięciu znaków interpunkcyjnych
-    ("aaaaaaaaaaa1", "", False),           # powtarzający się znak
-    ("it_user-2026-abc", "it_user", False),  # zawiera nazwę użytkownika
-    ("x" * 1001 + "1", "", False),
-    (GOOD_PW, "it_user", True),
-    ("Zielona-Lampa-77", "anna", True),
-])
+@pytest.mark.parametrize(
+    "pw,username,ok",
+    [
+        ("short1", "", False),
+        ("abcdefghijklm", "", False),  # brak cyfry
+        ("123456789012", "", False),  # brak litery (i popularne)
+        ("password1234", "", False),  # popularne
+        ("password-1234", "", False),  # popularne po usunięciu znaków interpunkcyjnych
+        ("aaaaaaaaaaa1", "", False),  # powtarzający się znak
+        ("it_user-2026-abc", "it_user", False),  # zawiera nazwę użytkownika
+        ("x" * 1001 + "1", "", False),
+        (GOOD_PW, "it_user", True),
+        ("Zielona-Lampa-77", "anna", True),
+    ],
+)
 def test_password_policy(pw, username, ok):
     err = _app_mod._password_policy_error(pw, username)
     assert (err is None) is ok, err
@@ -133,12 +142,18 @@ def test_change_password_enforces_policy(user_client, clean_login_state):
     set_session_csrf(user_client, CSRF_TOKEN)
     hdr = {"X-CSRF-Token": CSRF_TOKEN}
     for bad in ("short1", "abcdefghijklm", "password1234", "it_user-2026-abc"):
-        r = user_client.post("/api/profile/change-password",
-                             json={"current_password": USER_PW, "new_password": bad}, headers=hdr)
+        r = user_client.post(
+            "/api/profile/change-password",
+            json={"current_password": USER_PW, "new_password": bad},
+            headers=hdr,
+        )
         assert r.status_code == 400, bad
         assert r.get_json()["error"]
-    r = user_client.post("/api/profile/change-password",
-                         json={"current_password": USER_PW, "new_password": GOOD_PW}, headers=hdr)
+    r = user_client.post(
+        "/api/profile/change-password",
+        json={"current_password": USER_PW, "new_password": GOOD_PW},
+        headers=hdr,
+    )
     assert r.status_code == 200 and r.get_json().get("ok") is True
 
 
@@ -150,21 +165,33 @@ def test_reset_password_enforces_policy(client, clean_login_state):
     try:
         uid = db.execute("SELECT id FROM users WHERE username='it_user'").fetchone()["id"]
         db.execute("DELETE FROM password_reset_tokens WHERE user_id=?", (uid,))
-        db.execute("INSERT INTO password_reset_tokens(user_id, token, expires_at) "
-                   "VALUES (?, ?, datetime('now','+1 hour'))", (uid, stored))
+        db.execute(
+            "INSERT INTO password_reset_tokens(user_id, token, expires_at) "
+            "VALUES (?, ?, datetime('now','+1 hour'))",
+            (uid, stored),
+        )
         db.commit()
     finally:
         db.close()
     with client.session_transaction() as sess:
         sess["_csrf_token"] = CSRF_TOKEN
-    weak = client.post("/reset-password", data={"token": plain, "password": "password1234",
-                                                "confirm": "password1234", "_csrf_token": CSRF_TOKEN})
+    weak = client.post(
+        "/reset-password",
+        data={
+            "token": plain,
+            "password": "password1234",
+            "confirm": "password1234",
+            "_csrf_token": CSRF_TOKEN,
+        },
+    )
     assert weak.status_code == 200
     assert "zbyt popularne" in weak.get_data(as_text=True)
     with client.session_transaction() as sess:
         sess["_csrf_token"] = CSRF_TOKEN
-    good = client.post("/reset-password", data={"token": plain, "password": GOOD_PW,
-                                                "confirm": GOOD_PW, "_csrf_token": CSRF_TOKEN})
+    good = client.post(
+        "/reset-password",
+        data={"token": plain, "password": GOOD_PW, "confirm": GOOD_PW, "_csrf_token": CSRF_TOKEN},
+    )
     assert good.status_code == 200
     assert "zbyt popularne" not in good.get_data(as_text=True)
     r = _attempt(client, "it_user", GOOD_PW, "198.51.100.254")

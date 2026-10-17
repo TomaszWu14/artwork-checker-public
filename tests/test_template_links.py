@@ -10,6 +10,7 @@ Wykryte przy pisaniu: /transport/queue i /dostawy/<nr> (moduły usunięte w fork
 Artwork), /artwork/reports (literówka, jest /artwork/history) i /tickets (moduł
 zgłoszeń nigdy nie istniał).
 """
+
 import os
 import re
 import tempfile
@@ -37,8 +38,17 @@ def _registered_paths():
     po kształcie, bo w szablonie stoi tam konkretna wartość albo wyrażenie Jinja."""
     pats = []
     for rule in _app_mod.app.url_map.iter_rules():
-        pats.append(re.compile("^" + re.sub(r"<[^>]+>", r"[^/]+", re.escape(rule.rule)
-                                            .replace(r"\<", "<").replace(r"\>", ">")) + "$"))
+        pats.append(
+            re.compile(
+                "^"
+                + re.sub(
+                    r"<[^>]+>",
+                    r"[^/]+",
+                    re.escape(rule.rule).replace(r"\<", "<").replace(r"\>", ">"),
+                )
+                + "$"
+            )
+        )
     return pats
 
 
@@ -60,10 +70,12 @@ def _template_links():
 
 def test_every_template_link_hits_a_real_route():
     pats = _registered_paths()
-    broken = [(f, ln, link) for f, ln, link in _template_links()
-              if not any(p.match(link) for p in pats)]
+    broken = [
+        (f, ln, link) for f, ln, link in _template_links() if not any(p.match(link) for p in pats)
+    ]
     assert not broken, "linki prowadzące w 404:\n" + "\n".join(
-        f"  {f}:{ln} → {link}" for f, ln, link in broken)
+        f"  {f}:{ln} → {link}" for f, ln, link in broken
+    )
 
 
 def test_flash_is_rendered_centrally_and_only_once():
@@ -105,7 +117,9 @@ def test_shared_button_styles_are_not_redefined_per_template():
             for cls in shared:
                 if re.search(r"^\s*\." + re.escape(cls) + r"\s*[,{:]", code, flags=re.M):
                     offenders.append(f"{name}: .{cls}")
-    assert not offenders, "style współdzielone przedefiniowane lokalnie:\n  " + "\n  ".join(offenders)
+    assert not offenders, "style współdzielone przedefiniowane lokalnie:\n  " + "\n  ".join(
+        offenders
+    )
 
 
 def test_key_pages_are_linked_from_navigation():

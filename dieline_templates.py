@@ -31,21 +31,30 @@ class DielineTemplate:
     sig_key: str
     page_w_mm: float
     page_h_mm: float
-    panels: dict           # {face: (nx0, ny0, nx1, ny1)} znormalizowane 0..1
+    panels: dict  # {face: (nx0, ny0, nx1, ny1)} znormalizowane 0..1
     orient: dict = field(default_factory=dict)  # {face: stopnie} nadpisania rotacji
 
     def to_row(self) -> tuple:
-        return (self.name, self.sig_key, self.page_w_mm, self.page_h_mm,
-                json.dumps(self.panels), json.dumps(self.orient))
+        return (
+            self.name,
+            self.sig_key,
+            self.page_w_mm,
+            self.page_h_mm,
+            json.dumps(self.panels),
+            json.dumps(self.orient),
+        )
 
     @staticmethod
     def from_row(row) -> "DielineTemplate":
-        g = (lambda k, i: row[k] if isinstance(row, dict) else row[i])
+        g = lambda k, i: row[k] if isinstance(row, dict) else row[i]
         return DielineTemplate(
-            name=g("name", 1), sig_key=g("sig_key", 2),
-            page_w_mm=g("page_w_mm", 3), page_h_mm=g("page_h_mm", 4),
+            name=g("name", 1),
+            sig_key=g("sig_key", 2),
+            page_w_mm=g("page_w_mm", 3),
+            page_h_mm=g("page_h_mm", 4),
             panels=json.loads(g("panels_json", 5) or "{}"),
-            orient=json.loads(g("orient_json", 6) or "{}"))
+            orient=json.loads(g("orient_json", 6) or "{}"),
+        )
 
 
 def _crease_lines(page):
@@ -77,6 +86,7 @@ def signature(pdf_path: str) -> dict:
     """Sygnatura układu arkusza: rozmiar strony (mm, zaokr. do 10) + wzór pionowych cięć.
     Pliki tej samej rodziny (ten sam arkusz) mają ten sam `key`."""
     import fitz
+
     doc = fitz.open(pdf_path)
     page = max(doc, key=lambda p: p.rect.width * p.rect.height)
     PT = 25.4 / 72
@@ -86,38 +96,46 @@ def signature(pdf_path: str) -> dict:
     doc.close()
     # klucz = rozmiar strony + pionowe ORAZ poziome cięcia (mocniej rozróżnia układy
     # o tym samym rozmiarze arkusza; box-nety mają mało vcuts → hcuts pomagają)
-    key = (f"{pw}x{ph}|v:" + ",".join(f"{v:.2f}" for v in vs)
-           + "|h:" + ",".join(f"{h:.2f}" for h in hs))
+    key = (
+        f"{pw}x{ph}|v:"
+        + ",".join(f"{v:.2f}" for v in vs)
+        + "|h:"
+        + ",".join(f"{h:.2f}" for h in hs)
+    )
     return {"key": key, "page_w_mm": pw, "page_h_mm": ph, "vcuts": vs, "hcuts": hs}
 
 
-def locate_panels_by_template(tpl: DielineTemplate, page_w_mm: float,
-                              page_h_mm: float) -> dict:
+def locate_panels_by_template(tpl: DielineTemplate, page_w_mm: float, page_h_mm: float) -> dict:
     """Regiony szablonu (0..1) → rect-y w mm dla danej strony. Cięcie niezależne
     od wymiarów bryły (regiony są stałe na arkuszu)."""
     out = {}
     for face, (nx0, ny0, nx1, ny1) in tpl.panels.items():
-        out[face] = (nx0 * page_w_mm, ny0 * page_h_mm,
-                     nx1 * page_w_mm, ny1 * page_h_mm)
+        out[face] = (nx0 * page_w_mm, ny0 * page_h_mm, nx1 * page_w_mm, ny1 * page_h_mm)
     return out
 
 
 def make_template_from_regions(name: str, sig: dict, regions_mm: dict) -> DielineTemplate:
     """Buduje szablon z regionów podanych w mm (np. z kreatora UI) — normalizuje 0..1."""
     pw, ph = sig["page_w_mm"], sig["page_h_mm"]
-    panels = {f: (x0 / pw, y0 / ph, x1 / pw, y1 / ph)
-              for f, (x0, y0, x1, y1) in regions_mm.items() if f in FACES}
+    panels = {
+        f: (x0 / pw, y0 / ph, x1 / pw, y1 / ph)
+        for f, (x0, y0, x1, y1) in regions_mm.items()
+        if f in FACES
+    }
     return DielineTemplate(name, sig["key"], pw, ph, panels)
 
 
 # ─── przechowywanie w bazie ───────────────────────────────────────────────────
+
 
 def save_template(db, tpl: DielineTemplate, created_by=None) -> None:
     db.execute(
         "INSERT INTO dieline_templates(name,sig_key,page_w_mm,page_h_mm,panels_json,"
         "orient_json,created_by) VALUES(?,?,?,?,?,?,?) "
         "ON CONFLICT(sig_key) DO UPDATE SET name=excluded.name,panels_json=excluded.panels_json,"
-        "orient_json=excluded.orient_json", tpl.to_row() + (created_by,))
+        "orient_json=excluded.orient_json",
+        tpl.to_row() + (created_by,),
+    )
     db.commit()
 
 
@@ -125,5 +143,7 @@ def match_template(db, sig_key: str):
     """Zwraca DielineTemplate dla sygnatury (dokładne dopasowanie) albo None."""
     row = db.execute(
         "SELECT id,name,sig_key,page_w_mm,page_h_mm,panels_json,orient_json "
-        "FROM dieline_templates WHERE sig_key=?", (sig_key,)).fetchone()
+        "FROM dieline_templates WHERE sig_key=?",
+        (sig_key,),
+    ).fetchone()
     return DielineTemplate.from_row(row) if row else None

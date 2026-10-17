@@ -12,6 +12,7 @@ z LOSOWYMI hasłami), więc:
 
 Cały plik pomija się, gdy Flask nie jest zainstalowany (minimalne środowisko).
 """
+
 import os
 import tempfile
 
@@ -23,7 +24,7 @@ pytest.importorskip("flask")
 _TMP = tempfile.mkdtemp(prefix="doccompare_it_")
 os.environ.setdefault("SECRET_KEY", "test-integration-secret")
 os.environ["SQLITE_PATH"] = os.path.join(_TMP, "it.db")
-os.environ.pop("DATABASE_URL", None)   # wymuś SQLite + wyłącz secure-cookie (http w teście)
+os.environ.pop("DATABASE_URL", None)  # wymuś SQLite + wyłącz secure-cookie (http w teście)
 os.environ.pop("FORCE_HTTPS", None)
 
 import app as _app_mod  # noqa: E402
@@ -31,9 +32,9 @@ import app as _app_mod  # noqa: E402
 # Znane konta testowe (seed używa losowych haseł, więc wstrzykujemy własne).
 # (username: (hasło, rola))
 TEST_USERS = {
-    "it_admin":     ("itpass-admin-123",     "admin"),
-    "it_manager":   ("itpass-manager-123",   "manager"),
-    "it_user":      ("itpass-user-123",      "user"),
+    "it_admin": ("itpass-admin-123", "admin"),
+    "it_manager": ("itpass-manager-123", "manager"),
+    "it_user": ("itpass-user-123", "user"),
 }
 CSRF_TOKEN = "test-csrf-token-deadbeef"
 
@@ -45,11 +46,15 @@ def _ensure_test_users():
             pwhash = _app_mod.generate_password_hash(pwd)
             row = db.execute("SELECT id FROM users WHERE username=?", (uname,)).fetchone()
             if row:
-                db.execute("UPDATE users SET password_hash=?, role=? WHERE username=?",
-                           (pwhash, role, uname))
+                db.execute(
+                    "UPDATE users SET password_hash=?, role=? WHERE username=?",
+                    (pwhash, role, uname),
+                )
             else:
-                db.execute("INSERT INTO users(username, password_hash, role) VALUES (?,?,?)",
-                           (uname, pwhash, role))
+                db.execute(
+                    "INSERT INTO users(username, password_hash, role) VALUES (?,?,?)",
+                    (uname, pwhash, role),
+                )
         db.commit()
     finally:
         db.close()
@@ -76,17 +81,22 @@ def login(client, username):
     pwd = TEST_USERS[username][0]
     with client.session_transaction() as sess:
         sess["_csrf_token"] = CSRF_TOKEN
-    return client.post("/login", data={
-        "identifier": username,
-        "password": pwd,
-        "_csrf_token": CSRF_TOKEN,
-    })
+    return client.post(
+        "/login",
+        data={
+            "identifier": username,
+            "password": pwd,
+            "_csrf_token": CSRF_TOKEN,
+        },
+    )
 
 
 @pytest.fixture
 def admin_client(client):
     resp = login(client, "it_admin")
-    assert resp.status_code in (302, 303), f"login admina nie przekierował (CSRF/hasło?): {resp.status_code}"
+    assert resp.status_code in (302, 303), (
+        f"login admina nie przekierował (CSRF/hasło?): {resp.status_code}"
+    )
     return client
 
 

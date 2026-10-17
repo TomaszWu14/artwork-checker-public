@@ -5,6 +5,7 @@ wyszukiwania (ean/ref_code/profile_id/filename) i że planer zapytań realnie
 z nich korzysta dla równości/JOIN (LIKE '%..%' celowo NIE korzysta — to zadanie
 FTS w #7).
 """
+
 import migrate_db as _migrate_db
 import app as _app_mod
 import artwork_index as _ai
@@ -16,9 +17,7 @@ _migrate_db.run()
 
 
 def _index_names(db):
-    rows = db.execute(
-        "SELECT name FROM sqlite_master WHERE type='index'"
-    ).fetchall()
+    rows = db.execute("SELECT name FROM sqlite_master WHERE type='index'").fetchall()
     return {r["name"] if not isinstance(r, tuple) else r[0] for r in rows}
 
 
@@ -49,8 +48,9 @@ def test_ean_lookup_uses_index():
     finally:
         db.close()
     text = " ".join(str(tuple(r)) for r in plan).upper()
-    assert "IDX_ARTWORK_PROFILES_EAN" in text or "USING INDEX" in text, \
+    assert "IDX_ARTWORK_PROFILES_EAN" in text or "USING INDEX" in text, (
         f"zapytanie po EAN nie użyło indeksu: {text}"
+    )
 
 
 def test_badge_join_refnorm_uses_index():
@@ -64,10 +64,12 @@ def test_badge_join_refnorm_uses_index():
     try:
         plan = db.execute(
             "EXPLAIN QUERY PLAN SELECT ref_norm, variant FROM artwork_render_registry "
-            "WHERE ref_norm IN (?)", ("BT100",)
+            "WHERE ref_norm IN (?)",
+            ("BT100",),
         ).fetchall()
     finally:
         db.close()
     text = " ".join(str(tuple(r)) for r in plan).upper()
-    assert "IDX_ARR_REFNORM_VARIANT" in text or "USING INDEX" in text or "USING COVERING INDEX" in text, \
-        f"badge join ref_norm IN (...) nie użył indeksu: {text}"
+    assert (
+        "IDX_ARR_REFNORM_VARIANT" in text or "USING INDEX" in text or "USING COVERING INDEX" in text
+    ), f"badge join ref_norm IN (...) nie użył indeksu: {text}"
