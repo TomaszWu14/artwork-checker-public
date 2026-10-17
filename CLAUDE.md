@@ -219,8 +219,7 @@ Validates barcodes on medical packaging artworks:
 ### Background Processing
 
 Heavy work (artwork batches, large extractions) runs in **daemon threads**, with progress tracked in
-the `job_progress` table and polled by the frontend (`_update_progress`; allowed columns in
-`constants.PROGRESS_ALLOWED_COLS`). A Redis + RQ worker migration is **planned but not yet deployed**
+the `async_jobs` / `artwork_batch_jobs` tables and polled by the frontend. A Redis + RQ worker migration is **planned but not yet deployed**
 — see `docs/KOLEJKOWANIE.md`. Do not introduce a hard Redis dependency without following that plan.
 
 ### Internationalization

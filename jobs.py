@@ -61,7 +61,7 @@ def enqueue(func, *args, **kwargs) -> str | None:
     - Tryb fallback (brak Redis): odpala `func` w wątku-daemonie (jak dotąd);
       zwraca None.
 
-    Kontrakt postępu (tabela `job_progress`/`artwork_batch_jobs`) NIE zmienia się
+    Kontrakt postępu (tabele `async_jobs`/`artwork_batch_jobs`) NIE zmienia się
     — zmienia się tylko *gdzie* liczy się zadanie.
     """
     queue = get_queue()

@@ -896,17 +896,6 @@ def _db_run_migrations(db):
         "ALTER TABLE audit_log ADD COLUMN duration_ms INTEGER DEFAULT NULL",
         "ALTER TABLE audit_log ADD COLUMN extra TEXT DEFAULT NULL",
         "CREATE INDEX IF NOT EXISTS idx_audit_ip_event ON audit_log(ip, event, created_at)",
-        # Lokalna tabela referencyjna taryfy CN/TARIC (import nomenklatury UE)
-        """CREATE TABLE IF NOT EXISTS cn_reference (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            code TEXT UNIQUE NOT NULL,
-            description TEXT DEFAULT '',
-            duty_rate TEXT DEFAULT '',
-            restrictions TEXT DEFAULT '',
-            active INTEGER DEFAULT 1,
-            updated_at TEXT DEFAULT (datetime('now'))
-        )""",
-        "CREATE INDEX IF NOT EXISTS idx_cn_reference_code ON cn_reference(code)",
         # comparisons — dodatkowe kolumny (migrate_db.py sync)
         "ALTER TABLE comparisons ADD COLUMN po_number TEXT DEFAULT ''",
         "ALTER TABLE comparisons ADD COLUMN supplier_code TEXT DEFAULT ''",
@@ -959,27 +948,6 @@ def _db_run_migrations(db):
         "ALTER TABLE comparisons ADD COLUMN file_hash_a TEXT",
         "ALTER TABLE comparisons ADD COLUMN file_hash_b TEXT",
         "CREATE INDEX IF NOT EXISTS idx_comparisons_hashes ON comparisons(file_hash_a, file_hash_b)",
-        """CREATE TABLE IF NOT EXISTS comparison_templates (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            description TEXT DEFAULT '',
-            page_type TEXT NOT NULL DEFAULT 'compare',
-            is_public INTEGER DEFAULT 0,
-            supplier_code TEXT DEFAULT '',
-            doc_type_a TEXT DEFAULT '',
-            doc_type_b TEXT DEFAULT '',
-            price_tolerance_pct REAL DEFAULT 0.5,
-            qty_tolerance_pct REAL DEFAULT 0.0,
-            ai_model TEXT DEFAULT 'claude-sonnet-4-6',
-            use_ai INTEGER DEFAULT 1,
-            column_mapping_json TEXT DEFAULT '{}',
-            ignore_fields_json TEXT DEFAULT '[]',
-            use_count INTEGER DEFAULT 0,
-            created_by INTEGER,
-            created_at TEXT DEFAULT (datetime('now')),
-            updated_at TEXT DEFAULT (datetime('now')),
-            FOREIGN KEY(created_by) REFERENCES users(id)
-        )""",
         "ALTER TABLE suppliers ADD COLUMN sad_column_mapping_json TEXT DEFAULT '{}'",
         """CREATE TABLE IF NOT EXISTS library_files (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1067,92 +1035,6 @@ def _db_run_migrations(db):
             UNIQUE(comparison_id, field_name),
             FOREIGN KEY(comparison_id) REFERENCES comparisons(id)
         )""",
-        """CREATE TABLE IF NOT EXISTS translation_dictionary (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            term_original TEXT NOT NULL,
-            lang_from TEXT NOT NULL DEFAULT 'en',
-            term_translated TEXT NOT NULL,
-            lang_to TEXT NOT NULL DEFAULT 'pl',
-            context TEXT NOT NULL DEFAULT 'all',
-            notes TEXT DEFAULT '',
-            created_by INTEGER DEFAULT 0,
-            created_at TEXT DEFAULT (datetime('now')),
-            updated_at TEXT DEFAULT (datetime('now')),
-            UNIQUE(term_original, lang_from, lang_to, context)
-        )""",
-        """CREATE TABLE IF NOT EXISTS sad_field_mapping (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sad_field_code TEXT NOT NULL,
-            sad_field_name_pl TEXT NOT NULL,
-            sad_field_name_en TEXT DEFAULT '',
-            mapped_to_field TEXT DEFAULT '',
-            mapped_to_doctype TEXT DEFAULT 'CI',
-            data_type TEXT DEFAULT 'text',
-            description TEXT DEFAULT '',
-            active INTEGER DEFAULT 1,
-            created_at TEXT DEFAULT (datetime('now')),
-            UNIQUE(sad_field_code)
-        )""",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('1', 'Deklaracja / typ', 'Declaration / type', 'doc_type', 'CI', 'text', 'Pole 1 SAD: typ deklaracji')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('2', 'Nadawca / eksporter', 'Sender / exporter', 'seller_name', 'CI', 'text', 'Pole 2 SAD: nazwa i adres eksportera')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('3', 'Formularze', 'Forms', '', '', 'text', 'Pole 3 SAD: liczba formularzy')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('4', 'Wykazy', 'Lists', '', '', 'text', 'Pole 4 SAD: wykazy załadunkowe')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('5', 'Pozycje', 'Items', '', '', 'number', 'Pole 5 SAD: łączna liczba pozycji')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('6', 'Opakowania', 'Packages', 'total_packages', 'PL', 'number', 'Pole 6 SAD: łączna liczba opakowań')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('7', 'Nr referencyjny', 'Reference number', '', '', 'text', 'Pole 7 SAD: numer referencyjny')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('8', 'Odbiorca', 'Consignee', 'buyer_name', 'CI', 'text', 'Pole 8 SAD: nazwa i adres odbiorcy')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('11', 'Kraj handlujący', 'Trading country', 'origin_country', 'CI', 'text', 'Pole 11 SAD: kraj handlujący')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('12', 'Wartość celna', 'Customs value', 'total_net', 'CI', 'number', 'Pole 12 SAD: wartość celna')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('14', 'Zgłaszający/przedstawiciel', 'Declarant', '', '', 'text', 'Pole 14 SAD: zgłaszający')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('15', 'Kraj wysyłki', 'Country of dispatch', '', '', 'text', 'Pole 15 SAD: kraj wysyłki')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('17', 'Kraj przeznaczenia', 'Country of destination', '', '', 'text', 'Pole 17 SAD: kraj przeznaczenia')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('18', 'Środek transportu', 'Transport means', '', '', 'text', 'Pole 18 SAD: środek transportu przy wyjściu')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('20', 'Warunki dostawy', 'Delivery terms', 'incoterms', 'CI', 'text', 'Pole 20 SAD: warunki dostawy (Incoterms)')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('21', 'Aktywny środek transportu', 'Active transport', '', '', 'text', 'Pole 21 SAD: aktywny środek transportu')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('22', 'Waluta i wartość', 'Currency and value', 'currency', 'CI', 'text', 'Pole 22 SAD: waluta i wartość faktury')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('23', 'Kurs wymiany', 'Exchange rate', '', '', 'number', 'Pole 23 SAD: kurs wymiany waluty')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('24', 'Rodzaj transakcji', 'Transaction type', '', '', 'text', 'Pole 24 SAD: rodzaj transakcji')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('25', 'Rodzaj transportu', 'Transport mode', '', '', 'text', 'Pole 25 SAD: rodzaj transportu na granicy')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('26', 'Wewnętrzny rodzaj transportu', 'Inland transport mode', '', '', 'text', 'Pole 26 SAD: wewnętrzny rodzaj transportu')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('28', 'Rachunek finansowy', 'Financial account', '', '', 'text', 'Pole 28 SAD: rachunek finansowy')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('29', 'Urząd wyjścia', 'Exit office', '', '', 'text', 'Pole 29 SAD: urząd celny wyjścia')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('30', 'Lokalizacja towaru', 'Location of goods', '', '', 'text', 'Pole 30 SAD: lokalizacja towarów')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('31', 'Opakowania i opis', 'Packages and description', 'description', 'CI', 'text', 'Pole 31 SAD: opakowania i opis towaru')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('32', 'Nr pozycji', 'Item number', 'ref', 'CI', 'text', 'Pole 32 SAD: numer pozycji')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('33', 'Kod towaru', 'Commodity code', 'tariff_code', 'CI', 'code', 'Pole 33 SAD: kod taryfy celnej CN')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('34', 'Kod kraju', 'Country code', 'origin_country', 'CI', 'text', 'Pole 34 SAD: kod kraju pochodzenia')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('35', 'Masa brutto', 'Gross mass', 'gross_weight', 'PL', 'number', 'Pole 35 SAD: masa brutto (kg)')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('36', 'Preferencja', 'Preference', '', '', 'text', 'Pole 36 SAD: preferencja celna')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('37', 'Procedura', 'Procedure', '', '', 'text', 'Pole 37 SAD: procedura celna')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('38', 'Masa netto', 'Net mass', 'net_weight', 'PL', 'number', 'Pole 38 SAD: masa netto (kg)')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('39', 'Kontyngent', 'Quota', '', '', 'text', 'Pole 39 SAD: kontyngent')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('40', 'Deklaracja skrócona', 'Summary declaration', 'po_number', 'PO', 'text', 'Pole 40 SAD: poprzedni dokument / PO')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('41', 'Uzupełniające jednostki', 'Supplementary units', 'qty', 'CI', 'number', 'Pole 41 SAD: uzupełniające jednostki miary')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('42', 'Cena pozycji', 'Item price', 'price', 'CI', 'number', 'Pole 42 SAD: cena pozycji')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('43', 'Metoda wartości', 'Valuation method', '', '', 'text', 'Pole 43 SAD: metoda wartości celnej')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('44', 'Dodatkowe informacje', 'Additional info', 'notes', 'CI', 'text', 'Pole 44 SAD: dodatkowe informacje / dokumenty')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('45', 'Korekta', 'Adjustment', '', '', 'number', 'Pole 45 SAD: korekta')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('46', 'Wartość statystyczna', 'Statistical value', '', '', 'number', 'Pole 46 SAD: wartość statystyczna')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('47', 'Obliczanie opłat', 'Calculation of taxes', '', '', 'text', 'Pole 47 SAD: obliczanie opłat')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('48', 'Odroczenie płatności', 'Deferred payment', '', '', 'text', 'Pole 48 SAD: odroczenie płatności')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('49', 'Magazyn celny', 'Warehouse', '', '', 'text', 'Pole 49 SAD: magazyn celny')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('50', 'Zleceniodawca', 'Principal', '', '', 'text', 'Pole 50 SAD: zleceniodawca')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('51', 'Planowane urzędy tranzytu', 'Intended offices of transit', '', '', 'text', 'Pole 51 SAD: planowane urzędy tranzytu')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('52', 'Gwarancja', 'Guarantee', '', '', 'text', 'Pole 52 SAD: gwarancja')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('53', 'Urząd przeznaczenia', 'Office of destination', '', '', 'text', 'Pole 53 SAD: urząd celny przeznaczenia')",
-        "INSERT OR IGNORE INTO sad_field_mapping(sad_field_code, sad_field_name_pl, sad_field_name_en, mapped_to_field, mapped_to_doctype, data_type, description) VALUES ('54', 'Miejsce i data', 'Place and date', '', '', 'text', 'Pole 54 SAD: miejsce i data, podpis')",
-        # ── Dane referencyjne: kursy walut ──────────────────────────────────────
-        """CREATE TABLE IF NOT EXISTS currency_rates (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    currency_code TEXT NOT NULL,
-    currency_name TEXT NOT NULL,
-    rate REAL NOT NULL,
-    rate_date TEXT NOT NULL,
-    source TEXT DEFAULT 'NBP',
-    fetched_at TEXT DEFAULT (datetime('now')),
-    UNIQUE(currency_code, rate_date)
-)""",
-        "CREATE INDEX IF NOT EXISTS idx_currency_rates_date ON currency_rates(currency_code, rate_date DESC)",
         # ── Dane referencyjne: baza produktów ───────────────────────────────────
         """CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1174,15 +1056,6 @@ def _db_run_migrations(db):
         "ALTER TABLE users ADD COLUMN allowed_modules TEXT DEFAULT ''",
         "ALTER TABLE users ADD COLUMN phone TEXT DEFAULT ''",
         "ALTER TABLE users ADD COLUMN avatar_initials TEXT DEFAULT ''",
-        """CREATE TABLE IF NOT EXISTS supplier_checklists (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    supplier_id INTEGER,
-    supplier_name TEXT NOT NULL DEFAULT '',
-    doc_type TEXT NOT NULL,
-    required INTEGER DEFAULT 1,
-    notes TEXT DEFAULT '',
-    created_at TEXT DEFAULT (datetime('now'))
-)""",
         """CREATE TABLE IF NOT EXISTS notifications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -1194,21 +1067,6 @@ def _db_run_migrations(db):
             created_at TEXT DEFAULT (datetime('now'))
         )""",
         "CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read, created_at DESC)",
-        """CREATE TABLE IF NOT EXISTS job_progress (
-    job_id TEXT PRIMARY KEY,
-    user_id INTEGER,
-    status TEXT DEFAULT 'pending',
-    step TEXT DEFAULT '',
-    progress INTEGER DEFAULT 0,
-    current_page INTEGER DEFAULT 0,
-    total_pages INTEGER DEFAULT 0,
-    items_found INTEGER DEFAULT 0,
-    message TEXT DEFAULT '',
-    result_json TEXT,
-    error TEXT,
-    created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
-)""",
         """CREATE TABLE IF NOT EXISTS comparison_comments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     comparison_id INTEGER NOT NULL,
@@ -1253,27 +1111,6 @@ def _db_track_schema_version(db):
 
 
 def _db_seed_defaults(db):
-    # Domyślne typy dokumentów
-    defaults = [
-        ('auto', '❓', 'Wykryj automatycznie', 'Silnik sam rozpozna typ dokumentu', 1, 0),
-        ('PO', '📋', 'Purchase Order (PO)', 'Zamówienie zakupu — SAP, zewnętrzne', 1, 1),
-        ('PI', '📄', 'Proforma Invoice (PI)', 'Faktura proforma od dostawcy', 1, 2),
-        ('CI', '🧾', 'Commercial Invoice (CI)', 'Faktura handlowa eksportowa', 1, 3),
-        ('PL', '📦', 'Packing List', 'Lista pakowania', 1, 4),
-        ('SAD', '🛃', 'SAD / ZC415', 'Zgłoszenie celne importowe (WinSAD)', 1, 5),
-        ('BL', '🚢', 'Bill of Lading', 'Konosament morski', 1, 6),
-        ('WZ', '📑', 'WZ (wydanie zewnętrzne)', 'Dokument magazynowy WZ', 1, 7),
-        ('FV', '🔖', 'Faktura VAT (polska)', 'Polska faktura VAT', 1, 8),
-        ('MULTI', '🔀', 'Zestaw faktur (multi-CI)', 'Wiele CI w jednym PDF', 1, 9),
-        ('CMR', '🚛', 'CMR (list przewozowy)', 'Międzynarodowy list przewozowy', 1, 10),
-        ('SWIFT', '💳', 'Potwierdzenie SWIFT', 'Potwierdzenie przelewu bankowego', 0, 11),
-    ]
-    for code, icon, label, desc, active, order in defaults:
-        db.execute(
-            'INSERT INTO doc_types(code,icon,label,description,active,sort_order) VALUES(?,?,?,?,?,?) ON CONFLICT(code) DO NOTHING',
-            (code, icon, label, desc, active, order),
-        )
-
     if not db.execute("SELECT id FROM users WHERE username='admin'").fetchone():
         import secrets as _sec
 
@@ -1369,15 +1206,6 @@ def init_db():
             detail TEXT DEFAULT '',
             ip TEXT DEFAULT '',
             created_at TEXT DEFAULT (datetime('now'))
-        );
-        CREATE TABLE IF NOT EXISTS doc_types (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            code TEXT UNIQUE NOT NULL,
-            label TEXT NOT NULL,
-            icon TEXT NOT NULL DEFAULT '📄',
-            description TEXT DEFAULT '',
-            active INTEGER NOT NULL DEFAULT 1,
-            sort_order INTEGER NOT NULL DEFAULT 99
         );
     """)
     _db_run_migrations(db)

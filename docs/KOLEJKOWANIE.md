@@ -167,7 +167,7 @@ Przepinamy ciężkie endpointy **po jednym**, tym samym wzorcem `jobs.enqueue(..
 
 ### Zrobione
 - **`/api/analyze_async`** (pełna analiza dokumentów: enhanced + table + regex + typo).
-  Domknięcie `_run_analysis` → **funkcja modułowa** `_async_compare_job(...)`. Postęp w `job_progress`.
+  Domknięcie `_run_analysis` → **funkcja modułowa** `_async_compare_job(...)`. Postęp w `async_jobs` (tabela `job_progress` nigdy nie była używana — usunięta w US-028).
 - **`/api/compare-async`** (asynchroniczne porównanie dokumentów). Domknięcie `_run` →
   **funkcja modułowa** `_compare_async_job(...)`. Postęp w tabeli `async_jobs` (DB, międzyprocesowo).
   Kontrakt `GET /api/compare-async/<job_id>` bez zmian.

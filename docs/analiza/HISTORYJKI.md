@@ -128,6 +128,14 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
 ### US-019 · Could · ✅ (#31) · Limit stron/DPI dla OCR (ochrona przed wyczerpaniem zasobów)
 ### US-021 · Could · ✅ (#38; obraz z locka zbudowany i przetestowany na `main`; `transformers` 5 poza zakresem — limit <5, decyzja PO) · Lockfile z hashami dla pełnego obrazu ML (`requirements.txt`, torch CPU z osobnego indeksu) i użycie go w `Dockerfile`/`Dockerfile.base`
 ### US-022 · Should · ✅ (#33) · CSP etap 2a: raport bez Babel w przeglądarce, Tailwind zbudowany, biblioteki z `static/vendor` — CSP bez CDN (ADR-0004)
+### US-028 · Could (decyzja PO 2026-10-17: „usuń”) · ✅ (#51) · Usunięcie tabel-reliktów DocCompare z bazy
+- Given świeża instalacja, When start aplikacji i `migrate_db.py`, Then żadna z 25 tabel-reliktów nie powstaje
+  (usunięte definicje, seedy `doc_types`/`sad_field_mapping`, kolumny, indeksy i CHECK-i na nich).
+- Given istniejąca baza z reliktami, When `tools/drop_relic_tables.py`, Then podgląd (tabele + liczba wierszy) bez zmian;
+  `--apply` → kopia (SQLite automatycznie; PostgreSQL wymaga `--backup-done` po `pg_dump`) i DROP tylko tabel z listy;
+  ponowny start nie odtwarza tabel.
+- Usuwanie danych **nie** jest w `migrate_db.py` (uruchamia się sam przy każdym starcie kontenera) — operator
+  uruchamia skrypt świadomie (RUNBOOK §4). Zostają tabele z żywym kodem: `products`, `intake_queue`, `comparison_comments`.
 ### US-027 · Could (decyzja PO 2026-10-17: „napraw”) · ✅ (#50) · `/artwork/design-preview` działa pod ścisłą CSP
 - Given zalogowany użytkownik, When otwiera `/artwork/design-preview` w przeglądarce z egzekwowaną CSP, Then makiety
   renderują się (5 wariantów), 0 naruszeń CSP, 0 błędów JS; brak skryptów z CDN i Babel w przeglądarce.

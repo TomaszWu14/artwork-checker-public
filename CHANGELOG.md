@@ -6,6 +6,11 @@ Wersja aplikacji: `constants.APP_VERSION`.
 ## [Unreleased]
 
 ### Removed
+- US-028 (decyzja PO): 25 tabel-reliktów DocCompare (kolejka, transport, magazyn, agencje celne, typy dokumentów,
+  szablony porównań, słowniki, kursy walut, `job_progress` i in.) — aplikacja i `migrate_db.py` już ich nie tworzą
+  (także seedy `doc_types`/`sad_field_mapping` przy każdym starcie). Istniejące bazy: jednorazowo
+  `python tools/drop_relic_tables.py --apply` (kopia przed usunięciem; RUNBOOK §4). Usunięta martwa stała
+  `PROGRESS_ALLOWED_COLS` i nieużywane `supplier_profiles.log_analysis`.
 - US-026 (decyzja PO): komentarz AI w raporcie porównania — nie był pokazywany w HTML, a każdy raport kosztował
   wywołanie Claude API; usunięty też z eksportu DOCX/PDF (zmienna `ARTWORK_AI_MODEL` nieużywana).
 

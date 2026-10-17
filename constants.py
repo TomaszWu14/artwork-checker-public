@@ -110,21 +110,6 @@ ALLOWED_PDF_MIMES: frozenset = frozenset(
     {"application/pdf", "application/x-pdf", "application/octet-stream"}
 )
 
-# Dozwolone kolumny w _update_progress
-PROGRESS_ALLOWED_COLS: frozenset = frozenset(
-    {
-        'status',
-        'progress',
-        'message',
-        'result_id',
-        'error',
-        'total_pages',
-        'current_page',
-        'items_found',
-        'step',
-    }
-)
-
 # FIX 19: Added missing operational constants
 NOTIFICATION_LIMIT = 100  # max notifications returned per API call
 ALERT_CFG_CACHE_TTL = 120  # alert config cache TTL in seconds
