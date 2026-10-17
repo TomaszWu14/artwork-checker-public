@@ -332,3 +332,6 @@
 | `/profile` | GET | zalogowany | — | `app.py:2724` |
 | `/api/profile/update` | POST | zalogowany | tak | `app.py:2752` |
 | `/api/profile/change-password` | POST | zalogowany | tak | `app.py:2785` |
+| `/api/profile/export` | GET | zalogowany (własne dane) | — | `blueprints/users.py` (US-014, RODO art. 15/20) |
+| `/api/admin/users/<int:uid>/export` | GET | rola≥admin | — | `blueprints/users.py` (US-014) |
+| `/api/admin/users/<int:uid>/anonymize` | POST (`{"confirm": "<nazwa>"}`) | rola≥admin | tak | `blueprints/users.py` (US-014, RODO art. 17) |

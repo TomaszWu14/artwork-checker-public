@@ -232,6 +232,17 @@
       <button type="button" class="btn-save" data-on-click="changePassword()">Zmień hasło</button>
     </div>
 
+    <!-- RODO (US-014): prawo dostępu i przenoszenia danych -->
+    <div class="card">
+      <div class="card-title">Moje dane (RODO)</div>
+      <p style="font-size:13px;color:var(--muted);margin:0 0 12px">
+        Pobierz kopię danych osobowych powiązanych z Twoim kontem (profil, dziennik aktywności, porównania,
+        komentarze, powiadomienia) w formacie JSON. Wpisy dziennika są przechowywane 12 miesięcy.
+        Usunięcie konta realizuje administrator.
+      </p>
+      <a class="btn-save" href="/api/profile/export" download style="display:inline-block;text-decoration:none">Pobierz moje dane (JSON)</a>
+    </div>
+
     <!-- Recent activity -->
     <div class="card">
       <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">

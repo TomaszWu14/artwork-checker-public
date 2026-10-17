@@ -15,6 +15,10 @@ Wersja aplikacji: `constants.APP_VERSION`.
   wywołanie Claude API; usunięty też z eksportu DOCX/PDF (zmienna `ARTWORK_AI_MODEL` nieużywana).
 
 ### Added
+- US-014 (RODO, decyzje PO 2026-10-17): eksport danych konta do JSON (użytkownik — w profilu, admin — dowolne
+  konto), anonimizacja konta przez admina (potwierdzenie nazwą) i automatycznie 30 dni po dezaktywacji, dobowa
+  retencja 12 mies. dla `audit_log`, `api_usage`, `api_rate_events` (`core/privacy.py`,
+  `tools/privacy_maintenance.py`); kolumny `users.deactivated_at`, `users.anonymized_at`.
 - US-013: blokująca bramka pokrycia w CI — łączne pokrycie 9 modułów logiki domenowej (kody kreskowe, normalizacja,
   JM, nazewnictwo, indeks, raport, dane materiałów i dostawców) musi wynosić ≥ 80 % (decyzja PO 2026-10-17, Z-05);
   pokrycie całego repo pozostaje informacyjne. Nowe testy (`tests/test_us013_*.py`, ~240) podniosły pokrycie

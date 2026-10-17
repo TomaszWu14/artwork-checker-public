@@ -1,4 +1,4 @@
-# RODO — przetwarzanie danych osobowych (wersja 0.1, do potwierdzenia)
+# RODO — przetwarzanie danych osobowych (wersja 0.2 — prawa osób i retencja wdrożone w US-014)
 
 > [SEC] Aplikacja przetwarza dane osobowe **wyłącznie pracowników/użytkowników** (konta, audyt).
 > Artworki, mastery i master data nie zawierają danych osobowych (założenie Z-04 — do potwierdzenia).
@@ -22,10 +22,17 @@
 ## Prawa osób — realizacja
 | Prawo | Jak | Status |
 |---|---|---|
-| Dostęp / przenoszenie | eksport JSON danych konta (profil, audyt, porównania) | ❌ US-014 |
+| Dostęp / przenoszenie | eksport JSON danych konta (profil, audyt, porównania, komentarze, powiadomienia, koszty AI): użytkownik — „Profil → Pobierz moje dane” (`/api/profile/export`), admin — „⬇ Dane” przy koncie | ✅ US-014 |
 | Sprostowanie | profil (`/api/profile/update`) | ✅ |
-| Usunięcie | dezaktywacja + anonimizacja po retencji (`username` → `deleted-<id>`, e-mail usunięty, audyt zachowany bez nazwy) | ❌ US-014 |
-| Ograniczenie / sprzeciw | dezaktywacja konta | ⚠️ ręcznie w DB (US-009) |
+| Usunięcie | anonimizacja (`username` → `deleted-<id>`; e-mail, dział, telefon usunięte; hasło unieważnione; audyt bez nazwy i IP; tokeny i powiadomienia usunięte; porównania zostają bez powiązania z osobą): admin „Anonimizuj” (potwierdzenie nazwą) albo automatycznie 30 dni po dezaktywacji | ✅ US-014 |
+| Ograniczenie / sprzeciw | dezaktywacja konta (panel admina → Konta) | ✅ US-009 |
+
+## Retencja — realizacja (US-014)
+- Wątek w tle (`core/privacy.py`, start aplikacji + raz na dobę; idempotentny) usuwa wpisy starsze niż
+  **12 miesięcy** z `audit_log`, `api_usage`, `api_rate_events` i anonimizuje konta nieaktywne **> 30 dni**.
+  Ręcznie: `python tools/privacy_maintenance.py`. Parametry: `constants.PERSONAL_DATA_RETENTION_DAYS`,
+  `ACCOUNT_ANONYMIZE_AFTER_DAYS`. Konta dezaktywowane przed US-014 — 30 dni liczone od pierwszego przeglądu.
+- Kopie bazy (`backups/`, 7 dni) zawierają dane sprzed anonimizacji do czasu rotacji — mieści się w retencji kopii.
 
 ## Minimalizacja i bezpieczeństwo
 - Zbieramy tylko pola potrzebne do logowania i audytu; brak danych szczególnych kategorii.

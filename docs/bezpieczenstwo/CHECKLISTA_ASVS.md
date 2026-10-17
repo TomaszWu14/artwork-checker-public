@@ -25,8 +25,8 @@
 | V6 Kryptografia | losowość z CSPRNG, bez własnych algorytmów | ✅ | `secrets`, `hmac`, `hashlib` (md5 tylko do nazw plików, `usedforsecurity=False`) |
 | V7.1 Logi | bez sekretów i tokenów; zdarzenia bezpieczeństwa logowane | ✅ | grep ✅; `audit_log` login/CSRF/reset |
 | V7.4 Błędy | brak tracebacków dla klienta, generyczne 500 | ✅ | `@app.errorhandler(500)`, PalViz RD-1 |
-| V8.1 Dane | klasyfikacja, retencja, brak danych w cache klienta | ⚠️ | `Cache-Control: no-store` dla zalogowanych ✅; retencja → US-014 |
-| V8.3 Dane osobowe | minimalizacja, eksport/usunięcie | ❌ | `RODO.md`, US-014 |
+| V8.1 Dane | klasyfikacja, retencja, brak danych w cache klienta | ✅ | `Cache-Control: no-store` dla zalogowanych; retencja 12 mies. (US-014) |
+| V8.3 Dane osobowe | minimalizacja, eksport/usunięcie | ✅ | eksport JSON i anonimizacja (US-014, `RODO.md`) |
 | V9 Komunikacja | TLS, HSTS, brak mixed content | ✅ | HSTS `max-age=31536000; preload` w prod; CDN tylko https |
 | V10 Złośliwy kod | brak backdoorów, zależności zweryfikowane, integralność | ⚠️ | pip-audit ✅ (0 CVE); brak locka/hashy → US-011 |
 | V11 Logika biznesowa | limity, sekwencje, anty-automatyzacja | ⚠️ | rate limit 30/min ✅; budżet AI ✅; brak limitu intake/sync |

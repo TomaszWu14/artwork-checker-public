@@ -93,6 +93,10 @@ RESET_TOKEN_TTL_HOURS = 1
 # Link ustawienia hasła dla nowego konta (US-009) — dłuższy niż reset, wysyłany przez admina
 INVITE_TOKEN_TTL_HOURS = 24
 
+# RODO (US-014, decyzja PO 2026-10-17; docs/bezpieczenstwo/RODO.md)
+PERSONAL_DATA_RETENTION_DAYS = 365  # audit_log, api_usage, api_rate_events — 12 miesięcy
+ACCOUNT_ANONYMIZE_AFTER_DAYS = 30  # konto dezaktywowane → anonimizacja po 30 dniach
+
 # Rate limiting — reset hasła
 RATE_LIMIT_FORGOT_MAX = 3
 RATE_LIMIT_FORGOT_WINDOW = 900  # 15 minut

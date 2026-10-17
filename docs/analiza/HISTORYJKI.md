@@ -119,7 +119,14 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
 - Given push/PR, When CI „Składnia + testy”, Then `coverage report --fail-under=80` dla zestawu blokuje merge
   przy pokryciu < 80 %; pokrycie całego repo pozostaje raportem informacyjnym.
 - Given zmiana listy modułów lub obniżenie progu w `ci.yml`, When pytest, Then test `test_us013_coverage_gate.py` czerwony.
-### US-014 · Could · 📋 · RODO: retencja `audit_log` (12 mies.), eksport i usunięcie danych konta
+### US-014 · Could · ✅ (#52; decyzje PO 2026-10-17) · RODO: retencja `audit_log` (12 mies.), eksport i usunięcie danych konta
+- Given zalogowany użytkownik, When „Profil → Pobierz moje dane”, Then JSON z profilem, dziennikiem, porównaniami,
+  komentarzami, powiadomieniami i kosztami AI — bez hasha hasła i tokenów; admin pobiera dane dowolnego konta, manager → 403.
+- Given admin i konto inne niż własne, When „Anonimizuj” z potwierdzeniem nazwą, Then nazwa → `deleted-<id>`, e-mail,
+  dział, telefon usunięte, hasło unieważnione, dziennik bez nazwy i IP, porównania zostają; konto nie loguje się
+  i nie da się go reaktywować; audyt zdarzenia bez nazwy osoby. Ostatni aktywny admin i własne konto — odmowa.
+- Given konto dezaktywowane > 30 dni, When przegląd dobowy, Then automatyczna anonimizacja; reaktywacja zeruje licznik.
+- Given wpisy `audit_log`, `api_usage`, `api_rate_events` starsze niż 12 mies., When przegląd dobowy, Then usunięte.
 ### US-015 · Could · 📋 · Kolejka RQ dla ciężkich zadań (plan: `docs/KOLEJKOWANIE.md`)
 ### US-016 · Could · ✅ (#46; decyzja PO 2026-10-17) · Archiwizacja nieaktualnych dokumentów (`docs/architektura.md`, `DOKUMENTACJA_IT.md`, `PROCES_*`) do `docs/archiwum/`
 - Given dokumenty opisujące DocCompare, When przegląd `docs/`, Then są w `docs/archiwum/` z adnotacją „ARCHIWUM” na górze,
