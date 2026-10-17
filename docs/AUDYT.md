@@ -35,7 +35,7 @@ odnosi się do nich tam, gdzie ustalenia nadal obowiązują.
 4. CI pilnuje tylko składni i testów; lint i skany bezpieczeństwa są doradcze — **brak bramki jakości**
    wymaganej przez Definition of Done.
 5. Dokumentacja jest obszerna, ale częściowo **nieaktualna** (`docs/architektura.md`, `docs/DOKUMENTACJA_IT.md`,
-   `docs/PROCES_*` opisują DocCompare; README obiecuje zakładanie kont przez admina, a takiej funkcji nie ma).
+   `docs/PROCES_*` opisują DocCompare — od US-016 w `docs/archiwum/`; README obiecuje zakładanie kont przez admina, a takiej funkcji nie ma).
 
 ---
 

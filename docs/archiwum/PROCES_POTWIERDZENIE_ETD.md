@@ -1,3 +1,7 @@
+> **ARCHIWUM (US-016, 2026-10-17)** — dokument opisuje system-matkę **DocCompare v6** (porównywarka dokumentów
+> handlowych, transport, odprawa) i jest **nieaktualny** dla aplikacji Artwork. Zachowany wyłącznie jako kontekst
+> historyczny; aktualna dokumentacja: `docs/architektura/`, `docs/analiza/`, `CLAUDE.md`.
+
 # Proces: Potwierdzenie ETD (Chiny) → Potwierdzenie zamówienia (Radom) → Odesłanie potwierdzenia
 
 > Dokument koncepcyjny procesu (wycinek „purchasing → transport"). Służy jako punkt

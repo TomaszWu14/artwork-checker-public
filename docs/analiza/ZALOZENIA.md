@@ -24,7 +24,7 @@
 | T-03 | Poziom ASVS: **L2** (aplikacja wewnętrzna z danymi poufnymi firmy) | `CHECKLISTA_ASVS.md` |
 | T-04 | Skany bezpieczeństwa w CI: Bandit ≥ średnie i pip-audit blokują; Semgrep, Trivy i lint doradcze do czasu triage | ADR-0002 |
 | T-05 | Nie wprowadzamy Redis/RQ jako twardej zależności (plan w `docs/KOLEJKOWANIE.md`) | CLAUDE.md |
-| T-06 | Stare dokumenty (`docs/architektura.md`, `DOKUMENTACJA_IT.md`, `PROCES_*`) zostają nietknięte do decyzji PO (US-016) | zasada „nie nadpisuj bez pytania" |
+| T-06 | Stare dokumenty (`docs/architektura.md`, `DOKUMENTACJA_IT.md`, `PROCES_*`) zostają nietknięte do decyzji PO (US-016) — **zamknięte 2026-10-17:** przeniesione do `docs/archiwum/` z adnotacją, treść bez zmian | zasada „nie nadpisuj bez pytania" |
 | T-07 | Polityka haseł (US-005): min. 12 znaków, litera + cyfra, bez nazwy użytkownika, wbudowana lista ~80 popularnych wzorców zamiast pliku 10k (brak zależności zewnętrznej; można podmienić) | prostota, zero plików do pobrania |
 | T-08 | Blokada konta (US-005): twarde 429 przez resztę okna 15 min po 10 nieudanych próbach zamiast rosnącego opóźnienia (opóźnienia wiążą wątki gunicorna) | odporność na DoS |
 

@@ -1,7 +1,7 @@
 # Architektura (C4: kontekst i kontenery)
 
-> [DEV] Stan na 2026-10-15. Plik `docs/architektura.md` (małe litery) opisuje **system-matkę DocCompare**
-> i jest nieaktualny — zostaje do decyzji PO (US-016). Szczegóły modułów: `CLAUDE.md` → „Architecture".
+> [DEV] Stan na 2026-10-15. Dawny `docs/architektura.md` opisywał **system-matkę DocCompare** — przeniesiony do
+> `docs/archiwum/architektura_doccompare.md` (US-016). Szczegóły modułów: `CLAUDE.md` → „Architecture".
 
 ## Kontekst (C4 L1)
 

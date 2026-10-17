@@ -1,3 +1,7 @@
+> **ARCHIWUM (US-016, 2026-10-17)** — dokument opisuje system-matkę **DocCompare v6** (porównywarka dokumentów
+> handlowych, transport, odprawa) i jest **nieaktualny** dla aplikacji Artwork. Zachowany wyłącznie jako kontekst
+> historyczny; aktualna dokumentacja: `docs/architektura/`, `docs/analiza/`, `CLAUDE.md`.
+
 # DocCompare v6 — dokumentacja dla Dyrektora IT
 
 > Skrót zarządczo‑techniczny. Stan na 2026‑06‑15. Dotyczy aplikacji DocCompare (ACME), domena produkcyjna **compare.example.com**.
