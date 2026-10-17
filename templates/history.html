@@ -171,13 +171,13 @@ tr.r-roznica td.col-b,tr.r-brak_w_a td.col-b{background:rgba(255,92,92,.07)}
         <div class="rhdr-title" id="rTitle">Raport porównania</div>
         <div class="rhdr-meta" id="rMeta"></div>
       </div>
-      <button type="button" class="rbtn-exp btn btn-ghost btn-sm" onclick="exportRep('pdf')" id="rBtnPdf">
+      <button type="button" class="rbtn-exp btn btn-ghost btn-sm" data-on-click="exportRep('pdf')" id="rBtnPdf">
         <i data-lucide="file-text" style="width:14px;height:14px;" aria-hidden="true"></i> PDF
       </button>
-      <button type="button" class="rbtn-exp btn btn-ghost btn-sm" onclick="exportRep('excel')" id="rBtnXlsx">
+      <button type="button" class="rbtn-exp btn btn-ghost btn-sm" data-on-click="exportRep('excel')" id="rBtnXlsx">
         <i data-lucide="table-2" style="width:14px;height:14px;" aria-hidden="true"></i> Excel
       </button>
-      <button type="button" class="rbtn-close btn btn-ghost btn-sm" onclick="closeRov()">
+      <button type="button" class="rbtn-close btn btn-ghost btn-sm" data-on-click="closeRov()">
         <i data-lucide="x" style="width:14px;height:14px;" aria-hidden="true"></i> Zamknij
       </button>
     </div>
@@ -203,8 +203,8 @@ tr.r-roznica td.col-b,tr.r-brak_w_a td.col-b{background:rgba(255,92,92,.07)}
   <input type="search" class="search-inp" name="q" id="searchInput"
          value="{{ search }}"
          placeholder="Szukaj pliku, PO, dostawcy, usera…"
-         onchange="submitFilter()" autocomplete="off">
-  <select class="filter-sel" name="status" id="statusFilter" onchange="submitFilter()">
+         data-on-change="submitFilter()" autocomplete="off">
+  <select class="filter-sel" name="status" id="statusFilter" data-on-change="submitFilter()">
     <option value="">Wszystkie statusy</option>
     <option value="ok" {% if status_filter=='ok' %}selected{% endif %}>✅ OK</option>
     <option value="ostrzezenie" {% if status_filter=='ostrzezenie' %}selected{% endif %}>⚠ Ostrzeżenie</option>
@@ -218,7 +218,7 @@ tr.r-roznica td.col-b,tr.r-brak_w_a td.col-b{background:rgba(255,92,92,.07)}
   {% endif %}
   <span class="text-[12px] ml-auto" style="color:var(--ink-3);">{{ comparisons|length }} z {{ total_count }} rekordów</span>
   {% if can_delete %}
-  <button type="button" class="btn btn-danger btn-sm hidden" id="btnBulkDelete" onclick="bulkDelete()">
+  <button type="button" class="btn btn-danger btn-sm hidden" id="btnBulkDelete" data-on-click="bulkDelete()">
     <i data-lucide="trash-2" style="width:13px;height:13px;" aria-hidden="true"></i> Usuń zaznaczone
   </button>
   {% endif %}
@@ -228,8 +228,8 @@ tr.r-roznica td.col-b,tr.r-brak_w_a td.col-b{background:rgba(255,92,92,.07)}
 {% if can_delete %}
 <div class="alert alert-err hidden mb-4 gap-3" id="confirmBar">
   <span id="confirmText" class="flex-1">Usunąć zaznaczone rekordy?</span>
-  <button type="button" onclick="confirmDelete()" class="btn btn-danger btn-sm">Tak, usuń</button>
-  <button type="button" onclick="cancelDelete()" class="btn btn-ghost btn-sm">Anuluj</button>
+  <button type="button" data-on-click="confirmDelete()" class="btn btn-danger btn-sm">Tak, usuń</button>
+  <button type="button" data-on-click="cancelDelete()" class="btn btn-ghost btn-sm">Anuluj</button>
 </div>
 {% endif %}
 
@@ -239,7 +239,7 @@ tr.r-roznica td.col-b,tr.r-brak_w_a td.col-b{background:rgba(255,92,92,.07)}
 <table class="tbl htbl" id="histTable">
   <thead>
     <tr>
-      {% if can_delete %}<th scope="col" style="width:36px;text-align:center"><input type="checkbox" id="chkAll" onchange="toggleAll(this)" class="w-3.5 h-3.5 cursor-pointer" style="accent-color:var(--accent)"></th>{% endif %}
+      {% if can_delete %}<th scope="col" style="width:36px;text-align:center"><input type="checkbox" id="chkAll" data-on-change="toggleAll(this)" class="w-3.5 h-3.5 cursor-pointer" style="accent-color:var(--accent)"></th>{% endif %}
       <th scope="col">#</th>
       <th scope="col">Data i czas</th>
       {% if can_see_all %}<th scope="col">Użytkownik</th>{% endif %}
@@ -259,8 +259,8 @@ tr.r-roznica td.col-b,tr.r-brak_w_a td.col-b{background:rgba(255,92,92,.07)}
         data-status="{{ c.status }}"
         data-user="{{ c.username }}">
       {% if can_delete %}
-      <td style="text-align:center" onclick="event.stopPropagation()">
-        <input type="checkbox" class="row-cb w-3.5 h-3.5 cursor-pointer" data-id="{{ c.id }}" onchange="onCheckChange()" style="accent-color:var(--accent)">
+      <td style="text-align:center" data-on-click="event.stopPropagation()">
+        <input type="checkbox" class="row-cb w-3.5 h-3.5 cursor-pointer" data-id="{{ c.id }}" data-on-change="onCheckChange()" style="accent-color:var(--accent)">
       </td>
       {% endif %}
       <td class="mono text-[12.5px]" style="color:var(--ink-3)">#{{ c.id }}</td>
@@ -283,14 +283,14 @@ tr.r-roznica td.col-b,tr.r-brak_w_a td.col-b{background:rgba(255,92,92,.07)}
         {% elif c.status=='ostrzezenie' %}<span class="chip chip-warn"><span class="dot"></span>Ostrzeżenie</span>
         {% else %}<span class="chip chip-err"><span class="dot"></span>Błąd</span>{% endif %}
       </td>
-      <td style="text-align:center" onclick="event.stopPropagation()">
-        <button type="button" class="btn btn-ghost btn-sm" onclick="openReport({{ c.id }}, event)">
+      <td style="text-align:center" data-on-click="event.stopPropagation()">
+        <button type="button" class="btn btn-ghost btn-sm" data-on-click="openReport({{ c.id }}, event)">
           <i data-lucide="eye" style="width:13px;height:13px;" aria-hidden="true"></i> Otwórz
         </button>
       </td>
       {% if can_delete %}
-      <td onclick="event.stopPropagation()">
-        <button type="button" class="btn btn-icon btn-subtle" onclick="deleteOne({{ c.id }})" title="Usuń porównanie #{{ c.id }}" aria-label="Usuń porównanie #{{ c.id }}">
+      <td data-on-click="event.stopPropagation()">
+        <button type="button" class="btn btn-icon btn-subtle" data-on-click="deleteOne({{ c.id }})" title="Usuń porównanie #{{ c.id }}" aria-label="Usuń porównanie #{{ c.id }}">
           <i data-lucide="trash-2" style="width:14px;height:14px;color:#94a3b8;" aria-hidden="true"></i>
         </button>
       </td>
@@ -336,7 +336,7 @@ tr.r-roznica td.col-b,tr.r-brak_w_a td.col-b{background:rgba(255,92,92,.07)}
 </nav>
 {% endif %}
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 let _currentReport = null;
 let _currentCid = null;
 
@@ -499,11 +499,11 @@ function renderReport(d, id){
     </div>
   </div>
   <div class="rtabs">
-    <button type="button" class="rtab on" id="rtab-ov" onclick="showRTab('ov')">📋 Przegląd ${badge(errs+warns,errs>0,warns>0)}</button>
-    ${hasEnh?`<button type="button" class="rtab" id="rtab-enh" onclick="showRTab('enh')">⚡ Enhanced ${badge(enhE+enhW,enhE>0,enhW>0)}</button>`:''}
-    ${hasTbl?`<button type="button" class="rtab" id="rtab-tbl" onclick="showRTab('tbl')">📊 Tabele ${badge(tblE+tblW,tblE>0,tblW>0)}</button>`:''}
-    ${hasRx ?`<button type="button" class="rtab" id="rtab-rx"  onclick="showRTab('rx')">🔎 Pola tekst. ${badge(rxE+rxW,rxE>0,rxW>0)}</button>`:''}
-    ${hasTypo?`<button type="button" class="rtab" id="rtab-typo" onclick="showRTab('typo')">⚠ Literówki ${badge(tyE+tyW,tyE>0,tyW>0)}</button>`:''}
+    <button type="button" class="rtab on" id="rtab-ov" data-on-click="showRTab('ov')">📋 Przegląd ${badge(errs+warns,errs>0,warns>0)}</button>
+    ${hasEnh?`<button type="button" class="rtab" id="rtab-enh" data-on-click="showRTab('enh')">⚡ Enhanced ${badge(enhE+enhW,enhE>0,enhW>0)}</button>`:''}
+    ${hasTbl?`<button type="button" class="rtab" id="rtab-tbl" data-on-click="showRTab('tbl')">📊 Tabele ${badge(tblE+tblW,tblE>0,tblW>0)}</button>`:''}
+    ${hasRx ?`<button type="button" class="rtab" id="rtab-rx"  data-on-click="showRTab('rx')">🔎 Pola tekst. ${badge(rxE+rxW,rxE>0,rxW>0)}</button>`:''}
+    ${hasTypo?`<button type="button" class="rtab" id="rtab-typo" data-on-click="showRTab('typo')">⚠ Literówki ${badge(tyE+tyW,tyE>0,tyW>0)}</button>`:''}
   </div>
   <div class="rpanel on" id="rpanel-ov">${buildOv(d)}</div>
   ${hasEnh?`<div class="rpanel" id="rpanel-enh">${buildTblPanel(modules.enhanced,'enhanced')}</div>`:''}
@@ -604,9 +604,9 @@ function buildTblPanel(m, mode){
   if((m.headers||[]).length){
     h+=`<div class="sec">Pola nagłówkowe</div>
     <div class="fbar"><span class="fbar-lbl">FILTR:</span>
-      <button type="button" class="fb on" onclick="rfilt('all',this,'rthT${mode}')">Wszystkie</button>
-      <button type="button" class="fb" onclick="rfilt('err',this,'rthT${mode}')">Błędy</button>
-      <button type="button" class="fb" onclick="rfilt('ok',this,'rthT${mode}')">Zgodne</button>
+      <button type="button" class="fb on" data-on-click="rfilt('all',this,'rthT${mode}')">Wszystkie</button>
+      <button type="button" class="fb" data-on-click="rfilt('err',this,'rthT${mode}')">Błędy</button>
+      <button type="button" class="fb" data-on-click="rfilt('ok',this,'rthT${mode}')">Zgodne</button>
     </div>
     <div class="rtbl-wrap"><table class="rtbl" id="rthT${mode}"><thead><tr>
       <th scope="col">Pole</th><th scope="col" class="col-a"><span class="dot-a"></span>Dok. A</th><th scope="col" class="col-b"><span class="dot-b"></span>Dok. B</th><th scope="col">Status</th><th scope="col">Komentarz</th>
@@ -627,9 +627,9 @@ function buildTblPanel(m, mode){
   if((m.items||[]).length){
     h+=`<div class="sec" style="margin-top:16px">Pozycje towarowe</div>
     <div class="fbar"><span class="fbar-lbl">FILTR:</span>
-      <button type="button" class="fb on" onclick="rfilt('all',this,'rtiT${mode}')">Wszystkie</button>
-      <button type="button" class="fb" onclick="rfilt('err',this,'rtiT${mode}')">Błędy</button>
-      <button type="button" class="fb" onclick="rfilt('ok',this,'rtiT${mode}')">Zgodne</button>
+      <button type="button" class="fb on" data-on-click="rfilt('all',this,'rtiT${mode}')">Wszystkie</button>
+      <button type="button" class="fb" data-on-click="rfilt('err',this,'rtiT${mode}')">Błędy</button>
+      <button type="button" class="fb" data-on-click="rfilt('ok',this,'rtiT${mode}')">Zgodne</button>
     </div>
     <div class="rtbl-wrap"><table class="rtbl" id="rtiT${mode}"><thead><tr>
       <th scope="col">REF</th><th scope="col">Opis A</th><th scope="col">Opis B</th>
@@ -759,5 +759,7 @@ function sevpill(s){
   return`<span class="pill ${c}">${l}</span>`;
 }
 function esc(s){ /* US-008: jedno kanoniczne escapowanie HTML (& < > " ') */ return (s==null||s===false)?'':String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('bulkDelete', 'cancelDelete', 'closeRov', 'confirmDelete', 'deleteOne', 'exportRep', 'onCheckChange', 'openReport', 'rfilt', 'showRTab', 'submitFilter', 'toggleAll');
 </script>
 {% endblock %}

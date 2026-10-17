@@ -60,6 +60,7 @@ input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,155,255,.12)
   padding:10px 14px;font-size:13px;color:var(--error);margin-top:16px;
   display:flex;align-items:flex-start;gap:8px;line-height:1.5}
 </style>
+<script src="{{ url_for('static', filename='js/csp_actions.js') }}"></script>
 </head>
 <body>
 <div class="bg-grid"></div>
@@ -91,7 +92,7 @@ input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,155,255,.12)
                        background:none;border:none;cursor:pointer;color:var(--muted);
                        font-size:16px;padding:2px;line-height:1"
                 aria-label="Pokaż/ukryj hasło"
-                onclick="(function(){var i=document.getElementById('password');var b=document.getElementById('pwToggle');if(i.type==='password'){i.type='text';b.textContent='🙈';}else{i.type='password';b.textContent='👁';}}())">👁</button>
+                data-on-click="togglePassword('password')">👁</button>
       </div>
     </div>
     <div class="remember-row">

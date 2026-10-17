@@ -91,9 +91,9 @@
       <strong>supplier / dostawca / od_dostawcy</strong> — artwork od dostawcy<br>
       Przykład: <code>A-02_master.pdf</code> ↔ <code>A-02_supplier.pdf</code>
     </div>
-    <div class="dropzone" id="dz" onclick="document.getElementById('fileInput').click()"
+    <div class="dropzone" id="dz" data-on-click="clickById('fileInput')"
          role="button" tabindex="0" aria-label="Wgraj pliki PDF — kliknij lub przeciągnij"
-         onkeydown="if(event.key==='Enter'||event.key===' '){document.getElementById('fileInput').click()}">
+         data-on-keydown="onKeys(['Enter',' '],'clickById','fileInput',event)">
       <div class="dropzone-icon" aria-hidden="true">📂</div>
       <p><strong>Przeciągnij pliki PDF lub kliknij żeby wybrać</strong></p>
       <p style="font-size:11px;color:#888;margin-top:4px">Maksymalnie 100 plików (50 par)</p>
@@ -102,8 +102,8 @@
     <div id="fileListWrap" style="display:none">
       <div class="file-list" id="fileList"></div>
       <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
-        <button type="button" class="btn btn-primary" onclick="doPair()">⚡ Sparuj automatycznie</button>
-        <button type="button" class="btn btn-gray" onclick="clearFiles()">✕ Wyczyść</button>
+        <button type="button" class="btn btn-primary" data-on-click="doPair()">⚡ Sparuj automatycznie</button>
+        <button type="button" class="btn btn-gray" data-on-click="clearFiles()">✕ Wyczyść</button>
         <span id="fileCount" style="color:#555;font-size:12px"></span>
       </div>
     </div>
@@ -118,8 +118,8 @@
         <input type="checkbox" id="useAI" checked>
         <strong>Analiza AI</strong> (Claude) — dokładniejsze wyniki, zużywa kredyty API
       </label>
-      <button type="button" class="btn btn-green" onclick="doRun()">▶ Uruchom batch</button>
-      <button type="button" class="btn btn-gray" onclick="goBack()">← Wróć</button>
+      <button type="button" class="btn btn-green" data-on-click="doRun()">▶ Uruchom batch</button>
+      <button type="button" class="btn btn-gray" data-on-click="goBack()">← Wróć</button>
       <span id="pairCount" style="color:#555;font-size:12px"></span>
     </div>
   </div>
@@ -138,8 +138,8 @@
   <div id="step-results">
     <div class="section-title">4. Wyniki</div>
     <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
-      <button type="button" class="btn btn-green" id="btnZip" onclick="downloadZip()">⬇ Pobierz wszystkie raporty ZIP</button>
-      <button type="button" class="btn btn-gray" onclick="startOver()">↺ Nowe porównanie</button>
+      <button type="button" class="btn btn-green" id="btnZip" data-on-click="downloadZip()">⬇ Pobierz wszystkie raporty ZIP</button>
+      <button type="button" class="btn btn-gray" data-on-click="startOver()">↺ Nowe porównanie</button>
     </div>
     <div id="summaryCards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px"></div>
     <table class="results-table" id="resultsTable">
@@ -161,7 +161,7 @@
 
 </div><!-- /page -->
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 const MAX_FILES = 100;
 let uploadedFiles = [];
 let detectedPairs = [];
@@ -393,7 +393,7 @@ function renderResults() {
       <td><span class="badge ${badge}">${riskLabel}</span></td>
       <td>
         ${cacheId?`<a href="/artwork/report?cache_id=${cacheId}" target="_blank" class="btn btn-primary" style="padding:3px 9px;font-size:11px" rel="noopener noreferrer">Raport</a>`:''}
-        <button type="button" onclick="downloadSingle(${i})" class="btn btn-green" style="padding:3px 9px;font-size:11px">⬇ Word</button>
+        <button type="button" data-on-click="downloadSingle(${i})" class="btn btn-green" style="padding:3px 9px;font-size:11px">⬇ Word</button>
       </td>
     </tr>`;
   }).join('');
@@ -427,5 +427,7 @@ function show(id) { document.getElementById(id).style.display='block'; }
 function hide(id) { document.getElementById(id).style.display='none'; }
 function goBack() { hide('step-pairs'); show('step-upload'); }
 function startOver() { hide('step-results'); show('step-upload'); batchResults=[]; detectedPairs=[]; clearFiles(); }
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('clearFiles', 'doPair', 'doRun', 'downloadSingle', 'downloadZip', 'startOver');
 </script>
 {% endblock %}

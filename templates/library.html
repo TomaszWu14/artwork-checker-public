@@ -80,8 +80,8 @@ code{background:#f1f5f9;padding:2px 6px;border-radius:4px;font-family:monospace;
     </p>
     <div class="token-box" id="tokenBox">{{ sync_token }}</div>
     <div style="display:flex;gap:8px;margin-top:8px">
-      <button type="button" class="btn btn-ghost" onclick="copyToken()">📋 Kopiuj token</button>
-      <button type="button" class="btn btn-danger" onclick="resetToken()">🔄 Wygeneruj nowy token</button>
+      <button type="button" class="btn btn-ghost" data-on-click="copyToken()">📋 Kopiuj token</button>
+      <button type="button" class="btn btn-danger" data-on-click="resetToken()">🔄 Wygeneruj nowy token</button>
     </div>
     <p style="font-size:11px;color:#9ca3af;margin-top:8px">
       ⚠️ Po resecie tokena agent przestanie synchronizować — zaktualizuj <code>library_sync.py</code>.
@@ -168,7 +168,7 @@ code{background:#f1f5f9;padding:2px 6px;border-radius:4px;font-family:monospace;
   </div>
 
 </div>
-<script>
+<script nonce="{{ csp_nonce() }}">
 function copyToken(){
   const t=document.getElementById('tokenBox').textContent.trim();
   navigator.clipboard?.writeText(t).then(()=>toast('Token skopiowany','ok'));
@@ -208,5 +208,7 @@ async function refreshStats(){
 }
 refreshStats();
 setInterval(refreshStats,30000);
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('copyToken', 'resetToken');
 </script>
 {% endblock %}

@@ -209,16 +209,12 @@ def _auto_close_dbs(exc):
 
 
 # ── CSP (US-008, ADR-0004) ─────────────────────────────────────────────────────
-# Etap 1: polityka EGZEKWOWANA jak dotąd (z 'unsafe-inline'/'unsafe-eval', bo szablony mają
-# ~65 skryptów inline, ~400 handlerów on*= oraz Alpine/Babel wymagające eval) + dodatkowo
-# object-src/base-uri/form-action. Równolegle docelowa, ścisła polityka w trybie
-# REPORT-ONLY (nonce, bez eval) — przeglądarki raportują naruszenia do /csp-report, co
-# pozwala migrować szablony etapami bez psucia UI.
-_CSP_ENFORCED = (
-    "default-src 'self'; "
-    # US-022: biblioteki (React, Alpine, lucide) i Tailwind serwowane z /static — bez CDN w script-src.
-    # 'unsafe-eval' zostaje wyłącznie dla Alpine (standardowy build) — do zdjęcia w US-022b.
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+# Etap 4 (US-023): polityka EGZEKWOWANA bez 'unsafe-inline' dla skryptów — skrypty inline tylko
+# z nonce bieżącej odpowiedzi, handlery on*= zastąpione atrybutami data-on-* (static/js/csp_actions.js).
+# 'unsafe-eval' zostaje wyłącznie dla Alpine (standardowy build) — do zdjęcia w US-024 (odłożone
+# decyzją PO 2026-10-16). Równolegle polityka docelowa BEZ eval w trybie REPORT-ONLY — raporty
+# z /csp-report mierzą, co zostało do US-024.
+_CSP_COMMON = (
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
     "font-src 'self' data: https://fonts.gstatic.com; "
     "img-src 'self' data: blob: https://*.tile.openstreetmap.org; "
@@ -229,21 +225,19 @@ _CSP_ENFORCED = (
 )
 
 
+def _csp_enforced(nonce: str) -> str:
+    return f"default-src 'self'; script-src 'self' 'nonce-{nonce}' 'unsafe-eval'; " + _CSP_COMMON
+
+
 def _csp_report_only(nonce: str) -> str:
-    return (
-        "default-src 'self'; "
-        f"script-src 'self' 'nonce-{nonce}'; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "font-src 'self' data: https://fonts.gstatic.com; "
-        "img-src 'self' data: blob: https://*.tile.openstreetmap.org; "
-        "connect-src 'self' blob:; worker-src 'self' blob:; "
-        "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; "
-        "report-uri /csp-report"
-    )
+    return f"default-src 'self'; script-src 'self' 'nonce-{nonce}'; " + _CSP_COMMON + " report-uri /csp-report"
 
 
 def csp_nonce() -> str:
-    """Nonce bieżącego żądania dla <script nonce="{{ csp_nonce() }}"> (etap 3 ADR-0004)."""
+    """Nonce bieżącej odpowiedzi dla <script nonce="{{ csp_nonce() }}">. Poza żądaniem HTTP
+    (np. eksport raportu w wątku tła) — pusty: plik offline nie ma nagłówka CSP."""
+    if not has_request_context():
+        return ""
     if not getattr(g, "_csp_nonce", None):
         g._csp_nonce = secrets.token_urlsafe(16)
     return g._csp_nonce
@@ -286,7 +280,7 @@ def _set_security_headers(response):
     # Przestarzały filtr XSS przeglądarek bywa wektorem ataku — zalecane "0" (US-008).
     response.headers.setdefault("X-XSS-Protection", "0")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-    response.headers.setdefault("Content-Security-Policy", _CSP_ENFORCED)
+    response.headers.setdefault("Content-Security-Policy", _csp_enforced(csp_nonce()))
     if response.content_type and "text/html" in response.content_type:
         response.headers.setdefault("Content-Security-Policy-Report-Only", _csp_report_only(csp_nonce()))
     response.headers.setdefault(

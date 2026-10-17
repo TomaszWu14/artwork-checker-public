@@ -33,7 +33,7 @@
     <div><label>Kod</label><input id="ncode" maxlength="10" style="width:90px;text-transform:uppercase" placeholder="np. FOB"></div>
     <div style="flex:1;min-width:180px"><label>Opis PL</label><input id="npl" placeholder="Opis polski"></div>
     <div style="flex:1;min-width:180px"><label>Opis EN</label><input id="nen" placeholder="(opcjonalnie)"></div>
-    <button class="btn btn-primary btn-sm" onclick="icAdd()">Dodaj</button>
+    <button class="btn btn-primary btn-sm" data-on-click="icAdd()">Dodaj</button>
   </div>
   {% endif %}
 
@@ -48,7 +48,7 @@
   </table>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 const IC_CAN_EDIT = {{ 'true' if role in ['manager','admin','superuser'] else 'false' }};
 
 function icEsc(s){const d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML;}
@@ -61,9 +61,9 @@ function icLoad(){
       const ed = IC_CAN_EDIT;
       return '<tr>'
         +'<td class="ic-code">'+icEsc(r.code)+'</td>'
-        +'<td>'+(ed?'<input value="'+icEsc(r.description_pl)+'" onchange="icSave('+r.id+',this.value,null)">':icEsc(r.description_pl))+'</td>'
-        +'<td>'+(ed?'<input value="'+icEsc(r.description_en)+'" onchange="icSave('+r.id+',null,this.value)">':icEsc(r.description_en))+'</td>'
-        +(ed?'<td><button class="ic-del" title="Usuń" onclick="icDel('+r.id+')">✕</button></td>':'')
+        +'<td>'+(ed?'<input value="'+icEsc(r.description_pl)+'" data-on-change="icSave('+r.id+',this.value,null)">':icEsc(r.description_pl))+'</td>'
+        +'<td>'+(ed?'<input value="'+icEsc(r.description_en)+'" data-on-change="icSave('+r.id+',null,this.value)">':icEsc(r.description_en))+'</td>'
+        +(ed?'<td><button class="ic-del" title="Usuń" data-on-click="icDel('+r.id+')">✕</button></td>':'')
         +'</tr>';
     }).join('');
   }).catch(()=>toast('Błąd ładowania','error'));
@@ -103,5 +103,7 @@ function icDel(id){
 }
 
 document.addEventListener('DOMContentLoaded', icLoad);
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('icAdd', 'icDel', 'icSave');
 </script>
 {% endblock %}

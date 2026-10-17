@@ -442,14 +442,14 @@
         <div class="sp-uslot">
           <div class="sp-uslot-lbl" style="display:flex;align-items:center;gap:8px">
             🖼 Mastery wzorcowe (A) — wersja referencyjna
-            <button type="button" onclick="spToggleMstSearch()" id="spBtnLib" style="margin-left:auto;padding:2px 9px;border:1px solid #bbf7d0;border-radius:5px;background:#f0fdf4;color:#15803d;font-size:11px;font-weight:600;cursor:pointer">📚 Dodaj z biblioteki</button>
+            <button type="button" data-on-click="spToggleMstSearch()" id="spBtnLib" style="margin-left:auto;padding:2px 9px;border:1px solid #bbf7d0;border-radius:5px;background:#f0fdf4;color:#15803d;font-size:11px;font-weight:600;cursor:pointer">📚 Dodaj z biblioteki</button>
           </div>
           <!-- Unified library search + paste panel -->
           <div id="spMstSearchPanel" style="display:none;margin-bottom:8px;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:10px 12px">
             <div style="display:flex;gap:6px;margin-bottom:8px;border-bottom:1px solid #bbf7d0;padding-bottom:8px">
-              <button type="button" id="spTabSearch" onclick="spSetTab('search')" style="padding:3px 10px;border-radius:5px;border:none;font-size:11px;font-weight:700;cursor:pointer;background:#15803d;color:#fff">🔍 Szukaj</button>
-              <button type="button" id="spTabPaste" onclick="spSetTab('paste')" style="padding:3px 10px;border-radius:5px;border:none;font-size:11px;font-weight:700;cursor:pointer;background:#e5e7eb;color:#374151">📋 Wklej listę</button>
-              <button type="button" onclick="document.getElementById('spMstSearchPanel').style.display='none'" style="margin-left:auto;background:none;border:none;color:#9ca3af;cursor:pointer;font-size:18px;line-height:1;padding:0">×</button>
+              <button type="button" id="spTabSearch" data-on-click="spSetTab('search')" style="padding:3px 10px;border-radius:5px;border:none;font-size:11px;font-weight:700;cursor:pointer;background:#15803d;color:#fff">🔍 Szukaj</button>
+              <button type="button" id="spTabPaste" data-on-click="spSetTab('paste')" style="padding:3px 10px;border-radius:5px;border:none;font-size:11px;font-weight:700;cursor:pointer;background:#e5e7eb;color:#374151">📋 Wklej listę</button>
+              <button type="button" data-on-click="hideById('spMstSearchPanel')" style="margin-left:auto;background:none;border:none;color:#9ca3af;cursor:pointer;font-size:18px;line-height:1;padding:0">×</button>
             </div>
             <!-- Search tab -->
             <div id="spTabSearchBody">
@@ -457,8 +457,8 @@
                 <label for="spMstSearchInput" class="sr-only">Wyszukaj master</label>
                 <input type="search" id="spMstSearchInput" autocomplete="off"
                   placeholder="Wpisz nazwę, EAN lub REF mastera…"
-                  oninput="spMstSearchFn()"
-                  onkeydown="if(event.key==='Escape')document.getElementById('spMstSearchPanel').style.display='none'"
+                  data-on-input="spMstSearchFn()"
+                  data-on-keydown="onKeys(['Escape'],'hideById','spMstSearchPanel',event)"
                   style="width:100%;padding:7px 10px;border:1.5px solid #bbf7d0;border-radius:8px;font-size:12px;outline:none;box-sizing:border-box;background:#fff">
                 <div id="spMstSearchDrop" style="display:none;margin-top:4px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.15);max-height:280px;overflow-y:auto"></div>
               </div>
@@ -468,22 +468,22 @@
             <div id="spTabPasteBody" style="display:none">
               <textarea id="spPasteArea" placeholder="Wklej nazwy masterów — jedna na linię:&#10;NL753-S-40_pouch&#10;NL753-S-50_pouch&#10;AT-S-DENT1-C_carton" style="width:100%;height:80px;border:1.5px solid #bbf7d0;border-radius:8px;padding:8px;font-size:12px;resize:vertical;font-family:monospace;box-sizing:border-box;background:#fff"></textarea>
               <div style="display:flex;gap:6px;margin-top:5px">
-                <button type="button" onclick="spLoadFromPaste()" style="padding:5px 14px;background:#15803d;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">🔍 Załaduj z biblioteki</button>
+                <button type="button" data-on-click="spLoadFromPaste()" style="padding:5px 14px;background:#15803d;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">🔍 Załaduj z biblioteki</button>
                 <span id="spPasteStatus" style="font-size:11px;color:#6b7280;align-self:center"></span>
               </div>
             </div>
           </div>
           <div class="sp-drop" id="spMstDrop"
                role="button" tabindex="0" aria-label="Wgraj pliki master (A) — kliknij lub przeciągnij"
-               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('spMstInput').click()}">
+               data-on-keydown="onKeys(['Enter',' '],'clickById','spMstInput',event)">
             <input type="file" id="spMstInput" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" multiple style="display:none">
             <div class="sp-drop-icon" id="spMstIcon">🗂</div>
             <div class="sp-drop-txt">
               <div class="sp-drop-title" id="spMstTitle">Kliknij lub przeciągnij mastery (A)</div>
               <div class="sp-drop-sub" id="spMstSub">PDF · JPG · PNG — wiele plików naraz</div>
             </div>
-            <button type="button" id="spMstAddBtn" style="display:none;padding:7px 14px;border:1.5px solid #15803d;border-radius:7px;background:#15803d;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;color:#fff;white-space:nowrap;box-shadow:0 2px 6px rgba(21,128,61,.25)" onclick="event.stopPropagation();document.getElementById('spMstInput').click()" title="Dodaj kolejne pliki master">+ Dodaj kolejny</button>
-            <button type="button" id="spMstClearBtn" style="display:none;background:none;border:none;color:#9ca3af;cursor:pointer;font-size:20px;line-height:1;flex-shrink:0;padding:0 2px" onclick="event.stopPropagation();spMstClear()">×</button>
+            <button type="button" id="spMstAddBtn" style="display:none;padding:7px 14px;border:1.5px solid #15803d;border-radius:7px;background:#15803d;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;color:#fff;white-space:nowrap;box-shadow:0 2px 6px rgba(21,128,61,.25)" data-on-click="event.stopPropagation();clickById('spMstInput')" title="Dodaj kolejne pliki master">+ Dodaj kolejny</button>
+            <button type="button" id="spMstClearBtn" style="display:none;background:none;border:none;color:#9ca3af;cursor:pointer;font-size:20px;line-height:1;flex-shrink:0;padding:0 2px" data-on-click="event.stopPropagation();spMstClear()">×</button>
           </div>
           <!-- Z: paths helper -->
           <div id="spZPathsWrap" style="display:none;margin-top:8px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px">
@@ -499,7 +499,7 @@
           <div class="sp-uslot-lbl">📋 PDF Dostawcy (B) — artwork do sprawdzenia</div>
           <div class="sp-drop" id="spSupDrop"
                role="button" tabindex="0" aria-label="Wgraj PDF dostawcy (B) — kliknij lub przeciągnij"
-               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('spSupInput').click()}">
+               data-on-keydown="onKeys(['Enter',' '],'clickById','spSupInput',event)">
             <input type="file" id="spSupInput" accept=".pdf" style="display:none">
             <div class="sp-drop-icon" id="spSupIcon">📄</div>
             <div class="sp-drop-txt">
@@ -507,7 +507,7 @@
               <div class="sp-drop-sub" id="spSupSub">Wielostronicowy PDF — automatycznie podzieli na strony</div>
             </div>
             <div id="spSupSpinner" style="display:none;width:20px;height:20px;border:2px solid #d1d5db;border-top-color:#4f6ef7;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0"></div>
-            <button type="button" id="spSupClearBtn" style="display:none;background:none;border:none;color:#9ca3af;cursor:pointer;font-size:20px;line-height:1;flex-shrink:0;padding:0 2px" onclick="event.stopPropagation();spSupClear()">×</button>
+            <button type="button" id="spSupClearBtn" style="display:none;background:none;border:none;color:#9ca3af;cursor:pointer;font-size:20px;line-height:1;flex-shrink:0;padding:0 2px" data-on-click="event.stopPropagation();spSupClear()">×</button>
           </div>
         </div>
       </div>
@@ -515,12 +515,12 @@
       <!-- Toolbar (pair status + options + run) -->
       <div id="spToolbar" style="display:none" class="sp-toolbar">
         <div id="spPairStatus" style="font-size:12px;color:#6b7280"></div>
-        <button type="button" onclick="spAutoPair()" style="padding:4px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;font-size:12px;cursor:pointer;color:#374151">⚡ Autopair kolejnością</button>
+        <button type="button" data-on-click="spAutoPair()" style="padding:4px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;font-size:12px;cursor:pointer;color:#374151">⚡ Autopair kolejnością</button>
         <label class="toggle-group" style="cursor:pointer;margin-left:4px">
           <span class="toggle"><input type="checkbox" id="spUseAi" checked><span class="toggle-slider"></span></span>
           <span style="font-size:13px;font-weight:600">AI</span>
         </label>
-        <button type="button" class="btn-compare" id="spRunBtn" onclick="spRunWithPreview()" disabled style="margin-left:auto">▶ Porównaj wszystkie pary</button>
+        <button type="button" class="btn-compare" id="spRunBtn" data-on-click="spRunWithPreview()" disabled style="margin-left:auto">▶ Porównaj wszystkie pary</button>
       </div>
 
       <!-- Count mismatch warning -->
@@ -565,7 +565,7 @@
       <div style="padding:14px 20px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <h3 style="font-size:16px;font-weight:700;margin:0;flex:1">📊 Wyniki porównania</h3>
         <div id="spResultsKpis" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-        <button type="button" onclick="spShowBoard()" style="padding:5px 12px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;font-size:12px;cursor:pointer">← Wróć</button>
+        <button type="button" data-on-click="spShowBoard()" style="padding:5px 12px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;font-size:12px;cursor:pointer">← Wróć</button>
       </div>
       <div style="overflow-x:auto">
         <table class="sp-results-tbl">
@@ -591,12 +591,12 @@
         <div class="sp-crop-hd">
           <h3 id="spCropHeading">✂️ Wytnij regiony — <span id="spCropTitle"></span></h3>
           <div class="sp-crop-zoom-bar">
-            <button type="button" onclick="spCropZoomStep(-1)" title="Pomniejsz (-)">−</button>
+            <button type="button" data-on-click="spCropZoomStep(-1)" title="Pomniejsz (-)">−</button>
             <span id="spCropZoomLbl">100%</span>
-            <button type="button" onclick="spCropZoomStep(1)" title="Powiększ (+)">+</button>
-            <button type="button" onclick="spCropZoomFit()" title="Dopasuj do okna" style="font-size:11px;padding:2px 6px">⊡</button>
+            <button type="button" data-on-click="spCropZoomStep(1)" title="Powiększ (+)">+</button>
+            <button type="button" data-on-click="spCropZoomFit()" title="Dopasuj do okna" style="font-size:11px;padding:2px 6px">⊡</button>
           </div>
-          <button type="button" onclick="spCropClose()" aria-label="Zamknij" style="background:none;border:none;font-size:22px;cursor:pointer;color:#9ca3af;line-height:1;padding:2px 8px;margin-left:4px">×</button>
+          <button type="button" data-on-click="spCropClose()" aria-label="Zamknij" style="background:none;border:none;font-size:22px;cursor:pointer;color:#9ca3af;line-height:1;padding:2px 8px;margin-left:4px">×</button>
         </div>
 
         <!-- Pasek kroku -->
@@ -631,20 +631,20 @@
             <span style="color:#9ca3af;font-size:12px">Brak regionów — narysuj prostokąty</span>
           </div>
           <div style="display:flex;gap:7px;flex-shrink:0;flex-wrap:wrap;align-items:center">
-            <button type="button" onclick="spCropAddStrip()"
+            <button type="button" data-on-click="spCropAddStrip()"
                     title="Dodaj pełny pasek poziomy"
                     style="padding:6px 11px;border:1.5px solid #f59e0b;border-radius:6px;background:#fffbeb;color:#b45309;cursor:pointer;font-size:13px;font-weight:600">
               ➕ Pasek
             </button>
-            <button type="button" id="spCropConfirmRgnBtn" onclick="spCropConfirmRegion()" disabled
+            <button type="button" id="spCropConfirmRgnBtn" data-on-click="spCropConfirmRegion()" disabled
                     class="sp-crop-confirm-btn">
               ✓ Potwierdź region 1
             </button>
-            <button type="button" onclick="spCropDone()"
+            <button type="button" data-on-click="spCropDone()"
                     class="sp-crop-done-btn" id="spCropDoneBtn">
               ✓ Gotowe
             </button>
-            <button type="button" onclick="spCropClose()"
+            <button type="button" data-on-click="spCropClose()"
                     style="padding:6px 12px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;cursor:pointer;font-size:13px">
               Anuluj
             </button>
@@ -670,22 +670,22 @@
   <div style="position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:10001;
               display:flex;align-items:center;gap:8px;
               background:rgba(0,0,0,.6);border-radius:30px;padding:6px 14px;backdrop-filter:blur(6px)">
-    <button type="button" onclick="lbZoom(-0.25)" title="Pomniejsz"
+    <button type="button" data-on-click="lbZoom(-0.25)" title="Pomniejsz"
       style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1;padding:2px 6px">−</button>
     <span id="lbZoomLbl" style="color:#fff;font-size:12px;font-weight:600;min-width:42px;text-align:center">100%</span>
-    <button type="button" onclick="lbZoom(+0.25)" title="Powiększ"
+    <button type="button" data-on-click="lbZoom(+0.25)" title="Powiększ"
       style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1;padding:2px 6px">+</button>
     <span style="color:rgba(255,255,255,.3);margin:0 4px">|</span>
-    <button type="button" onclick="lbReset()" title="Reset"
+    <button type="button" data-on-click="lbReset()" title="Reset"
       style="background:none;border:none;color:#aaa;font-size:11px;cursor:pointer;font-weight:600">1:1</button>
-    <button type="button" onclick="lbFit()" title="Dopasuj do ekranu"
+    <button type="button" data-on-click="lbFit()" title="Dopasuj do ekranu"
       style="background:none;border:none;color:#aaa;font-size:11px;cursor:pointer;font-weight:600">FIT</button>
   </div>
   <!-- close -->
-  <span class="lb-close" onclick="closeLb()">×</span>
+  <span class="lb-close" data-on-click="closeLb()">×</span>
   <!-- image container -->
   <div id="lbContainer" style="overflow:hidden;width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:grab"
-       onmousedown="lbDragStart(event)" onmousemove="lbDragMove(event)" onmouseup="lbDragEnd()" onmouseleave="lbDragEnd()">
+       data-on-mousedown="lbDragStart(event)" data-on-mousemove="lbDragMove(event)" data-on-mouseup="lbDragEnd()" data-on-mouseleave="lbDragEnd()">
     <img id="lbImg" src="" alt=""
          style="transform-origin:center center;transition:transform .1s;user-select:none;pointer-events:none;border-radius:4px">
   </div>
@@ -699,7 +699,7 @@
       <h2 id="pvTitle">Weryfikacja pól</h2>
       <div class="pv-progress-wrap" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Postęp weryfikacji pól"><div class="pv-progress-fill" id="pvProgressFill"></div></div>
       <span class="pv-progress-lbl" id="pvProgressLbl" aria-live="polite" aria-atomic="true">1 / 1</span>
-      <button type="button" onclick="pvClose()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;padding:2px 8px;line-height:1" title="Zamknij">✕</button>
+      <button type="button" data-on-click="pvClose()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;padding:2px 8px;line-height:1" title="Zamknij">✕</button>
     </div>
 
     <div class="pv-body">
@@ -715,14 +715,14 @@
         </div>
         <div class="pv-editor-outer">
           <div id="pvEditorWrap" class="pv-editor-wrap"
-               onmousedown="pvMDown(event)" onmousemove="pvMMove(event)"
-               onmouseup="pvMUp(event)" onmouseleave="pvMUp(event)">
-            <img id="pvPageBImg" src="" alt="" onload="pvPageLoaded()">
+               data-on-mousedown="pvMDown(event)" data-on-mousemove="pvMMove(event)"
+               data-on-mouseup="pvMUp(event)" data-on-mouseleave="pvMUp(event)">
+            <img id="pvPageBImg" src="" alt="" data-on-load="pvPageLoaded()">
             <div id="pvRect" class="pv-rect" style="display:none">
-              <div class="pv-resize-handle nw" onmousedown="pvResizeStart(event,'nw')"></div>
-              <div class="pv-resize-handle ne" onmousedown="pvResizeStart(event,'ne')"></div>
-              <div class="pv-resize-handle sw" onmousedown="pvResizeStart(event,'sw')"></div>
-              <div class="pv-resize-handle se" onmousedown="pvResizeStart(event,'se')"></div>
+              <div class="pv-resize-handle nw" data-on-mousedown="pvResizeStart(event,'nw')"></div>
+              <div class="pv-resize-handle ne" data-on-mousedown="pvResizeStart(event,'ne')"></div>
+              <div class="pv-resize-handle sw" data-on-mousedown="pvResizeStart(event,'sw')"></div>
+              <div class="pv-resize-handle se" data-on-mousedown="pvResizeStart(event,'se')"></div>
             </div>
           </div>
         </div>
@@ -739,12 +739,12 @@
       <span class="pv-severity" id="pvSeverityBadge"></span>
       <span id="pvSkippedBadge" class="pv-skipped-badge" style="display:none">pominięto</span>
       <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;align-items:center">
-        <button type="button" class="pv-btn pv-btn-nav" onclick="pvStep(-1)" id="pvBtnPrev">← Wstecz</button>
-        <button type="button" class="pv-btn pv-btn-skip" onclick="pvSkipField()">⊘ Pomiń to pole</button>
-        <button type="button" class="pv-btn pv-btn-ok" onclick="pvAcceptField()" id="pvBtnAccept">✓ Zatwierdź</button>
-        <button type="button" class="pv-btn pv-btn-nav" onclick="pvStep(1)" id="pvBtnNext">Dalej →</button>
-        <button type="button" class="pv-btn pv-btn-run" onclick="pvRunCompare()" id="pvBtnRun" style="display:none">▶ Porównaj zatwierdzone</button>
-        <button type="button" class="pv-btn pv-btn-run" onclick="pvAcceptAllAndRun()" id="pvBtnAcceptAll"
+        <button type="button" class="pv-btn pv-btn-nav" data-on-click="pvStep(-1)" id="pvBtnPrev">← Wstecz</button>
+        <button type="button" class="pv-btn pv-btn-skip" data-on-click="pvSkipField()">⊘ Pomiń to pole</button>
+        <button type="button" class="pv-btn pv-btn-ok" data-on-click="pvAcceptField()" id="pvBtnAccept">✓ Zatwierdź</button>
+        <button type="button" class="pv-btn pv-btn-nav" data-on-click="pvStep(1)" id="pvBtnNext">Dalej →</button>
+        <button type="button" class="pv-btn pv-btn-run" data-on-click="pvRunCompare()" id="pvBtnRun" style="display:none">▶ Porównaj zatwierdzone</button>
+        <button type="button" class="pv-btn pv-btn-run" data-on-click="pvAcceptAllAndRun()" id="pvBtnAcceptAll"
                 style="background:#16a34a;border-color:#16a34a"
                 title="Zatwierdź wszystkie pola z automatycznie wykrytymi pozycjami i uruchom porównanie">✓✓ Zatwierdź wszystkie i porównaj</button>
       </div>
@@ -764,19 +764,19 @@
       <div id="fqProgressBar" style="height:6px;background:#22c55e;border-radius:4px;transition:width .4s;width:0%"></div>
     </div>
     <span id="fqStatusLbl" style="font-size:11px;color:#94a3b8;min-width:80px;flex-shrink:0"></span>
-    <button type="button" id="fqBtnPlay" onclick="fqTogglePlay()" style="padding:6px 16px;border-radius:7px;border:none;background:#f59e0b;color:#fff;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;display:none">⏸ Pauza</button>
-    <button type="button" onclick="fqClose()" style="padding:6px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:12px;cursor:pointer;flex-shrink:0">✕ Zamknij</button>
+    <button type="button" id="fqBtnPlay" data-on-click="fqTogglePlay()" style="padding:6px 16px;border-radius:7px;border:none;background:#f59e0b;color:#fff;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;display:none">⏸ Pauza</button>
+    <button type="button" data-on-click="fqClose()" style="padding:6px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:12px;cursor:pointer;flex-shrink:0">✕ Zamknij</button>
   </div>
   <!-- single-column comparison list: Master above, Supplier below, full width -->
   <div id="fqList" style="flex:1;overflow-y:auto;padding:20px 0;display:flex;flex-direction:column;gap:0"></div>
   <!-- footer shown when all done -->
   <div id="fqFooter" style="display:none;padding:12px 20px;border-top:2px solid #e2e8f0;background:#fff;flex-shrink:0;justify-content:space-between;align-items:center;gap:12px">
     <span id="fqDoneMsg" style="font-size:13px;font-weight:600"></span>
-    <button type="button" onclick="fqGenerateReport()" style="padding:9px 26px;border-radius:8px;border:none;background:#1a1a2e;color:#fff;font-size:14px;font-weight:700;cursor:pointer">📋 Generuj raport pełny</button>
+    <button type="button" data-on-click="fqGenerateReport()" style="padding:9px 26px;border-radius:8px;border:none;background:#1a1a2e;color:#fff;font-size:14px;font-weight:700;cursor:pointer">📋 Generuj raport pełny</button>
   </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 var _compareActive=false;
 
 // ── Lightbox z zoomem ─────────────────────────────────────────────────────────
@@ -848,13 +848,13 @@ function esc(s){ /* US-008: jedno kanoniczne escapowanie HTML (& < > " ') */ ret
       serwer może nadal przetwarzać w tle, ale wyniki nie zostaną wyświetlone.
     </div>
     <div style="display:flex; gap:12px; justify-content:center;">
-      <button type="button" onclick="leaveCancel()"
+      <button type="button" data-on-click="leaveCancel()"
               style="padding:10px 28px; border-radius:8px; border:1px solid #3b4270;
                      background:#252840; color:#edf0f7; font-size:14px; font-weight:600;
                      cursor:pointer;">
         ← Zostań na stronie
       </button>
-      <button type="button" onclick="leaveConfirm()"
+      <button type="button" data-on-click="leaveConfirm()"
               style="padding:10px 28px; border-radius:8px; border:none;
                      background:#dc2626; color:#fff; font-size:14px; font-weight:600;
                      cursor:pointer;">
@@ -863,7 +863,7 @@ function esc(s){ /* US-008: jedno kanoniczne escapowanie HTML (& < > " ') */ ret
     </div>
   </div>
 </div>
-<script>
+<script nonce="{{ csp_nonce() }}">
 function leaveCancel() {
   document.getElementById('leaveModal').classList.remove('open');
 }
@@ -881,20 +881,20 @@ function leaveConfirm() {
       <h3 id="libModalTitle">🗄️ Biblioteka — wzorce etykiet (A)</h3>
       <label for="libSearchInput" class="sr-only">Szukaj wzorców etykiet</label>
       <input class="lib-search" id="libSearchInput" type="search"
-             placeholder="Szukaj: np. AFB-6090, ABSOFORM…" oninput="libSearch(this.value)" autocomplete="off">
-      <button type="button" class="btn btn-sm btn-ghost" style="white-space:nowrap" onclick="openRefRender()" title="Renderuj 3D z wklejonej listy REF-ów (np. z MARA)">📋 Render z REF</button>
-      <button type="button" class="btn btn-sm btn-ghost" style="white-space:nowrap" onclick="openRenderGroups()" title="Grupy produktowe do renderu 3D">🗂 Grupy 3D</button>
-      <button type="button" onclick="closeLibrary()" aria-label="Zamknij bibliotekę etykiet" style="background:none;border:none;font-size:18px;cursor:pointer;color:#6b7280">✕</button>
+             placeholder="Szukaj: np. AFB-6090, ABSOFORM…" data-on-input="libSearch(this.value)" autocomplete="off">
+      <button type="button" class="btn btn-sm btn-ghost" style="white-space:nowrap" data-on-click="openRefRender()" title="Renderuj 3D z wklejonej listy REF-ów (np. z MARA)">📋 Render z REF</button>
+      <button type="button" class="btn btn-sm btn-ghost" style="white-space:nowrap" data-on-click="openRenderGroups()" title="Grupy produktowe do renderu 3D">🗂 Grupy 3D</button>
+      <button type="button" data-on-click="closeLibrary()" aria-label="Zamknij bibliotekę etykiet" style="background:none;border:none;font-size:18px;cursor:pointer;color:#6b7280">✕</button>
     </div>
     <div class="lib-breadcrumb" id="libBreadcrumb">
-      <span class="lib-crumb" onclick="libNav('')">🏠 Biblioteka</span>
+      <span class="lib-crumb" data-on-click="libNav('')">🏠 Biblioteka</span>
     </div>
     <div class="lib-body" id="libBody">
       <div class="lib-loading">Ładowanie biblioteki…</div>
     </div>
     <div class="lib-foot">
       <span id="libFootInfo">Wybierz plik aby użyć go w porównaniu</span>
-      <button type="button" onclick="closeLibrary()"
+      <button type="button" data-on-click="closeLibrary()"
         style="padding:6px 14px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;cursor:pointer;background:#fff">
         Zamknij
       </button>
@@ -902,7 +902,7 @@ function leaveConfirm() {
   </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 // ── PROFILES SEARCH (inline autocomplete for master slot) ────────────────────
 var _mlibCache = null; // loaded once
 
@@ -972,10 +972,10 @@ async function spMstSearchFn(){
       :'';
     var addBtn=added
       ?'<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:5px;white-space:nowrap">✓ Dodany</span>'
-      :'<button type="button" onclick="event.stopPropagation();spPickProfile('+i+')" style="padding:2px 10px;background:#15803d;color:#fff;border:none;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">+ Dodaj</button>';
-    return '<div data-idx="'+i+'" onclick="spPickProfile('+i+')" '
+      :'<button type="button" data-on-click="event.stopPropagation();spPickProfile('+i+')" style="padding:2px 10px;background:#15803d;color:#fff;border:none;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">+ Dodaj</button>';
+    return '<div data-idx="'+i+'" data-on-click="spPickProfile('+i+')" '
       +'style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:8px;'+(added?'opacity:.6':'') +'" '
-      +'onmouseover="this.style.background=\'#f0fdf4\'" onmouseout="this.style.background=\'\'">'
+      +'data-on-mouseover="setBackground(\'#f0fdf4\')" data-on-mouseout="setBackground(\'\')">'
       +'<div style="flex:1;min-width:0">'
       +'<div style="font-size:12px;font-weight:600;color:#1a1a2e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(p.name)+'</div>'
       +'<div>'+eanTxt+refTxt+'</div>'
@@ -1056,7 +1056,7 @@ async function libNav(path){
 function updateBreadcrumb(path){
   var el = document.getElementById('libBreadcrumb');
   var parts = path ? path.split('/') : [];
-  var html = '<span class="lib-crumb" onclick="libNav(\'\')">🏠 Biblioteka</span>';
+  var html = '<span class="lib-crumb" data-on-click="libNav(\'\')">🏠 Biblioteka</span>';
   var built = '';
   parts.forEach(function(p, i){
     built += (built ? '/' : '') + p;
@@ -1065,7 +1065,7 @@ function updateBreadcrumb(path){
     if(isCurrent){
       html += ' <span style="color:#9ca3af">›</span> <span style="color:#374151;font-weight:600">' + _libEsc(p) + '</span>';
     } else {
-      html += ' <span style="color:#9ca3af">›</span> <span class="lib-crumb" onclick="libNav(' + esc(JSON.stringify(cap)) + ')">' + _libEsc(p) + '</span>';
+      html += ' <span style="color:#9ca3af">›</span> <span class="lib-crumb" data-on-click="libNav(' + esc(JSON.stringify(cap)) + ')">' + _libEsc(p) + '</span>';
     }
   });
   el.innerHTML = html;
@@ -1080,7 +1080,7 @@ function renderLibItems(items){
   document.getElementById('libFootInfo').textContent = items.length + ' element' + (items.length!==1?'ów':'');
   body.innerHTML = items.map(function(it){
     if(it.type === 'folder'){
-      return '<div class="lib-item" onclick="libNav('+esc(JSON.stringify(it.path))+')">'
+      return '<div class="lib-item" data-on-click="libNav('+esc(JSON.stringify(it.path))+')">'
         +'<span class="lib-item-icon">📁</span>'
         +'<span class="lib-item-name">'+_libEsc(it.name)+'</span>'
         +'<span class="lib-item-meta">'+it.count+' plik'+(it.count!==1?'ów':'')+'</span>'
@@ -1097,9 +1097,9 @@ function renderLibItems(items){
         +'<div class="lib-item-name">'+_libEsc(it.name)+mapBadge
         +'<div style="font-size:11px;color:#9ca3af;margin-top:2px">'+mod+(kb?' · '+kb:'')+'</div></div>'
         +'<div class="lib-item-actions">'
-        +'<button type="button" class="lib-use-btn lib-use-a" onclick="useLibFile('+it.id+','+esc(JSON.stringify(it.name))+',\'A\')">📌 Użyj jako wzorzec (A)</button>'
-        +'<button type="button" class="btn btn-sm btn-ghost" onclick="libRender3D('+it.id+','+esc(JSON.stringify(it.name))+')" title="Podgląd 3D">🧊 3D</button>'
-        +'<button type="button" onclick="window.open(\'/api/library/file/'+it.id+'\',\'_blank\')" style="padding:4px 8px;font-size:11px;border:1px solid #e5e7eb;border-radius:5px;cursor:pointer;background:#fff">👁</button>'
+        +'<button type="button" class="lib-use-btn lib-use-a" data-on-click="useLibFile('+it.id+','+esc(JSON.stringify(it.name))+',\'A\')">📌 Użyj jako wzorzec (A)</button>'
+        +'<button type="button" class="btn btn-sm btn-ghost" data-on-click="libRender3D('+it.id+','+esc(JSON.stringify(it.name))+')" title="Podgląd 3D">🧊 3D</button>'
+        +'<button type="button" data-on-click="openWindow(\'/api/library/file/'+it.id+'\',\'_blank\')" style="padding:4px 8px;font-size:11px;border:1px solid #e5e7eb;border-radius:5px;cursor:pointer;background:#fff">👁</button>'
         +'</div></div>';
     }
   }).join('');
@@ -1135,15 +1135,15 @@ async function libRender3D(id, name, dims){
       +(res.current_revision?' · aktualna rewizja':'')
       +(res.dims_mm?(' · '+res.dims_mm.w+'×'+res.dims_mm.h+'×'+res.dims_mm.d+' mm'):'');
     _rgOverlay('<div class="rg-head"><span class="rg-title">🧊 '+_libEsc(res.label||name||('Plik '+id))+'</span>'
-      +'<button type="button" class="btn btn-sm btn-ghost" onclick="_rgClose()">✕</button></div>'
+      +'<button type="button" class="btn btn-sm btn-ghost" data-on-click="_rgClose()">✕</button></div>'
       +'<model-viewer id="libMv" camera-controls exposure="0.9" shadow-intensity="0.6" '
       +'src="'+res.glb_url+'" class="rg-mv"></model-viewer>'
       +'<div class="rg-actions">'
-      +'<button type="button" class="btn btn-sm btn-ghost" onclick="_libTilt(\'pitch\')">⭥ Przechyl (zmień górę)</button>'
-      +'<button type="button" class="btn btn-sm btn-ghost" onclick="_libTilt(\'roll\')">⟳ Obróć bok</button>'
-      +'<button type="button" class="btn btn-sm btn-ghost" onclick="_libReset()">Reset</button>'
+      +'<button type="button" class="btn btn-sm btn-ghost" data-on-click="_libTilt(\'pitch\')">⭥ Przechyl (zmień górę)</button>'
+      +'<button type="button" class="btn btn-sm btn-ghost" data-on-click="_libTilt(\'roll\')">⟳ Obróć bok</button>'
+      +'<button type="button" class="btn btn-sm btn-ghost" data-on-click="_libReset()">Reset</button>'
       +'<span style="flex:1"></span>'
-      +'<button type="button" id="libAcceptBtn" class="btn btn-sm btn-primary" onclick="_libAccept()">✓ Zatwierdź układ</button>'
+      +'<button type="button" id="libAcceptBtn" class="btn btn-sm btn-primary" data-on-click="_libAccept()">✓ Zatwierdź układ</button>'
       +'</div>'
       +'<div class="rg-hint" style="margin-top:8px;margin-bottom:0">'+meta+' — ustaw karton jak stoi naprawdę, potem Zatwierdź (zapamiętamy dla tego REF/typu).</div>'
       +'<div id="libAcceptState" style="font-size:11px;margin-top:4px"></div>', 900);
@@ -1186,12 +1186,12 @@ function _rgFocus(id){ setTimeout(function(){ var el=document.getElementById(id)
 function openRefRender(){
   _rgClose();
   _rgOverlay('<div class="rg-head"><span class="rg-title">📋 Render 3D z listy REF-ów</span>'
-    +'<button type="button" class="btn btn-sm btn-ghost" onclick="_rgClose()">✕</button></div>'
+    +'<button type="button" class="btn btn-sm btn-ghost" data-on-click="_rgClose()">✕</button></div>'
     +'<div class="rg-hint">Wklej REF-y (z MARA/Excela) — jeden na linię albo po przecinku. Render bierze aktualną rewizję każdego (wszystkie warianty opakowania).</div>'
     +'<textarea id="refList" class="input" rows="8" placeholder="np.\n700001\nQZ-1001 2\nQY17050820-SS" style="font-family:ui-monospace,monospace;resize:vertical"></textarea>'
     +'<div id="refProg" class="rg-prog"></div>'
     +'<div id="refUnmatched" class="rg-warn"></div>'
-    +'<button type="button" class="btn btn-primary" onclick="startRefRender()" style="margin-top:12px;width:100%">▶ Renderuj listę</button>', 560);
+    +'<button type="button" class="btn btn-primary" data-on-click="startRefRender()" style="margin-top:12px;width:100%">▶ Renderuj listę</button>', 560);
   _rgFocus('refList');
 }
 
@@ -1240,15 +1240,15 @@ async function openRenderGroups(){
         +'<div class="rg-row-name"><strong>'+_libEsc(g.name)+'</strong>'
         +'<div class="rg-sub">do '+g.count+' plik(ów) w folderach · render bierze aktualne rewizje</div>'
         +'<div id="rgProg'+g.id+'" class="rg-prog" style="margin-top:2px"></div></div>'
-        +'<button type="button" class="btn btn-sm btn-primary" onclick="renderGroup('+g.id+','+esc(JSON.stringify(g.name))+')">▶ Renderuj</button>'
-        +'<button type="button" class="btn btn-sm btn-ghost" title="Push wszystkich renderów grupy do PalViz" onclick="pushGroup('+g.id+')">⇪ Push</button>'
-        +'<button type="button" class="btn btn-sm btn-danger" title="Usuń grupę" onclick="deleteRenderGroup('+g.id+')">🗑</button>'
+        +'<button type="button" class="btn btn-sm btn-primary" data-on-click="renderGroup('+g.id+','+esc(JSON.stringify(g.name))+')">▶ Renderuj</button>'
+        +'<button type="button" class="btn btn-sm btn-ghost" title="Push wszystkich renderów grupy do PalViz" data-on-click="pushGroup('+g.id+')">⇪ Push</button>'
+        +'<button type="button" class="btn btn-sm btn-danger" title="Usuń grupę" data-on-click="deleteRenderGroup('+g.id+')">🗑</button>'
         +'</div>';
     }).join('') || '<div class="rg-empty">Brak grup. Utwórz pierwszą poniżej.</div>';
     box.innerHTML='<div class="rg-head"><span class="rg-title">🗂 Grupy renderowania 3D</span>'
-      +'<button type="button" class="btn btn-sm btn-ghost" onclick="_rgClose()">✕</button></div>'
+      +'<button type="button" class="btn btn-sm btn-ghost" data-on-click="_rgClose()">✕</button></div>'
       +rows
-      +'<button type="button" class="btn btn-ghost" onclick="newRenderGroup()" style="margin-top:14px;width:100%">➕ Nowa grupa</button>';
+      +'<button type="button" class="btn btn-ghost" data-on-click="newRenderGroup()" style="margin-top:14px;width:100%">➕ Nowa grupa</button>';
   }catch(e){ box.innerHTML='<div class="lib-empty">Błąd ładowania grup</div>'; }
 }
 
@@ -1266,11 +1266,11 @@ async function newRenderGroup(){
         +'<span class="rg-sub">'+(f.count||0)+'</span></label>';
     }).join('');
     box.innerHTML='<div class="rg-head"><span class="rg-title">➕ Nowa grupa</span>'
-      +'<button type="button" class="btn btn-sm btn-ghost" title="Wróć do listy grup" onclick="openRenderGroups()">←</button></div>'
+      +'<button type="button" class="btn btn-sm btn-ghost" title="Wróć do listy grup" data-on-click="openRenderGroups()">←</button></div>'
       +'<input id="rgName" type="text" class="input" placeholder="Nazwa grupy, np. Rękawice" style="margin-bottom:10px">'
       +'<div class="rg-hint" style="margin-bottom:4px">Zaznacz foldery (spinają się w jedną grupę):</div>'
       +'<div class="rg-check-wrap">'+checks+'</div>'
-      +'<button type="button" class="btn btn-primary" onclick="saveRenderGroup()" style="margin-top:14px;width:100%">💾 Zapisz grupę</button>';
+      +'<button type="button" class="btn btn-primary" data-on-click="saveRenderGroup()" style="margin-top:14px;width:100%">💾 Zapisz grupę</button>';
     _rgFocus('rgName');
   }catch(e){ box.innerHTML='<div class="lib-empty">Błąd ładowania folderów</div>'; }
 }
@@ -1360,9 +1360,9 @@ function libSearch(q){
           +'<div class="lib-item-name">'+_libEsc(res.filename)+mapBadge
           +'<div style="font-size:11px;color:#9ca3af;margin-top:2px">'+_libEsc(res.breadcrumb)+'</div></div>'
           +'<div class="lib-item-actions">'
-          +'<button type="button" class="lib-use-btn lib-use-a" onclick="useLibFile('+res.id+','+esc(JSON.stringify(res.filename))+',\'A\')">📌 Użyj jako wzorzec (A)</button>'
-          +'<button type="button" class="btn btn-sm btn-ghost" onclick="libRender3D('+res.id+','+esc(JSON.stringify(res.filename))+')" title="Podgląd 3D">🧊 3D</button>'
-          +'<button type="button" onclick="window.open(\'/api/library/file/'+res.id+'\',\'_blank\')" style="padding:4px 8px;font-size:11px;border:1px solid #e5e7eb;border-radius:5px;cursor:pointer;background:#fff">👁</button>'
+          +'<button type="button" class="lib-use-btn lib-use-a" data-on-click="useLibFile('+res.id+','+esc(JSON.stringify(res.filename))+',\'A\')">📌 Użyj jako wzorzec (A)</button>'
+          +'<button type="button" class="btn btn-sm btn-ghost" data-on-click="libRender3D('+res.id+','+esc(JSON.stringify(res.filename))+')" title="Podgląd 3D">🧊 3D</button>'
+          +'<button type="button" data-on-click="openWindow(\'/api/library/file/'+res.id+'\',\'_blank\')" style="padding:4px 8px;font-size:11px;border:1px solid #e5e7eb;border-radius:5px;cursor:pointer;background:#fff">👁</button>'
           +'</div></div>';
       }).join('');
     }catch(e){
@@ -2322,7 +2322,7 @@ function spCropRenderRgns(){
     var lbl=(i+1)+(isStrip?' pasek':' '+pw+'×'+ph+'%');
     return '<span class="sp-crop-rbn" title="Kliknij aby usunąć" '
       +'style="background:'+col+'22;border:1.5px solid '+col+';color:'+col+'" '
-      +'onclick="spCropRemoveRect('+i+')">'
+      +'data-on-click="spCropRemoveRect('+i+')">'
       +'<strong>'+lbl+'</strong> ✕</span>';
   }).join('');
 }
@@ -2398,7 +2398,7 @@ function spShowResults(data){
   // Window name is derived from master filename (spaces → underscores, no extension).
   var winName = (r.master_name||'raport_'+i).replace(/\.[^.]+$/,'').replace(/[^a-zA-Z0-9_ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g,'_');
   var link=r.cache_id
-      ?'<a href="#" onclick="window.open(\'/artwork/report?cache_id='+esc(r.cache_id)+'\',\''+winName+'\');return false" style="color:#4f6ef7;font-size:12px;font-weight:600;white-space:nowrap">Otwórz →</a>'
+      ?'<a href="#" data-on-click="openWindow(\'/artwork/report?cache_id='+esc(r.cache_id)+'\',\''+winName+'\')" style="color:#4f6ef7;font-size:12px;font-weight:600;white-space:nowrap">Otwórz →</a>'
       :(r.error?'<span style="color:#dc2626;font-size:11px" title="'+esc(r.error)+'">Błąd</span>':'—');
     return '<tr>'
       +'<td style="color:#6b7280;font-weight:700">'+(i+1)+'</td>'
@@ -2478,7 +2478,7 @@ function pvRenderList() {
       var conf = field.auto_confidence || 0;
       var confColor = conf >= 80 ? '#22c55e' : conf >= 55 ? '#d97706' : '#dc2626';
 
-      html += '<div class="' + liCls + '" onclick="pvJumpToField(' + pi + ',' + fi + ')" data-pi="'+pi+'" data-fi="'+fi+'">';
+      html += '<div class="' + liCls + '" data-on-click="pvJumpToField(' + pi + ',' + fi + ')" data-pi="'+pi+'" data-fi="'+fi+'">';
 
       // ── Big thumbnail row ──────────────────────────────────────────────
       // Effective rotation: override (current edit) → saved field default → 0.
@@ -2534,9 +2534,9 @@ function pvRenderList() {
         html += '<div class="pv-rot-bar">';
         html += '<span style="font-size:10px;color:#64748b;font-weight:600;margin-right:2px">Obrót:</span>';
         ['0','90','180','270'].forEach(function(deg) {
-          html += '<button type="button" onclick="pvRotateSet('+deg+');event.stopPropagation()" id="pvRotBtn'+deg+'" style="padding:3px 9px;font-size:11px;border-radius:4px;border:1px solid #d1d5db;background:#fff;cursor:pointer">'+deg+'°</button>';
+          html += '<button type="button" data-on-click="pvRotateSet('+deg+');event.stopPropagation()" id="pvRotBtn'+deg+'" style="padding:3px 9px;font-size:11px;border-radius:4px;border:1px solid #d1d5db;background:#fff;cursor:pointer">'+deg+'°</button>';
         });
-        html += '<button type="button" onclick="pvSaveRotationAsDefault();event.stopPropagation()" id="pvSaveRotBtn" style="padding:3px 9px;font-size:11px;border-radius:4px;border:1px solid #2563eb;background:#2563eb;color:#fff;cursor:pointer;margin-left:6px">💾 Zapamiętaj</button>';
+        html += '<button type="button" data-on-click="pvSaveRotationAsDefault();event.stopPropagation()" id="pvSaveRotBtn" style="padding:3px 9px;font-size:11px;border-radius:4px;border:1px solid #2563eb;background:#2563eb;color:#fff;cursor:pointer;margin-left:6px">💾 Zapamiętaj</button>';
         html += '<span id="pvSaveRotMsg" style="font-size:10px;color:#16a34a;display:none;margin-left:4px">✓ Zapisano</span>';
         html += '</div>';
 
@@ -3585,8 +3585,8 @@ function fqBuildRow(f, idx) {
       + '<div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
       + okMark
       + (f.result.changed && !f._verdict
-          ? '<button type="button" onclick="fqSendFeedback(' + idx + ',\'false_positive\')" style="padding:3px 10px;font-size:11px;border:1px solid #6ee7b7;border-radius:5px;background:#f0fdf4;color:#065f46;cursor:pointer">✅ False alarm</button>'
-            + '<button type="button" onclick="fqSendFeedback(' + idx + ',\'confirmed_error\')" style="padding:3px 10px;font-size:11px;border:1px solid #fca5a5;border-radius:5px;background:#fff0f0;color:#991b1b;cursor:pointer">⚠ Błąd potwierdzony</button>'
+          ? '<button type="button" data-on-click="fqSendFeedback(' + idx + ',\'false_positive\')" style="padding:3px 10px;font-size:11px;border:1px solid #6ee7b7;border-radius:5px;background:#f0fdf4;color:#065f46;cursor:pointer">✅ False alarm</button>'
+            + '<button type="button" data-on-click="fqSendFeedback(' + idx + ',\'confirmed_error\')" style="padding:3px 10px;font-size:11px;border:1px solid #fca5a5;border-radius:5px;background:#fff0f0;color:#991b1b;cursor:pointer">⚠ Błąd potwierdzony</button>'
           : '')
       + (f._verdict ? '<span style="font-size:11px;padding:2px 8px;border-radius:8px;background:#e0e7ff;color:#3730a3">🤖 ' + (f._verdict === 'false_positive' ? 'false alarm' : 'błąd potwierdzony') + '</span>' : '')
       + '</div>';
@@ -3667,14 +3667,14 @@ function fqBuildRow(f, idx) {
   }
 
   // ── Action buttons ─────────────────────────────────────────────────────────
-  var rotBtn = '<button type="button" onclick="fqRotateField(' + idx + ')" title="Obróć wycinek o 90°" '
+  var rotBtn = '<button type="button" data-on-click="fqRotateField(' + idx + ')" title="Obróć wycinek o 90°" '
     + 'style="padding:4px 10px;font-size:11px;border:1px solid #bfdbfe;color:#1e40af;border-radius:5px;background:#eff6ff;cursor:pointer">↻ Obrót</button>';
   var actHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">' + rotBtn;
   if (isPendOrRun) {
-    actHtml += '<button type="button" onclick="fqSkipField(' + idx + ')" style="padding:4px 10px;font-size:11px;border:1px solid #d1d5db;border-radius:5px;background:#fff;cursor:pointer">⊘ Pomiń</button>'
-      + '<button type="button" onclick="fqRemoveField(' + idx + ')" style="padding:4px 10px;font-size:11px;border:1px solid #fecaca;color:#dc2626;border-radius:5px;background:#fff;cursor:pointer">✕ Usuń</button>';
+    actHtml += '<button type="button" data-on-click="fqSkipField(' + idx + ')" style="padding:4px 10px;font-size:11px;border:1px solid #d1d5db;border-radius:5px;background:#fff;cursor:pointer">⊘ Pomiń</button>'
+      + '<button type="button" data-on-click="fqRemoveField(' + idx + ')" style="padding:4px 10px;font-size:11px;border:1px solid #fecaca;color:#dc2626;border-radius:5px;background:#fff;cursor:pointer">✕ Usuń</button>';
   } else if (isDoneErr) {
-    actHtml += '<button type="button" onclick="fqRetryField(' + idx + ')" style="padding:4px 10px;font-size:11px;border:1px solid #d1d5db;border-radius:5px;background:#fff;cursor:pointer">↺ Ponów</button>';
+    actHtml += '<button type="button" data-on-click="fqRetryField(' + idx + ')" style="padding:4px 10px;font-size:11px;border:1px solid #d1d5db;border-radius:5px;background:#fff;cursor:pointer">↺ Ponów</button>';
   }
   actHtml += '</div>';
 
@@ -3938,5 +3938,7 @@ document.addEventListener('click', function(e) {
 // Wejście „Biblioteka 3D" (/artwork/library) — auto-otwórz przeglądarkę biblioteki.
 window.addEventListener('DOMContentLoaded', function(){ try{ openLibrary('A'); }catch(e){} });
 {% endif %}
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('_libAccept', '_libReset', '_libTilt', '_rgClose', 'closeLb', 'closeLibrary', 'deleteRenderGroup', 'fqClose', 'fqGenerateReport', 'fqRemoveField', 'fqRetryField', 'fqRotateField', 'fqSendFeedback', 'fqSkipField', 'fqTogglePlay', 'lbDragEnd', 'lbDragMove', 'lbDragStart', 'lbFit', 'lbReset', 'lbZoom', 'leaveCancel', 'leaveConfirm', 'libNav', 'libRender3D', 'libSearch', 'newRenderGroup', 'openRefRender', 'openRenderGroups', 'pushGroup', 'pvAcceptAllAndRun', 'pvAcceptField', 'pvClose', 'pvJumpToField', 'pvMDown', 'pvMMove', 'pvMUp', 'pvPageLoaded', 'pvResizeStart', 'pvRotateSet', 'pvRunCompare', 'pvSaveRotationAsDefault', 'pvSkipField', 'pvStep', 'renderGroup', 'saveRenderGroup', 'spAutoPair', 'spCropAddStrip', 'spCropClose', 'spCropConfirmRegion', 'spCropDone', 'spCropRemoveRect', 'spCropZoomFit', 'spCropZoomStep', 'spLoadFromPaste', 'spMstClear', 'spMstSearchFn', 'spPickProfile', 'spRunWithPreview', 'spSetTab', 'spShowBoard', 'spSupClear', 'spToggleMstSearch', 'startRefRender', 'useLibFile');
 </script>
 {% endblock %}

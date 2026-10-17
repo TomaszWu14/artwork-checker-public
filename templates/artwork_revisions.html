@@ -59,7 +59,7 @@ table.rv th{background:var(--accent-bg,#eff6ff);font-size:11px;font-weight:700}
   </template>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 function revApp(){
   return {
     items:[], loaded:false, msg:'', ok:false,

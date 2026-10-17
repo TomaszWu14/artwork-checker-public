@@ -526,9 +526,11 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
 </style>
 {# US-022: React z przypiętej kopii w repo; w eksporcie HTML (plik offline) skrypty są wbudowane. #}
 {% if inline_assets %}
-<script>{{ inline_assets.react | safe }}</script>
-<script>{{ inline_assets.react_dom | safe }}</script>
+<script nonce="{{ csp_nonce() }}">{{ inline_assets.csp_actions | safe }}</script>
+<script nonce="{{ csp_nonce() }}">{{ inline_assets.react | safe }}</script>
+<script nonce="{{ csp_nonce() }}">{{ inline_assets.react_dom | safe }}</script>
 {% else %}
+<script src="/static/js/csp_actions.js"></script>
 <script src="/static/vendor/react/react.production.min.js"></script>
 <script src="/static/vendor/react/react-dom.production.min.js"></script>
 {% endif %}
@@ -539,13 +541,13 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
 <div id="rpt-lb">
   <div class="rpt-lb-bar">
     <span class="rpt-lb-lbl">Zoom:</span>
-    <button type="button" class="rpt-lb-btn" onclick="lbZoomAll(+0.25)" title="Powiększ oba (scroll też działa)">＋</button>
-    <button type="button" class="rpt-lb-btn" onclick="lbZoomAll(-0.25)">－</button>
-    <button type="button" class="rpt-lb-btn" onclick="lbResetAll()" title="Reset widoku">↩ Reset</button>
+    <button type="button" class="rpt-lb-btn" data-on-click="lbZoomAll(+0.25)" title="Powiększ oba (scroll też działa)">＋</button>
+    <button type="button" class="rpt-lb-btn" data-on-click="lbZoomAll(-0.25)">－</button>
+    <button type="button" class="rpt-lb-btn" data-on-click="lbResetAll()" title="Reset widoku">↩ Reset</button>
     <div class="rpt-lb-sep"></div>
     <span class="rpt-lb-lbl" id="rpt-lb-zoom-lbl">100%</span>
     <div class="rpt-lb-sep"></div>
-    <button type="button" class="rpt-lb-btn" onclick="rptLbClose()" style="background:rgba(200,40,40,.6);">✕ Zamknij</button>
+    <button type="button" class="rpt-lb-btn" data-on-click="rptLbClose()" style="background:rgba(200,40,40,.6);">✕ Zamknij</button>
   </div>
   <div class="rpt-lb-panels">
     <!-- Panel A -->
@@ -553,8 +555,8 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
       <div class="rpt-lb-panel-hdr">
         <span id="rpt-lb-lbl-a">Wzorzec A</span>
         <span class="rpt-lb-rot-btns">
-          <button type="button" class="rpt-lb-btn" onclick="lbRotate('a',-90)" title="Obróć w lewo">↺</button>
-          <button type="button" class="rpt-lb-btn" onclick="lbRotate('a',+90)" title="Obróć w prawo">↻</button>
+          <button type="button" class="rpt-lb-btn" data-on-click="lbRotate('a',-90)" title="Obróć w lewo">↺</button>
+          <button type="button" class="rpt-lb-btn" data-on-click="lbRotate('a',+90)" title="Obróć w prawo">↻</button>
         </span>
       </div>
       <div class="rpt-lb-canvas" id="rpt-lb-canvas-a">
@@ -566,8 +568,8 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
       <div class="rpt-lb-panel-hdr">
         <span id="rpt-lb-lbl-b">Fabryczna B</span>
         <span class="rpt-lb-rot-btns">
-          <button type="button" class="rpt-lb-btn" onclick="lbRotate('b',-90)" title="Obróć w lewo">↺</button>
-          <button type="button" class="rpt-lb-btn" onclick="lbRotate('b',+90)" title="Obróć w prawo">↻</button>
+          <button type="button" class="rpt-lb-btn" data-on-click="lbRotate('b',-90)" title="Obróć w lewo">↺</button>
+          <button type="button" class="rpt-lb-btn" data-on-click="lbRotate('b',+90)" title="Obróć w prawo">↻</button>
         </span>
       </div>
       <div class="rpt-lb-canvas" id="rpt-lb-canvas-b">
@@ -576,7 +578,7 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
     </div>
   </div>
 </div>
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function(){
   var _state = {
     a: {s:1, x:0, y:0, rot:0, drag:false, dx:0, dy:0},
@@ -776,7 +778,7 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
 <div class="toolbar">
   <a href="/artwork" class="btn btn-back">&#8592; Powrót</a>
   {% if not expired %}
-  <button type="button" class="btn btn-print" onclick="window.print()">&#128438; Drukuj / PDF</button>
+  <button type="button" class="btn btn-print" data-on-click="printPage()">&#128438; Drukuj / PDF</button>
   {% if cache_id or comp_id %}
   {% set _export_param = ("cache_id=" ~ cache_id) if cache_id else ("id=" ~ comp_id) %}
   {% if cache_id %}
@@ -794,9 +796,9 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
       <option value="claude-sonnet-4-6" selected>Sonnet 4.6 — domyślny</option>
       <option value="claude-opus-4-7">Opus 4.7 — najdokładniejszy</option>
     </select>
-    <button type="button" class="btn" style="background:#7c3aed;color:#fff" onclick="reanalyzeWithModel()">&#x21BA; Przeanalizuj ponownie</button>
+    <button type="button" class="btn" style="background:#7c3aed;color:#fff" data-on-click="reanalyzeWithModel()">&#x21BA; Przeanalizuj ponownie</button>
   </div>
-  <script>
+  <script nonce="{{ csp_nonce() }}">
   var _rptCacheId = {{ cache_id | tojson }};
   function reanalyzeWithModel(){
     var sel = document.getElementById('reanalyzeModel');
@@ -816,9 +818,9 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
 {% if not expired %}
 <div class="rpt-level-bar" id="rptLevelBar">
   <span style="font-size:12px;font-weight:700;color:#555;margin-right:4px">Poziom raportu:</span>
-  <button type="button" class="rpt-level-btn active" id="lvlSzczeg" onclick="rptSetLevel('szczegolowy')">Szczegółowy</button>
-  <button type="button" class="rpt-level-btn" id="lvlOgolny" onclick="rptSetLevel('ogolny')">Ogólny</button>
-  <button type="button" class="rpt-level-btn" id="lvlUproszcz" onclick="rptSetLevel('uproszczony')">Uproszczony (tylko błędy)</button>
+  <button type="button" class="rpt-level-btn active" id="lvlSzczeg" data-on-click="rptSetLevel('szczegolowy')">Szczegółowy</button>
+  <button type="button" class="rpt-level-btn" id="lvlOgolny" data-on-click="rptSetLevel('ogolny')">Ogólny</button>
+  <button type="button" class="rpt-level-btn" id="lvlUproszcz" data-on-click="rptSetLevel('uproszczony')">Uproszczony (tylko błędy)</button>
   <span id="rptLevelInfo" style="margin-left:10px;font-size:12px;color:#888"></span>
 </div>
 {% endif %}
@@ -974,8 +976,8 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
     <div class="section-header" style="display:flex;justify-content:space-between;align-items:center">
       <span>Porownanie wizualne — split-screen</span>
       <div style="display:flex;gap:6px">
-        <button type="button" class="vs-global-btn" onclick="vsSetAllMode('clean')" style="font-size:12px;padding:3px 10px;border-radius:4px;border:1px solid #aaa;background:#f9fafb;cursor:pointer">Wszystkie: Czysty</button>
-        <button type="button" class="vs-global-btn" onclick="vsSetAllMode('overlay')" style="font-size:12px;padding:3px 10px;border-radius:4px;border:1px solid #aaa;background:#f9fafb;cursor:pointer">Wszystkie: Overlay</button>
+        <button type="button" class="vs-global-btn" data-on-click="vsSetAllMode('clean')" style="font-size:12px;padding:3px 10px;border-radius:4px;border:1px solid #aaa;background:#f9fafb;cursor:pointer">Wszystkie: Czysty</button>
+        <button type="button" class="vs-global-btn" data-on-click="vsSetAllMode('overlay')" style="font-size:12px;padding:3px 10px;border-radius:4px;border:1px solid #aaa;background:#f9fafb;cursor:pointer">Wszystkie: Overlay</button>
       </div>
     </div>
     <p style="color:#6b7280;font-size:0.82em;margin:8px 0 14px">
@@ -1049,20 +1051,20 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
             <span class="vs-col-title">&#9312; Master (wzorzec A)</span>
             {% if pd.img_a_annot_b64 and pd.img_a_annot_b64 != pd.img_a_b64 %}
             <div class="vs-toggle" id="toggleA-{{ loop.index }}">
-              <button type="button" onclick="vsToggle('A','clean',{{ loop.index }})">Czysty</button>
-              <button type="button" class="active" onclick="vsToggle('A','overlay',{{ loop.index }})">Overlay</button>
+              <button type="button" data-on-click="vsToggle('A','clean',{{ loop.index }})">Czysty</button>
+              <button type="button" class="active" data-on-click="vsToggle('A','overlay',{{ loop.index }})">Overlay</button>
             </div>
             {% endif %}
           </div>
           <div class="vs-scroll" id="scrollA-{{ loop.index }}"
-               onscroll="vsSyncScroll({{ loop.index }},'A',this)">
+               data-on-scroll="vsSyncScroll({{ loop.index }},'A',this)">
             <div class="vs-img-wrap" id="wrapA-{{ loop.index }}">
               <img id="imgA-{{ loop.index }}"
                    src="data:image/jpeg;base64,{{ pd.img_a_annot_b64 or pd.img_a_b64 }}"
                    data-clean="data:image/jpeg;base64,{{ pd.img_a_b64 }}"
                    data-overlay="data:image/jpeg;base64,{{ pd.img_a_annot_b64 or pd.img_a_b64 }}"
                    alt="Master A — strona {{ pd.page_num }}"
-                   onclick="rptLbOpen(this.src)" style="cursor:zoom-in" />
+                   data-on-click="rptLbOpen(this.src)" style="cursor:zoom-in" />
               {% for reg in pd.diff_regions %}
               {% set sev = reg.severity %}
               <div class="vs-region vs-region-{{ sev }}"
@@ -1086,20 +1088,20 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
             <span class="vs-col-title">&#9313; Dostawca (fabryczna B)</span>
             {% if pd.img_b_annot_b64 and pd.img_b_annot_b64 != pd.img_b_b64 %}
             <div class="vs-toggle" id="toggleB-{{ loop.index }}">
-              <button type="button" onclick="vsToggle('B','clean',{{ loop.index }})">Czysty</button>
-              <button type="button" class="active" onclick="vsToggle('B','overlay',{{ loop.index }})">Overlay</button>
+              <button type="button" data-on-click="vsToggle('B','clean',{{ loop.index }})">Czysty</button>
+              <button type="button" class="active" data-on-click="vsToggle('B','overlay',{{ loop.index }})">Overlay</button>
             </div>
             {% endif %}
           </div>
           <div class="vs-scroll" id="scrollB-{{ loop.index }}"
-               onscroll="vsSyncScroll({{ loop.index }},'B',this)">
+               data-on-scroll="vsSyncScroll({{ loop.index }},'B',this)">
             <div class="vs-img-wrap" id="wrapB-{{ loop.index }}">
               <img id="imgB-{{ loop.index }}"
                    src="data:image/jpeg;base64,{{ pd.img_b_annot_b64 or pd.img_b_b64 }}"
                    data-clean="data:image/jpeg;base64,{{ pd.img_b_b64 }}"
                    data-overlay="data:image/jpeg;base64,{{ pd.img_b_annot_b64 or pd.img_b_b64 }}"
                    alt="Dostawca B — strona {{ pd.page_num }}"
-                   onclick="rptLbOpen(this.src)" style="cursor:zoom-in" />
+                   data-on-click="rptLbOpen(this.src)" style="cursor:zoom-in" />
               {% for reg in pd.diff_regions %}
               {% set sev = reg.severity %}
               <div class="vs-region vs-region-{{ sev }}"
@@ -1122,7 +1124,7 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
     {% endif %}
     {% endfor %}
 
-    <script>
+    <script nonce="{{ csp_nonce() }}">
     (function(){
       var _syncing = {};
 
@@ -1281,7 +1283,7 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
 
   {% if report.profile_active and report.profile_fields %}
   <!-- ── React-based profile fields (new design) ── -->
-  <script>
+  <script nonce="{{ csp_nonce() }}">
   window.REPORT_META = {
     jobId: {{ (report.analysis_date or '') | tojson }},
     productName: {{ (report.product_code or report.profile_name or '') | tojson }},
@@ -1322,7 +1324,7 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
   <div id="pfroot" style="margin:16px 0"></div>
   {# US-022: JSX skompilowany przy budowie (frontend/src/artwork_report_pf.jsx → npm run build) — bez Babel w przeglądarce. #}
   {% if inline_assets %}
-  <script>document.addEventListener('DOMContentLoaded',function(){ {{ inline_assets.report_pf | safe }} });</script>
+  <script nonce="{{ csp_nonce() }}">document.addEventListener('DOMContentLoaded',function(){ {{ inline_assets.report_pf | safe }} });</script>
   {% else %}
   <script defer src="/static/js/artwork_report_pf.js"></script>
   {% endif %}
@@ -1361,7 +1363,7 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
       <div style="flex:1;min-width:200px">
         <div style="font-size:12px;font-weight:700;color:#1a5276;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Wzorzec A — EAN</div>
         {% for ean in report.barcode_summary.eans_a[:3] %}
-        <div onclick="bcShow('{{ ean }}', 'Wzorzec A — EAN')" title="Kliknij, aby powiększyć kod" style="cursor:zoom-in;font-family:monospace;font-size:17px;font-weight:700;letter-spacing:2px;padding:6px 12px;background:#f0fdf4;border:1.5px solid #22c55e;border-radius:6px;display:inline-block;margin-bottom:4px">{{ ean }} 🔍</div>
+        <div data-on-click="bcShow('{{ ean }}', 'Wzorzec A — EAN')" title="Kliknij, aby powiększyć kod" style="cursor:zoom-in;font-family:monospace;font-size:17px;font-weight:700;letter-spacing:2px;padding:6px 12px;background:#f0fdf4;border:1.5px solid #22c55e;border-radius:6px;display:inline-block;margin-bottom:4px">{{ ean }} 🔍</div>
         {% else %}
         <div style="color:#9ca3af;font-size:14px">Nie wykryto EAN</div>
         {% endfor %}
@@ -1373,7 +1375,7 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
         <div style="font-size:12px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Fabryczna B — EAN</div>
         {% for ean in report.barcode_summary.eans_b[:3] %}
         {% set ean_match = ean in report.barcode_summary.eans_a %}
-        <div onclick="bcShow('{{ ean }}', 'Fabryczna B — EAN')" title="Kliknij, aby powiększyć kod" style="cursor:zoom-in;font-family:monospace;font-size:17px;font-weight:700;letter-spacing:2px;padding:6px 12px;background:{% if ean_match %}#f0fdf4{% else %}#fef2f2{% endif %};border:1.5px solid {% if ean_match %}#22c55e{% else %}#ef4444{% endif %};border-radius:6px;display:inline-block;margin-bottom:4px">{{ ean }} {% if ean_match %}✓{% else %}✗{% endif %} 🔍</div>
+        <div data-on-click="bcShow('{{ ean }}', 'Fabryczna B — EAN')" title="Kliknij, aby powiększyć kod" style="cursor:zoom-in;font-family:monospace;font-size:17px;font-weight:700;letter-spacing:2px;padding:6px 12px;background:{% if ean_match %}#f0fdf4{% else %}#fef2f2{% endif %};border:1.5px solid {% if ean_match %}#22c55e{% else %}#ef4444{% endif %};border-radius:6px;display:inline-block;margin-bottom:4px">{{ ean }} {% if ean_match %}✓{% else %}✗{% endif %} 🔍</div>
         {% else %}
         <div style="color:#9ca3af;font-size:14px">Nie wykryto EAN</div>
         {% endfor %}
@@ -1608,19 +1610,19 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
     {% set n_miss   = report.icon_comparison | selectattr('status','in',['Brak w A','Brak w B']) | list | length %}
 
     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:16px;">
-      <button type="button" onclick="icFilter('all')"       id="icf-all"    class="ic-filter-btn ic-filter-active">Wszystkie ({{ report.icon_comparison|length }})</button>
-      <button type="button" onclick="icFilter('OK')"        id="icf-OK"     class="ic-filter-btn ic-filter-ok">&#10003; Zgodne ({{ n_ok }})</button>
+      <button type="button" data-on-click="icFilter('all')"       id="icf-all"    class="ic-filter-btn ic-filter-active">Wszystkie ({{ report.icon_comparison|length }})</button>
+      <button type="button" data-on-click="icFilter('OK')"        id="icf-OK"     class="ic-filter-btn ic-filter-ok">&#10003; Zgodne ({{ n_ok }})</button>
       {% if n_diff > 0 %}
-      <button type="button" onclick="icFilter('Roznica')"   id="icf-Roznica" class="ic-filter-btn ic-filter-warn">&#9888; Roznice ({{ n_diff }})</button>
+      <button type="button" data-on-click="icFilter('Roznica')"   id="icf-Roznica" class="ic-filter-btn ic-filter-warn">&#9888; Roznice ({{ n_diff }})</button>
       {% endif %}
       {% if n_err > 0 %}
-      <button type="button" onclick="icFilter('Blad')"      id="icf-Blad"   class="ic-filter-btn ic-filter-err">&#10007; Bledy ({{ n_err }})</button>
+      <button type="button" data-on-click="icFilter('Blad')"      id="icf-Blad"   class="ic-filter-btn ic-filter-err">&#10007; Bledy ({{ n_err }})</button>
       {% endif %}
       {% if n_layout > 0 %}
-      <button type="button" onclick="icFilter('Inny układ')" id="icf-Inny układ" class="ic-filter-btn ic-filter-layout">&#8646; Inny uklad ({{ n_layout }})</button>
+      <button type="button" data-on-click="icFilter('Inny układ')" id="icf-Inny układ" class="ic-filter-btn ic-filter-layout">&#8646; Inny uklad ({{ n_layout }})</button>
       {% endif %}
       {% if n_miss > 0 %}
-      <button type="button" onclick="icFilter('brak')"      id="icf-brak"   class="ic-filter-btn ic-filter-miss">? Brakujace ({{ n_miss }})</button>
+      <button type="button" data-on-click="icFilter('brak')"      id="icf-brak"   class="ic-filter-btn ic-filter-miss">? Brakujace ({{ n_miss }})</button>
       {% endif %}
     </div>
 
@@ -1650,7 +1652,7 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
         <!-- Para miniatur + przycisk "otwórz porównanie" -->
         {% set _srcA = 'data:image/jpeg;base64,' + (ic.crop_a_hires_annot or ic.crop_a_hires or ic.crop_a_b64) if ic.crop_a_b64 else '' %}
         {% set _srcB = 'data:image/jpeg;base64,' + (ic.crop_b_hires_annot or ic.crop_b_hires or ic.crop_b_b64) if ic.crop_b_b64 else '' %}
-        <button type="button" onclick="rptLbOpenPair('{{ _srcA }}','{{ _srcB }}',{{ ('Wzorzec A — ' ~ ic.label|default(''))|tojson }},{{ ('Fabryczna B — ' ~ ic.label|default(''))|tojson }})"
+        <button type="button" data-on-click="rptLbOpenPair('{{ _srcA }}','{{ _srcB }}',{{ ('Wzorzec A — ' ~ ic.label|default(''))|tojson|forceescape }},{{ ('Fabryczna B — ' ~ ic.label|default(''))|tojson|forceescape }})"
                 title="Otwórz porównanie A↔B"
                 aria-label="Otwórz porównanie A↔B dla {{ ic.label|default('pola') }}"
                 style="position:absolute; top:5px; right:5px;
@@ -1666,7 +1668,7 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
                  class="ic-img"
                  alt="Wzorzec A — miniatura pola {{ ic.label|default('') }}"
                  title="Kliknij aby otworzyć porównanie A↔B{% if ic.crop_a_hires_annot %} (z zaznaczonymi różnicami){% endif %}"
-                 onclick="rptLbOpenPair('{{ _srcA }}','{{ _srcB }}','Wzorzec A','Fabryczna B')"
+                 data-on-click="rptLbOpenPair('{{ _srcA }}','{{ _srcB }}','Wzorzec A','Fabryczna B')"
                  style="max-width:88px; max-height:88px; image-rendering:high-quality;
                         cursor:zoom-in; border-radius:4px;
                         border: {% if ic.crop_a_hires_annot %}2px solid #dc2626{% else %}1px solid #d1d5db{% endif %};
@@ -1690,7 +1692,7 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
                  class="ic-img"
                  alt="Dostawca B — miniatura pola {{ ic.label|default('') }}"
                  title="Kliknij aby otworzyć porównanie A↔B{% if ic.crop_b_hires_annot %} (z zaznaczonymi różnicami){% endif %}"
-                 onclick="rptLbOpenPair('{{ _srcA }}','{{ _srcB }}','Wzorzec A','Fabryczna B')"
+                 data-on-click="rptLbOpenPair('{{ _srcA }}','{{ _srcB }}','Wzorzec A','Fabryczna B')"
                  style="max-width:88px; max-height:88px; image-rendering:high-quality;
                         cursor:zoom-in; border-radius:4px;
                         border: {% if ic.crop_b_hires_annot %}2px solid #dc2626{% else %}1px solid #d1d5db{% endif %};
@@ -1751,7 +1753,7 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
   .ic-filter-layout  { border-color: #7c3aed; color: #6d28d9; }
   .ic-filter-miss    { border-color: #d97706; color: #b45309; }
   </style>
-  <script>
+  <script nonce="{{ csp_nonce() }}">
   (function(){
     window.icFilter = function(val){
       var cards = document.querySelectorAll('#icGrid .ic-card');
@@ -1865,13 +1867,13 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
     <div class="section-header" style="background:#1a5276;color:#fff;font-size:14px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
       <span>Tabela porównawcza elementów</span>
       <div style="display:flex;gap:8px;align-items:center">
-        <select id="filterStatus" onchange="filterCompTable()" style="font-size:12px;padding:3px 8px;border-radius:4px;border:none;background:#fff;color:#1a5276;cursor:pointer">
+        <select id="filterStatus" data-on-change="filterCompTable()" style="font-size:12px;padding:3px 8px;border-radius:4px;border:none;background:#fff;color:#1a5276;cursor:pointer">
           <option value="all">Pokaż wszystkie</option>
           <option value="diff">Tylko różnice ⚠</option>
           <option value="ok">Tylko zgodne ✓</option>
           <option value="brak">Tylko brak —</option>
         </select>
-        <select id="sortOrder" onchange="sortCompTable()" style="font-size:12px;padding:3px 8px;border-radius:4px;border:none;background:#fff;color:#1a5276;cursor:pointer">
+        <select id="sortOrder" data-on-change="sortCompTable()" style="font-size:12px;padding:3px 8px;border-radius:4px;border:none;background:#fff;color:#1a5276;cursor:pointer">
           <option value="default">Sortuj: domyślnie</option>
           <option value="diff_first">Różnice na górze</option>
           <option value="ok_first">Zgodne na górze</option>
@@ -1921,7 +1923,7 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
     {% endfor %}
     <div id="noRowsMsg" style="display:none;text-align:center;padding:18px;color:#888;font-size:14px">Brak wierszy pasujących do filtru.</div>
   </div>
-  <script>
+  <script nonce="{{ csp_nonce() }}">
   function filterCompTable(){
     var val=document.getElementById('filterStatus').value;
     var any=false;
@@ -2095,7 +2097,7 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
 
 </div><!-- /page -->
 {% endif %}{# end expired/else #}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // ─── REPORT LEVEL SWITCHER ────────────────────────────────────────────────────
 (function(){
   var _level = 'szczegolowy';
@@ -2151,7 +2153,7 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
   };
 })();
 </script>
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function(){
   function charDiff(a, b){
     if(a.length > 400 || b.length > 400) return null;
@@ -2198,13 +2200,13 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
 </script>
 
 <!-- ══ Barcode magnifier (suggestion 8) — click a decoded EAN to enlarge it ══ -->
-<div id="bcMag" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(8,11,18,.9);align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)bcHide()">
+<div id="bcMag" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(8,11,18,.9);align-items:center;justify-content:center;padding:20px" data-on-click="onSelf('bcHide',event)">
   <div style="background:#fff;border-radius:12px;max-width:560px;width:100%;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,.5)">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
       <span id="bcMagSide" style="font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#1a5276"></span>
       <span style="flex:1"></span>
-      <button type="button" id="bcCopyBtn" onclick="bcCopy()" style="padding:5px 12px;border:1px solid #cbd5e1;border-radius:6px;background:#f8fafc;cursor:pointer;font-size:12px">&#10697; Kopiuj</button>
-      <button type="button" onclick="bcHide()" style="padding:5px 12px;border:none;border-radius:6px;background:#dc2626;color:#fff;cursor:pointer;font-size:12px;font-weight:600">&#10007; Zamknij</button>
+      <button type="button" id="bcCopyBtn" data-on-click="bcCopy()" style="padding:5px 12px;border:1px solid #cbd5e1;border-radius:6px;background:#f8fafc;cursor:pointer;font-size:12px">&#10697; Kopiuj</button>
+      <button type="button" data-on-click="bcHide()" style="padding:5px 12px;border:none;border-radius:6px;background:#dc2626;color:#fff;cursor:pointer;font-size:12px;font-weight:600">&#10007; Zamknij</button>
     </div>
     <div style="text-align:center">
       <canvas id="bcCanvas" style="max-width:100%;image-rendering:pixelated;background:#fff"></canvas>
@@ -2213,7 +2215,7 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
     </div>
   </div>
 </div>
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function(){
   // EAN-13 module encoding (L/G/R sets + first-digit parity pattern).
   var L=['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'];
@@ -2263,7 +2265,7 @@ tr.field-row-changed:hover td { background: #ffe69c !important; }
   document.addEventListener('keydown', function(e){ if(e.key==='Escape') bcHide(); });
 })();
 </script>
-<script>
+<script nonce="{{ csp_nonce() }}">
 // UX-10: gdy React/Babel z CDN nie załadują się (offline/CSP), sekcja pól (#pfroot)
 // zostawała pusta bez sygnału. Pokaż widoczny komunikat zamiast cichej pustki.
 window.addEventListener('load', function(){
@@ -2276,6 +2278,8 @@ window.addEventListener('load', function(){
     }
   }, 1500);
 });
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('bcCopy', 'bcHide', 'bcShow', 'filterCompTable', 'icFilter', 'lbResetAll', 'lbRotate', 'lbZoomAll', 'reanalyzeWithModel', 'rptLbClose', 'rptLbOpen', 'rptLbOpenPair', 'rptSetLevel', 'sortCompTable', 'vsSetAllMode', 'vsSyncScroll', 'vsToggle');
 </script>
 </body>
 </html>

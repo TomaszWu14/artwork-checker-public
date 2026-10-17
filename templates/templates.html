@@ -53,12 +53,12 @@
       <p>Szablony umożliwiają szybkie uruchamianie porównań z zachowaną konfiguracją</p>
     </div>
     <div style="display:flex;gap:8px">
-      <button type="button" class="btn btn-ghost" onclick="exportTemplates()">⬇ Eksportuj JSON</button>
+      <button type="button" class="btn btn-ghost" data-on-click="exportTemplates()">⬇ Eksportuj JSON</button>
       <label class="btn btn-ghost" style="cursor:pointer">
         ⬆ Importuj JSON
-        <input type="file" accept=".json" style="display:none" onchange="importTemplates(this)">
+        <input type="file" accept=".json" style="display:none" data-on-change="importTemplates(this)">
       </label>
-      <button type="button" class="btn btn-primary" onclick="openModal()">+ Nowy szablon</button>
+      <button type="button" class="btn btn-primary" data-on-click="openModal()">+ Nowy szablon</button>
     </div>
   </div>
 
@@ -95,8 +95,8 @@
         </td>
         <td style="font-weight:600">{{ t.use_count }}</td>
         <td>
-          <button type="button" class="btn-edit" onclick="editTemplate({{ t | tojson | e }})">Edytuj</button>
-          <button type="button" class="btn-danger" onclick="deleteTemplate({{ t.id }}, {{ t.name|tojson }})">Usuń</button>
+          <button type="button" class="btn-edit" data-on-click="editTemplate({{ t |tojson|forceescape }})">Edytuj</button>
+          <button type="button" class="btn-danger" data-on-click="deleteTemplate({{ t.id }}, {{ t.name|tojson|forceescape }})">Usuń</button>
         </td>
       </tr>
       {% endfor %}
@@ -173,13 +173,13 @@
     <label class="cb-row"><input type="checkbox" id="fPublic"> Publiczny (widoczny dla wszystkich użytkowników)</label>
 
     <div class="modal-footer">
-      <button type="button" class="btn btn-ghost" onclick="closeModal()">Anuluj</button>
-      <button type="button" class="btn btn-primary" onclick="saveTemplate()">Zapisz</button>
+      <button type="button" class="btn btn-ghost" data-on-click="closeModal()">Anuluj</button>
+      <button type="button" class="btn btn-primary" data-on-click="saveTemplate()">Zapisz</button>
     </div>
   </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 function openModal(tpl){
   const m=document.getElementById('modal');
   document.getElementById('modalTitle').textContent=tpl?'Edytuj szablon':'Nowy szablon';
@@ -260,5 +260,7 @@ async function importTemplates(input){
   }catch(e){toast('Błąd: '+e.message,'error')}
   input.value='';
 }
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('closeModal', 'deleteTemplate', 'editTemplate', 'exportTemplates', 'importTemplates', 'openModal', 'saveTemplate');
 </script>
 {% endblock %}

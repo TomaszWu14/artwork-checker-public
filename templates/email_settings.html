@@ -85,7 +85,7 @@
   </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 function emailSettings(){
   return {
     cfg: { smtp_host:'', smtp_port:'587', smtp_user:'', smtp_pass:'', smtp_from:'' },

@@ -146,7 +146,7 @@
   </a>
 
 </div>
-<script>
+<script nonce="{{ csp_nonce() }}">
   // Opis jest przycięty do 2 linii — pełna treść w dymku (title) po najechaniu.
   document.querySelectorAll('.hub-card-desc').forEach(function(el){
     if(!el.getAttribute('title')) el.setAttribute('title', el.textContent.trim());

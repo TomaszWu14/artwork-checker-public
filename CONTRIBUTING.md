@@ -78,6 +78,14 @@ Frontend (US-022): po zmianie `frontend/src/*.jsx`, klas Tailwind w szablonach l
 `npm ci && npm run build` i zacommituj zmiany w `static/` — job CI `frontend` odrzuca rozjazd źródła i buildu.
 Nie dodawaj skryptów ani stylów z CDN (CSP ich nie dopuszcza) — nowe biblioteki przez `package.json` + `tools/build_frontend.mjs`.
 
+CSP (US-023): przeglądarka blokuje skrypty inline bez nonce i atrybuty `on*=`.
+- Każdy `<script>` bez `src` ma `nonce="{{ csp_nonce() }}"`.
+- Zamiast `onclick="fn(…)"` pisz `data-on-click="fn(…)"`, także w HTML budowanym w JS. Funkcję zgłoś w skrypcie
+  strony: `CspActions.allow('fn')`. Argumenty: literały, `this`, `event`, `this.value`/`checked`/`dataset.X`.
+  Bez `if`, przypisań i wyrażeń — logikę przenieś do nazwanej funkcji (`static/js/csp_actions.js` ma gotowe
+  `clickById`, `onKeys`, `onSelf`, `togglePassword`…).
+- `|tojson` w atrybucie `"…"` zawsze z `|forceescape`. Pilnuje tego `tests/test_us023_csp_strict.py`.
+
 Instalacja środowiska testowego: `pip install -r dev-requirements.txt flask werkzeug "rapidfuzz>=3.0,<4.0"`.
 
 ## Zasady ogólne

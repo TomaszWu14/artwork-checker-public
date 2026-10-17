@@ -100,9 +100,9 @@ input:checked + .slider:before{transform:translateX(16px)}
 </div>
 
 <div class="toolbar">
-  <button type="button" class="btn btn-primary" onclick="openAdd()">＋ Dodaj typ</button>
+  <button type="button" class="btn btn-primary" data-on-click="openAdd()">＋ Dodaj typ</button>
   <label for="searchInput" class="sr-only">Szukaj typów dokumentów</label>
-  <input class="search" type="search" id="searchInput" placeholder="Szukaj…" oninput="filterRows()" autocomplete="off">
+  <input class="search" type="search" id="searchInput" placeholder="Szukaj…" data-on-input="filterRows()" autocomplete="off">
   <span class="count-note" id="countNote"></span>
 </div>
 
@@ -112,8 +112,8 @@ input:checked + .slider:before{transform:translateX(16px)}
     <tr>
       <th scope="col" style="width:30px"></th>
       <th scope="col" style="width:36px"></th>
-      <th scope="col" class="sortable" onclick="sortBy('code')">KOD ↕</th>
-      <th scope="col" class="sortable" onclick="sortBy('label')">NAZWA ↕</th>
+      <th scope="col" class="sortable" data-on-click="sortBy('code')">KOD ↕</th>
+      <th scope="col" class="sortable" data-on-click="sortBy('label')">NAZWA ↕</th>
       <th scope="col">OPIS</th>
       <th scope="col" style="width:90px">AKTYWNY</th>
       <th scope="col" style="width:80px">KOLEJNOŚĆ</th>
@@ -130,15 +130,15 @@ input:checked + .slider:before{transform:translateX(16px)}
         data-builtin="{{ 1 if t.code in ['auto','PO','PI','CI','PL','SAD','BL','WZ','FV','MULTI','CMR','SWIFT'] else 0 }}"
         class="{{ '' if t.active else 'inactive' }}"
         draggable="true"
-        ondragstart="onDragStart(event)"
-        ondragover="onDragOver(event)"
-        ondrop="onDrop(event)"
-        ondragend="onDragEnd(event)">
+        data-on-dragstart="onDragStart(event)"
+        data-on-dragover="onDragOver(event)"
+        data-on-drop="onDrop(event)"
+        data-on-dragend="onDragEnd(event)">
       <td><span class="drag-handle" title="Przeciągnij aby zmienić kolejność">⠿</span></td>
       <td>
         <input class="editable icon-input" value="{{ t.icon }}"
-          onblur="saveField({{ t.id }},'icon',this.value)"
-          onkeydown="if(event.key==='Enter')this.blur()"
+          data-on-blur="saveField({{ t.id }},'icon',this.value)"
+          data-on-keydown="onKeys(['Enter'],'blurSelf',event)"
           title="Kliknij aby edytować emoji">
       </td>
       <td>
@@ -149,28 +149,28 @@ input:checked + .slider:before{transform:translateX(16px)}
       </td>
       <td>
         <input class="editable" value="{{ t.label }}"
-          onblur="saveField({{ t.id }},'label',this.value)"
-          onkeydown="if(event.key==='Enter')this.blur()"
+          data-on-blur="saveField({{ t.id }},'label',this.value)"
+          data-on-keydown="onKeys(['Enter'],'blurSelf',event)"
           title="Kliknij aby edytować">
       </td>
       <td>
         <input class="editable" value="{{ t.description or '' }}"
-          onblur="saveField({{ t.id }},'description',this.value)"
-          onkeydown="if(event.key==='Enter')this.blur()"
+          data-on-blur="saveField({{ t.id }},'description',this.value)"
+          data-on-keydown="onKeys(['Enter'],'blurSelf',event)"
           style="color:var(--muted)"
           title="Kliknij aby edytować opis">
       </td>
       <td>
         <label class="toggle">
           <input type="checkbox" {{ 'checked' if t.active else '' }}
-            onchange="toggleActive({{ t.id }}, this.checked)">
+            data-on-change="toggleActive({{ t.id }}, this.checked)">
           <span class="slider"></span>
         </label>
       </td>
       <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">{{ t.sort_order }}</td>
       <td>
         {% if t.code not in ['auto','PO','PI','CI','PL','SAD','BL','WZ','FV','MULTI','CMR','SWIFT'] %}
-        <button type="button" class="act-btn del" onclick="deleteType({{ t.id }},{{ t.label|tojson }})" title="Usuń">🗑</button>
+        <button type="button" class="act-btn del" data-on-click="deleteType({{ t.id }},{{ t.label|tojson|forceescape }})" title="Usuń">🗑</button>
         {% endif %}
       </td>
     </tr>
@@ -183,7 +183,7 @@ input:checked + .slider:before{transform:translateX(16px)}
 {% endif %}
 
 <!-- ADD MODAL -->
-<div class="ov" id="addOv" onclick="closeIfBg(event,'addOv')" role="dialog" aria-modal="true" aria-labelledby="addDocTypeTitle">
+<div class="ov" id="addOv" data-on-click="closeIfBg(event,'addOv')" role="dialog" aria-modal="true" aria-labelledby="addDocTypeTitle">
   <div class="modal">
     <h3 id="addDocTypeTitle">Dodaj typ dokumentu</h3>
     <div class="form-row">
@@ -192,7 +192,7 @@ input:checked + .slider:before{transform:translateX(16px)}
     </div>
     <div class="form-row">
       <label for="newCode">KOD * <span style="font-size:10px;color:var(--muted)">(max 12 znaków, wielkie litery)</span></label>
-      <input id="newCode" placeholder="np. PROFORMA" oninput="this.value=this.value.toUpperCase()" aria-required="true">
+      <input id="newCode" placeholder="np. PROFORMA" data-on-input="upperCaseValue()" aria-required="true">
       <div class="form-hint">Unikalny identyfikator — nie można zmienić po dodaniu</div>
     </div>
     <div class="form-row">
@@ -204,14 +204,14 @@ input:checked + .slider:before{transform:translateX(16px)}
       <textarea id="newDesc" placeholder="Opcjonalny opis dla operatora…"></textarea>
     </div>
     <div class="modal-btns">
-      <button type="button" class="btn-cancel" onclick="closeModal('addOv')">Anuluj</button>
-      <button type="button" class="btn-save" onclick="addType()">Dodaj</button>
+      <button type="button" class="btn-cancel" data-on-click="closeModal('addOv')">Anuluj</button>
+      <button type="button" class="btn-save" data-on-click="addType()">Dodaj</button>
     </div>
   </div>
 </div>
 
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 const BUILTIN = new Set(['auto','PO','PI','CI','PL','SAD','BL','WZ','FV','MULTI','CMR','SWIFT']);
 
 // ── Filter ────────────────────────────────────────────
@@ -370,5 +370,7 @@ function closeIfBg(e,id){ if(e.target.id===id) closeModal(id) }
 
 // Init
 filterRows();
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('addType', 'closeIfBg', 'closeModal', 'deleteType', 'filterRows', 'onDragEnd', 'onDragOver', 'onDragStart', 'onDrop', 'openAdd', 'saveField', 'sortBy', 'toggleActive');
 </script>
 {% endblock %}

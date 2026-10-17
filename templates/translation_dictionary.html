@@ -62,8 +62,8 @@
 
   <!-- Tabs -->
   <div class="td-tabs">
-    <div class="td-tab active" id="tabDictBtn"  onclick="switchTab('dict')">📖 Słownik tłumaczeń</div>
-    <div class="td-tab"        id="tabSadBtn"   onclick="switchTab('sad')">🛃 Mapowanie SAD</div>
+    <div class="td-tab active" id="tabDictBtn"  data-on-click="switchTab('dict')">📖 Słownik tłumaczeń</div>
+    <div class="td-tab"        id="tabSadBtn"   data-on-click="switchTab('sad')">🛃 Mapowanie SAD</div>
   </div>
 
   <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -123,7 +123,7 @@
           <input type="text" id="fNotes" placeholder="opcjonalne">
         </div>
         <div style="display:flex;align-items:flex-end">
-          <button type="button" class="btn btn-sm primary" onclick="addEntry()">Dodaj</button>
+          <button type="button" class="btn btn-sm primary" data-on-click="addEntry()">Dodaj</button>
         </div>
       </div>
     </div>
@@ -131,8 +131,8 @@
     <!-- Toolbar -->
     <div class="td-toolbar">
       <label for="dictSearch" class="sr-only">Szukaj w słowniku</label>
-      <input class="td-search" type="search" id="dictSearch" placeholder="Szukaj terminu, tłumaczenia…" oninput="renderDict()" autocomplete="off">
-      <select class="btn btn-ghost btn-sm" id="dictFilterCtx" onchange="renderDict()">
+      <input class="td-search" type="search" id="dictSearch" placeholder="Szukaj terminu, tłumaczenia…" data-on-input="renderDict()" autocomplete="off">
+      <select class="btn btn-ghost btn-sm" id="dictFilterCtx" data-on-change="renderDict()">
         <option value="">Wszystkie konteksty</option>
         <option value="all">Wszystkie dokumenty</option>
         <option value="PO">PO</option>
@@ -143,16 +143,16 @@
         <option value="BL">BL</option>
         <option value="CMR">CMR</option>
       </select>
-      <select class="btn btn-ghost btn-sm" id="dictFilterLang" onchange="renderDict()">
+      <select class="btn btn-ghost btn-sm" id="dictFilterLang" data-on-change="renderDict()">
         <option value="">Wszystkie języki</option>
         <option value="en">EN → PL</option>
         <option value="zh">ZH → PL</option>
         <option value="de">DE → PL</option>
         <option value="pl">PL → EN</option>
       </select>
-      <button type="button" class="btn btn-ghost btn-sm" onclick="importCSV()">⬆ Import CSV</button>
-      <button type="button" class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ Eksport CSV</button>
-      <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="handleCSVImport(event)">
+      <button type="button" class="btn btn-ghost btn-sm" data-on-click="importCSV()">⬆ Import CSV</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-on-click="exportCSV()">⬇ Eksport CSV</button>
+      <input type="file" id="csvFileInput" accept=".csv" style="display:none" data-on-change="handleCSVImport(event)">
       <span style="margin-left:auto;font-size:12px;color:var(--muted)" id="dictCount"></span>
     </div>
 
@@ -189,8 +189,8 @@
 
     <div class="td-toolbar">
       <label for="sadSearch" class="sr-only">Szukaj pól SAD</label>
-      <input class="td-search" type="search" id="sadSearch" placeholder="Szukaj pola SAD, nazwy, opisu…" oninput="renderSad()" autocomplete="off">
-      <select class="btn btn-ghost btn-sm" id="sadFilterDoctype" onchange="renderSad()">
+      <input class="td-search" type="search" id="sadSearch" placeholder="Szukaj pola SAD, nazwy, opisu…" data-on-input="renderSad()" autocomplete="off">
+      <select class="btn btn-ghost btn-sm" id="sadFilterDoctype" data-on-change="renderSad()">
         <option value="">Wszystkie dokumenty</option>
         <option value="CI">CI</option>
         <option value="PO">PO</option>
@@ -229,11 +229,16 @@
 
 </div><!-- /max-width -->
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 var _role = {{ role | tojson }};
 var _dictData = [];
 var _sadData  = [];
 var _dictPage = 1;
+var _dictPages = 1;
+function dictGoPage(delta){
+  _dictPage = Math.max(1, Math.min(_dictPages, _dictPage + delta));
+  renderDict();
+}
 var _PAGE_SIZE = 50;
 // Map id→entry for confirm-dialog lookups (avoids HTML entity corruption in onclick)
 var _dictById = {};
@@ -288,6 +293,7 @@ function renderDict(){
   var total = filtered.length;
   var pages = Math.max(1, Math.ceil(total / _PAGE_SIZE));
   if(_dictPage > pages) _dictPage = pages;
+  _dictPages = pages;
   var start = (_dictPage-1)*_PAGE_SIZE;
   var slice = filtered.slice(start, start+_PAGE_SIZE);
 
@@ -300,7 +306,7 @@ function renderDict(){
     slice.forEach(function(r){
       var isManager = ['admin','superuser','manager'].includes(_role);
       var delBtn = isManager
-        ? '<button type="button" class="btn btn-sm danger" onclick="deleteEntry('+r.id+')">Usuń</button>'
+        ? '<button type="button" class="btn btn-sm danger" data-on-click="deleteEntry('+r.id+')">Usuń</button>'
         : '';
       html += '<tr>'
         + '<td style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.term_original)+'">'+esc(r.term_original)+'</td>'
@@ -319,9 +325,9 @@ function renderDict(){
   // Pager
   var pg = '';
   if(pages > 1){
-    pg += '<button type="button" onclick="_dictPage=Math.max(1,_dictPage-1);renderDict()" '+((_dictPage<=1)?'disabled':'')+'>‹</button>';
+    pg += '<button type="button" data-on-click="dictGoPage(-1)" '+((_dictPage<=1)?'disabled':'')+'>‹</button>';
     pg += '<span>Strona '+_dictPage+' / '+pages+'</span>';
-    pg += '<button type="button" onclick="_dictPage=Math.min('+pages+',_dictPage+1);renderDict()" '+((_dictPage>=pages)?'disabled':'')+'>›</button>';
+    pg += '<button type="button" data-on-click="dictGoPage(1)" '+((_dictPage>=pages)?'disabled':'')+'>›</button>';
     pg += '<span style="margin-left:8px">'+total+' wpisów</span>';
   }
   document.getElementById('dictPager').innerHTML = pg;
@@ -470,12 +476,12 @@ function renderSad(){
       var dtypes = ['','CI','PO','PI','PL','SAD','BL','CMR'];
       var dtOpts = dtypes.map(function(d){return '<option value="'+d+'"'+(r.mapped_to_doctype===d?' selected':'')+'>'+d+'</option>';}).join('');
       var fieldInput = isManager
-        ? '<input type="text" value="'+esc(r.mapped_to_field||'')+'" onchange="sadUpdateField('+r.id+',\'mapped_to_field\',this.value)" style="width:90px">'
+        ? '<input type="text" value="'+esc(r.mapped_to_field||'')+'" data-on-change="sadUpdateField('+r.id+',\'mapped_to_field\',this.value)" style="width:90px">'
         : esc(r.mapped_to_field||'—');
       var doctypeInput = isManager
-        ? '<select onchange="sadUpdateField('+r.id+',\'mapped_to_doctype\',this.value)">'+dtOpts+'</select>'
+        ? '<select data-on-change="sadUpdateField('+r.id+',\'mapped_to_doctype\',this.value)">'+dtOpts+'</select>'
         : esc(r.mapped_to_doctype||'—');
-      var actionCol = isManager ? '<td><button type="button" class="btn btn-ghost btn-sm" onclick="sadSaveRow('+r.id+')" title="Zapisz">💾</button></td>' : '';
+      var actionCol = isManager ? '<td><button type="button" class="btn btn-ghost btn-sm" data-on-click="sadSaveRow('+r.id+')" title="Zapisz">💾</button></td>' : '';
 
       html += '<tr id="sad-row-'+r.id+'">'
         + '<td style="font-weight:700;font-family:var(--mono);color:var(--accent)">'+esc(r.sad_field_code)+'</td>'
@@ -525,5 +531,7 @@ document.addEventListener('keydown', function(e){
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 loadDict();
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('addEntry', 'deleteEntry', 'dictGoPage', 'exportCSV', 'handleCSVImport', 'importCSV', 'renderDict', 'renderSad', 'sadSaveRow', 'sadUpdateField', 'switchTab');
 </script>
 {% endblock %}

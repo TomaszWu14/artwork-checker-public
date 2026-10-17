@@ -149,7 +149,7 @@ table.mm thead tr.mm-filter th{top:22px;background:#fbfdff;padding:2px 3px;text-
   </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 function materialsApp(){
   const _roleAdmin = {{ ('true' if role in ['manager','superuser','admin'] else 'false') }};
   // Kolumny DOKŁADNIE w kolejności pliku migracyjnego (per poziom: Wymiar, EAN,

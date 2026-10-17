@@ -94,7 +94,7 @@
   <p x-show="err" x-text="err" style="color:var(--error);font-size:13px;margin-top:14px"></p>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 function manageApp(){
   return {
     kpi:{total:0,with_ref:0,unbound:0,distinct_refs:0,obsolete:0,duplicates:0,gaps:0,ignored:0,last_scan:''},

@@ -112,7 +112,7 @@
         <div class="modal-hdr-meta" id="modalMeta"></div>
       </div>
       <div class="modal-hdr-risk" id="modalRiskBadge"></div>
-      <button type="button" class="modal-close" onclick="closeModal()" aria-label="Zamknij raport">✕ Zamknij</button>
+      <button type="button" class="modal-close" data-on-click="closeModal()" aria-label="Zamknij raport">✕ Zamknij</button>
     </div>
     <div class="modal-body" id="modalBody">
       <div class="loading-spinner"><div class="spinner"></div>Ładowanie raportu…</div>
@@ -139,8 +139,8 @@
 
   <div class="filters">
     <label for="filterText">Filtruj:</label>
-    <input type="search" id="filterText" placeholder="Szukaj pliku lub użytkownika..." oninput="filterRows()" style="width:220px" autocomplete="off">
-    <select id="filterStatus" onchange="filterRows()">
+    <input type="search" id="filterText" placeholder="Szukaj pliku lub użytkownika..." data-on-input="filterRows()" style="width:220px" autocomplete="off">
+    <select id="filterStatus" data-on-change="filterRows()">
       <option value="">Wszystkie statusy</option>
       <option value="ok">OK</option>
       <option value="warning">Ostrzeżenie</option>
@@ -148,17 +148,17 @@
       <option value="critical">Krytyczny</option>
     </select>
     {% if can_see_all %}
-    <select id="filterUser" onchange="filterRows()">
+    <select id="filterUser" data-on-change="filterRows()">
       <option value="">Wszyscy użytkownicy</option>
       {% for u in all_users %}<option value="{{ u }}">{{ u }}</option>{% endfor %}
     </select>
     {% endif %}
-    <select id="filterVis" onchange="filterRows()">
+    <select id="filterVis" data-on-change="filterRows()">
       <option value="">Widoczność: wszystkie</option>
       <option value="public">Publiczne</option>
       <option value="private">Prywatne</option>
     </select>
-    <button type="button" onclick="clearFilters()" style="padding:6px 12px;background:#e5e7eb;border:none;border-radius:5px;cursor:pointer;font-size:12px">Wyczyść</button>
+    <button type="button" data-on-click="clearFilters()" style="padding:6px 12px;background:#e5e7eb;border:none;border-radius:5px;cursor:pointer;font-size:12px">Wyczyść</button>
   </div>
 
   {% if rows %}
@@ -197,7 +197,7 @@
           {% if is_own or can_see_all %}
           <button type="button" class="btn btn-sm btn-vis"
                   id="vis-btn-{{ r.db_id }}"
-                  onclick="toggleVisibility({{ r.db_id }}, this)"
+                  data-on-click="toggleVisibility({{ r.db_id }}, this)"
                   title="Przełącz widoczność">
             {{ '🌐 Publiczny' if is_pub else '🔒 Prywatny' }}
           </button>
@@ -206,9 +206,9 @@
           {% endif %}
         </td>
         <td style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          <button type="button" class="btn btn-sm btn-report" onclick="openReport({{ r.db_id }}, this)">🔍 Otwórz</button>
+          <button type="button" class="btn btn-sm btn-report" data-on-click="openReport({{ r.db_id }}, this)">🔍 Otwórz</button>
           {% if is_own or can_see_all %}
-          <button type="button" class="btn btn-sm btn-del" onclick="deleteReport({{ r.db_id }}, this)" title="Usuń raport" aria-label="Usuń raport">🗑</button>
+          <button type="button" class="btn btn-sm btn-del" data-on-click="deleteReport({{ r.db_id }}, this)" title="Usuń raport" aria-label="Usuń raport">🗑</button>
           {% endif %}
         </td>
       </tr>
@@ -225,7 +225,7 @@
   {% endif %}
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 function filterRows(){
   var txt=(document.getElementById('filterText').value||'').toLowerCase();
   var sta=(document.getElementById('filterStatus').value||'').toLowerCase();
@@ -449,5 +449,7 @@ async function deleteReport(id, btn){
     tip.style.left = x + 'px'; tip.style.top = (y + window.scrollY) + 'px';
   }
 })();
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('clearFilters', 'closeModal', 'deleteReport', 'filterRows', 'openReport', 'toggleVisibility');
 </script>
 {% endblock %}

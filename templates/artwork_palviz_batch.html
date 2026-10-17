@@ -45,7 +45,7 @@
 <div id="combined" style="margin-top:16px"></div>
 <div class="bt-grid" id="grid"></div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function(){
   function esc(s){ /* US-008: jedno kanoniczne escapowanie HTML (& < > " ') */ return (s==null||s===false)?'':String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
   const rows=document.getElementById('rows');

@@ -79,7 +79,7 @@ omijała ochrony.
   pokazuje różnice wykryte deterministycznie, a sekcja AI jest oznaczona „doradcza".
 - Test z fixture „złośliwy PDF" bez wywołania sieci (mock). Ryzyko: R-02 (SEC-004).
 
-### US-008 · Should · ⚠️ (etap 1 ✅ #28; etap 2a ✅ #33 (US-022); dalej US-024, US-023 — decyzja PO, ADR-0004) · CSP bez `unsafe-eval`, nonce dla skryptów inline
+### US-008 · Should · ⚠️ (etap 1 ✅ #28; etap 2a ✅ #33 (US-022); etapy 3–4 ✅ #42 (US-023); zostaje US-024 — odłożone, ADR-0004) · CSP bez `unsafe-eval`, nonce dla skryptów inline
 - Given odpowiedź HTML, When sprawdzam nagłówek, Then `script-src` nie zawiera `unsafe-eval`; `unsafe-inline`
   zastąpione `nonce-…` (lub hash) — Alpine w wariancie CSP.
 - Given 199 użyć `innerHTML`, When przegląd, Then każde użycie z danymi użytkownika przechodzi przez jeden
@@ -116,7 +116,13 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
 ### US-021 · Could · ✅ (#38; obraz z locka zbudowany i przetestowany na `main`; `transformers` 5 poza zakresem — limit <5, decyzja PO) · Lockfile z hashami dla pełnego obrazu ML (`requirements.txt`, torch CPU z osobnego indeksu) i użycie go w `Dockerfile`/`Dockerfile.base`
 ### US-022 · Should · ✅ (#33) · CSP etap 2a: raport bez Babel w przeglądarce, Tailwind zbudowany, biblioteki z `static/vendor` — CSP bez CDN (ADR-0004)
 ### US-024 · Should · ⏸ (odłożone — decyzja PO 2026-10-16) · CSP etap 2b: Alpine w wersji CSP (`Alpine.data` w ~18 szablonach) — zdjęcie `unsafe-eval` (ADR-0004)
-### US-023 · Should (do decyzji PO) · 📋 · CSP etap 3–4: handlery `on*=` → `addEventListener`, nonce na skryptach, egzekwowanie ścisłej CSP (ADR-0004)
+### US-023 · Should (decyzja PO 2026-10-17) · ✅ (#42) · CSP etap 3–4: handlery `on*=` → delegacja `data-on-*`, nonce na skryptach, egzekwowanie ścisłej CSP (ADR-0004)
+- Given dowolny szablon, When przegląd, Then brak atrybutów `on*=`; akcje w `data-on-*` wywołują tylko funkcje
+  z `CspActions.allow` (lub wbudowane) i są zgodne z gramatyką dyspozytora (bez `eval`).
+- Given odpowiedź HTML, When sprawdzam nagłówek, Then egzekwowane `script-src` nie zawiera `'unsafe-inline'`,
+  ma nonce zmieniany przy każdej odpowiedzi, a każdy `<script>` inline ma ten nonce.
+- Given strona aplikacji w przeglądarce z egzekwowaną polityką, When ją otwieram, Then 0 naruszeń CSP.
+  `'unsafe-eval'` zostaje do US-024 (Alpine). Ryzyko: R-05 (SEC-005).
 ### US-020 · Could · 📋 · Jednorazowe `ruff format` 108 plików i `ruff format --check` jako bramka (decyzja PO — duży diff)
 
 ## Won't (na teraz)

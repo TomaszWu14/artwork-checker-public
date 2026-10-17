@@ -17,7 +17,7 @@
       </p>
     </div>
     <div class="flex gap-2">
-      <button type="button" onclick="compareZones()"
+      <button type="button" data-on-click="compareZones()"
               class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm
                      hover:bg-blue-700 disabled:opacity-40" id="btn-compare" disabled>
         ▶ Porównaj zaznaczone strefy
@@ -59,17 +59,17 @@
             <option value="graphic">Tylko grafika (pixel diff)</option>
           </select>
         </div>
-        <button type="button" onclick="startDraw('a')" id="btn-draw-a"
+        <button type="button" data-on-click="startDraw('a')" id="btn-draw-a"
                 class="px-3 py-1.5 text-sm rounded border-2 border-blue-400 text-blue-700
                        hover:bg-blue-50 font-medium">
           📐 Zaznacz na A
         </button>
-        <button type="button" onclick="startDraw('b')" id="btn-draw-b"
+        <button type="button" data-on-click="startDraw('b')" id="btn-draw-b"
                 class="px-3 py-1.5 text-sm rounded border-2 border-green-400 text-green-700
                        hover:bg-green-50 font-medium" disabled>
           📐 Zaznacz na B
         </button>
-        <button type="button" onclick="addZone()" id="btn-add"
+        <button type="button" data-on-click="addZone()" id="btn-add"
                 class="px-3 py-1.5 text-sm rounded bg-gray-800 text-white
                        hover:bg-gray-700 font-medium" disabled>
           + Dodaj strefę
@@ -135,11 +135,11 @@
             {% for t in templates %}
             <div class="flex items-center justify-between text-sm py-1 border-b last:border-0"
                  data-tpl-id="{{ t.id }}">
-              <button type="button" onclick="loadTemplate({{ t | tojson | e }})"
+              <button type="button" data-on-click="loadTemplate({{ t |tojson|forceescape }})"
                       class="text-left text-blue-600 hover:underline flex-1 truncate">
                 {{ t.name }} ({{ t.zones | length }} stref)
               </button>
-              <button type="button" onclick="deleteTemplate({{ t.id|tojson }})"
+              <button type="button" data-on-click="deleteTemplate({{ t.id|tojson|forceescape }})"
                       class="text-red-400 hover:text-red-600 ml-2 text-xs">✕</button>
             </div>
             {% endfor %}
@@ -162,7 +162,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // ── Dane inicjalne ─────────────────────────────────────────────────────────────
 const CACHE_ID  = {{ cache_id | tojson }};
 const IMG_A_B64 = {{ img_a_b64 | tojson }};
@@ -367,8 +367,8 @@ function renderZoneList() {
             style="background:${COLORS[i % COLORS.length]}"></span>
       <span class="flex-1 truncate font-medium">${i+1}. ${escHtml(z.name)}</span>
       <span class="text-xs text-gray-400">${escHtml(z.type)}</span>
-      <button type="button" onclick="editZoneName(${i})" class="text-gray-400 hover:text-blue-500 text-xs" aria-label="Edytuj nazwę strefy">✎</button>
-      <button type="button" onclick="removeZone(${i})" class="text-gray-400 hover:text-red-500 text-xs" aria-label="Usuń strefę">✕</button>
+      <button type="button" data-on-click="editZoneName(${i})" class="text-gray-400 hover:text-blue-500 text-xs" aria-label="Edytuj nazwę strefy">✎</button>
+      <button type="button" data-on-click="removeZone(${i})" class="text-gray-400 hover:text-red-500 text-xs" aria-label="Usuń strefę">✕</button>
     </div>
   `).join("");
 }
@@ -531,6 +531,8 @@ document.getElementById('zone-name').addEventListener('keydown', function(e) {
 // ── Init ───────────────────────────────────────────────────────────────────────
 loadImages();
 renderZoneList();
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('addZone', 'compareZones', 'deleteTemplate', 'editZoneName', 'loadTemplate', 'removeZone', 'startDraw');
 </script>
 
 <!-- Rename zone modal -->

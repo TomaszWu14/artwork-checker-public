@@ -79,7 +79,7 @@ table.aa th{background:var(--accent-bg,#eff6ff);font-size:11px;font-weight:700}
   </template>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 function aliasApp(){
   return {
     ref:'', pattern:'', items:[], msg:'', ok:false, cands:[], opis:'',

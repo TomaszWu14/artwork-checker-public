@@ -88,7 +88,7 @@ table.gp th{background:var(--accent-bg,#eff6ff);font-size:11px;font-weight:700}
   </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 function gapsApp(){
   return {
     tab:'gaps', gaps:[], dups:[], gq:'', loading:false, loadedG:false, loadedD:false,
