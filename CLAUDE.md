@@ -45,7 +45,7 @@ python migrate_db.py
 # Run the test suite (fast — pure-logic tests, no heavy ML deps needed)
 python -m pytest tests/ -q
 
-# Lint / format (advisory only — NOT a deploy gate)
+# Lint / format (both blocking in CI; ruff version pinned in dev-requirements.txt)
 ruff check .
 ruff format .
 ```
@@ -86,8 +86,9 @@ GitHub Actions workflows in `.github/workflows/`:
   When adding code, keep `python -m compileall` clean and tests passing.
 
 Linting (ruff, configured in `pyproject.toml` + `.pre-commit-config.yaml`) is intentionally lenient
-(`select = ["F", "E9", "W6"]`, `E501`/line-length ignored) and is **not** wired to the deploy gate —
-it's an advisory developer aid on the large legacy `app.py`.
+(`select = ["F", "E9", "W6"]`, `E501`/line-length ignored). Both `ruff check .` and `ruff format --check .`
+are **blocking** CI gates (US-002, US-020): run `ruff format .` before committing, with the ruff version pinned
+in `dev-requirements.txt` (also pinned in `ci.yml` and pre-commit — bump all three together).
 
 ## Environment Setup
 

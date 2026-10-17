@@ -1,6 +1,6 @@
-# Konfiguracja narzędzi deweloperskich (lint/format). NIE jest podłączona do
-# bramki deployu (auto-merge) — pełni rolę pomocniczą dla deweloperów, by nie
-# blokować wdrożeń na istniejącym, dużym kodzie legacy. Uruchom lokalnie:
+# Konfiguracja narzędzi deweloperskich (lint/format). Obie bramki blokują w CI:
+# ruff check (od US-002) i ruff format --check (od US-020). Wersja ruff jest przypięta
+# w dev-requirements.txt, ci.yml i .pre-commit-config.yaml — zmieniaj ją wszędzie naraz. Lokalnie:
 #   pip install -r dev-requirements.txt
 #   ruff check .        # tylko realne błędy (F) + wybrane E/W
 #   ruff format .       # formatowanie

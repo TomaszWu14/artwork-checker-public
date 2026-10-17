@@ -26,6 +26,11 @@ Wersja aplikacji: `constants.APP_VERSION`.
   Semgrep (doradczo), pip-audit (blokujący), gitleaks (blokujący), Trivy fs/config (doradczo); artefakty raportów.
 - `.gitleaks.toml` z udokumentowaną allowlistą danych testowych; pre-commit z gitleaks i hookami porządkowymi.
 
+### Changed
+- US-020: całe repozytorium sformatowane `ruff format` (124 pliki, bez zmian w logice — AST identyczne);
+  `ruff format --check` blokuje w CI. Ruff przypięty na 0.17.1 w `dev-requirements.txt`, CI i pre-commit;
+  commit formatujący dodany do `.git-blame-ignore-revs`.
+
 ### Removed
 - US-010 (Z-03, decyzja PO 2026-10-17): relikty DocCompare — checklisty dostaw (strona zwracała 500, brak tabeli),
   typy dokumentów, szablony porównań, słowniki Incoterms / krajów tranzytu / tłumaczeń (blueprinty), scorecard,

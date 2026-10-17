@@ -135,7 +135,10 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
   ma nonce zmieniany przy każdej odpowiedzi, a każdy `<script>` inline ma ten nonce.
 - Given strona aplikacji w przeglądarce z egzekwowaną polityką, When ją otwieram, Then 0 naruszeń CSP.
   `'unsafe-eval'` zostało do US-024 (Alpine). Ryzyko: R-05 (SEC-005).
-### US-020 · Could · 📋 · Jednorazowe `ruff format` 108 plików i `ruff format --check` jako bramka (decyzja PO — duży diff)
+### US-020 · Could · ✅ (decyzja PO 2026-10-17) · Jednorazowe `ruff format` (124 pliki) i `ruff format --check` jako bramka
+- Given repozytorium, When `ruff format --check .` (ruff 0.17.1), Then 0 plików do zmiany; CI blokuje PR z niesformatowanym kodem.
+- Given formatowanie, When porównuję AST przed/po, Then identyczne (poza białymi znakami w 3 docstringach); testy bez zmian.
+- Wersja ruff przypięta w `dev-requirements.txt`, `ci.yml`, `.pre-commit-config.yaml`; commit formatujący w `.git-blame-ignore-revs`.
 
 ## Won't (na teraz)
 - Przepisanie na FastAPI/Django, ORM — patrz ADR-0001.
