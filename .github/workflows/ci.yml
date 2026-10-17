@@ -36,7 +36,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Instalacja ruff
-        run: pip install "ruff>=0.6,<1.0"
+        run: pip install "ruff==0.17.1"   # US-020: ta sama wersja co dev-requirements.txt i pre-commit
       - name: ruff check (reguły F, E9, W6 z pyproject.toml) — BLOKUJE od US-002
         run: ruff check . --output-format github
       - name: ruff format --check (doradczy — jednorazowe formatowanie 108 plików to osobna decyzja PO, US-020)
