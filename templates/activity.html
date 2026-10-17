@@ -159,7 +159,7 @@
 <div style="margin-bottom:6px;font-size:12px;font-weight:700;color:var(--muted)">NAJCZĘSTSZE ZDARZENIA — kliknij aby filtrować</div>
 <div class="top-events">
   {% for ev in top_events %}
-  <button type="button" class="top-ev-chip" onclick="filterByEvent({{ ev.event|tojson }})">
+  <button type="button" class="top-ev-chip" data-on-click="filterByEvent({{ ev.event|tojson|forceescape }})">
     {{ ev.event }}
     <span class="cnt">{{ ev.cnt }}</span>
   </button>
@@ -170,20 +170,20 @@
 <!-- TOOLBAR -->
 <div class="toolbar">
   <label for="searchBox" class="sr-only">Szukaj aktywności</label>
-  <input type="search" id="searchBox" placeholder="Szukaj zdarzenia, użytkownika, szczegółu…" oninput="filterRows()" autocomplete="off">
-  <select id="userFilter" onchange="filterRows()">
+  <input type="search" id="searchBox" placeholder="Szukaj zdarzenia, użytkownika, szczegółu…" data-on-input="filterRows()" autocomplete="off">
+  <select id="userFilter" data-on-change="filterRows()">
     <option value="">Wszyscy użytkownicy</option>
     {% for u in users_list %}
     <option value="{{ u }}">{{ u }}</option>
     {% endfor %}
   </select>
-  <select id="eventFilter" onchange="filterRows()">
+  <select id="eventFilter" data-on-change="filterRows()">
     <option value="">Wszystkie zdarzenia</option>
     {% for ev in event_types %}
     <option value="{{ ev }}">{{ ev }}</option>
     {% endfor %}
   </select>
-  <button type="button" onclick="clearFilters()" class="export-btn">✕ Wyczyść</button>
+  <button type="button" data-on-click="clearFilters()" class="export-btn">✕ Wyczyść</button>
 </div>
 
 <!-- TABLE -->
@@ -227,7 +227,7 @@
 </div>
 {% if recent | length > 50 %}
 <div id="actLoadMoreWrap" style="margin-top:12px;text-align:center">
-  <button type="button" id="actLoadMoreBtn" onclick="actLoadMore()"
+  <button type="button" id="actLoadMoreBtn" data-on-click="actLoadMore()"
     style="padding:8px 20px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--accent);font-size:13px;font-weight:600;cursor:pointer">
     Załaduj więcej ({{ recent|length - 50 }} ukrytych)
   </button>
@@ -235,7 +235,7 @@
 {% endif %}
 <div id="rowCount" style="margin-top:10px;font-size:12px;color:var(--muted)">Wyświetlono: {{ [recent|length, 50]|min }} z {{ recent|length }} wierszy</div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 function getEventClass(event) {
   const e = event.toLowerCase();
   if (e.includes('login')) return 'login';
@@ -288,5 +288,7 @@ function clearFilters() {
   document.getElementById('eventFilter').value = '';
   filterRows();
 }
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('actLoadMore', 'clearFilters', 'filterByEvent', 'filterRows');
 </script>
 {% endblock %}

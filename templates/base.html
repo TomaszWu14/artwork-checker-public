@@ -17,10 +17,12 @@
 {# US-022: Tailwind zbudowany z repo (npm run build), bez Play CDN — przed app.css, które go nadpisuje. #}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+{# US-023: obsługa atrybutów data-on-* (zamiast on*=) — przed innymi skryptami. #}
+<script src="{{ url_for('static', filename='js/csp_actions.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/lucide/lucide.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/shell.js') }}"></script>
 {% block extra_head %}{% endblock %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 function getCsrf(){return document.querySelector('meta[name="csrf-token"]')?.content||'';}
 (function(){
   const _orig = window.fetch;
@@ -305,7 +307,7 @@ window.apiFetch = async function(url, opts){
       </div>
 
       {# Notifications bell #}
-      <button type="button" class="btn-icon btn-subtle relative" onclick="toggleNotifPanel()" aria-label="Powiadomienia" id="notifBellBtn">
+      <button type="button" class="btn-icon btn-subtle relative" data-on-click="toggleNotifPanel()" aria-label="Powiadomienia" id="notifBellBtn">
         <i data-lucide="bell" style="width:18px;height:18px;" aria-hidden="true"></i>
         <span class="notif-dot-badge absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white hidden" id="notifDot"></span>
       </button>
@@ -328,7 +330,7 @@ window.apiFetch = async function(url, opts){
          cache_id — użytkownik wracał na /artwork bez żadnego wyjaśnienia). #}
       {% with _flashes = get_flashed_messages(with_categories=true) %}
         {% if _flashes %}
-        <script>
+        <script nonce="{{ csp_nonce() }}">
           window.addEventListener('DOMContentLoaded', function(){
             {% for _cat, _msg in _flashes %}
             toast({{ _msg|tojson }}, {{ ('error' if _cat in ('error','danger') else ('ok' if _cat == 'success' else 'info'))|tojson }}, 6000);
@@ -353,7 +355,7 @@ window.apiFetch = async function(url, opts){
 <div id="notifPanel" class="hidden fixed bottom-5 right-5 w-[360px] max-h-[480px] bg-white border border-slate-200 rounded-2xl shadow-2xl z-[500] flex flex-col overflow-hidden" style="box-shadow:var(--shadow-pop);" role="dialog" aria-modal="false" aria-label="Powiadomienia">
   <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100 text-[13px] font-bold text-slate-800">
     <span>🔔 Powiadomienia</span>
-    <button type="button" onclick="markAllRead()" class="text-[12px] text-blue-600 font-semibold hover:text-blue-700" aria-label="Oznacz wszystkie jako przeczytane">Oznacz jako przeczytane</button>
+    <button type="button" data-on-click="markAllRead()" class="text-[12px] text-blue-600 font-semibold hover:text-blue-700" aria-label="Oznacz wszystkie jako przeczytane">Oznacz jako przeczytane</button>
   </div>
   <div class="overflow-y-auto flex-1 scroll-thin" id="notifList">
     <div class="p-10 text-center text-[13px] text-slate-400">Ładowanie…</div>
@@ -366,13 +368,13 @@ window.apiFetch = async function(url, opts){
     <h3 id="confirmTitle" style="font-size:15px;font-weight:700;margin-bottom:8px;color:#0f172a;"></h3>
     <p id="confirmMsg" style="font-size:13px;color:#64748b;line-height:1.5;margin-bottom:20px;"></p>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button type="button" onclick="confirmCancel()" style="padding:7px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid #d4dae6;background:#fff;color:#64748b;">Anuluj</button>
-      <button type="button" id="confirmOkBtn" onclick="confirmDo()" style="padding:7px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:#dc2626;color:#fff;">OK</button>
+      <button type="button" data-on-click="confirmCancel()" style="padding:7px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid #d4dae6;background:#fff;color:#64748b;">Anuluj</button>
+      <button type="button" id="confirmOkBtn" data-on-click="confirmDo()" style="padding:7px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:#dc2626;color:#fff;">OK</button>
     </div>
   </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 // ── TOAST ─────────────────────────────────────────────────────────────────────
 var _TOAST_ICONS = {ok:'✓', error:'✕', warn:'⚠', info:'ℹ'};
 var _TOAST_COLORS = {ok:'#f0fdf4,#86efac,#15803d', error:'#fef2f2,#fca5a5,#b91c1c', warn:'#fffbeb,#fcd34d,#92400e', info:'#eff6ff,#93c5fd,#1d4ed8'};
@@ -384,7 +386,7 @@ function toast(msg, type, dur){
   var safeMsg = String(msg||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   el.innerHTML = '<span style="font-size:15px;flex-shrink:0">'+_TOAST_ICONS[type]+'</span>'
     + '<span style="flex:1">'+safeMsg+'</span>'
-    + '<span role="button" aria-label="Zamknij powiadomienie" tabindex="0" style="font-size:16px;opacity:.5;cursor:pointer" onclick="dismissToast(this.parentElement)" onkeydown="if(event.key===\'Enter\'||event.key===\' \')dismissToast(this.parentElement)">×</span>';
+    + '<span role="button" aria-label="Zamknij powiadomienie" tabindex="0" style="font-size:16px;opacity:.5;cursor:pointer" data-on-click="dismissToast(this.parentElement)" data-on-keydown="onKeys([\'Enter\',\' \'],\'dismissToast\',this.parentElement,event)">×</span>';
   el.onclick = function(){ dismissToast(el); };
   var c2 = document.getElementById('toastContainer');
   c2.style.pointerEvents = 'all';
@@ -473,7 +475,7 @@ function renderNotifList(items){
   if(!items||!items.length){el.innerHTML='<div class="p-10 text-center text-[13px] text-slate-400">Brak nowych powiadomień 🎉</div>';return;}
   el.innerHTML=items.map(n=>`
     <div class="flex gap-3 px-4 py-3 border-b border-slate-100 cursor-pointer hover:bg-slate-50 transition ${n.is_read?'':'bg-blue-50/40'}"
-         onclick="openNotif(${parseInt(n.id)||0})">
+         data-on-click="openNotif(${parseInt(n.id)||0})">
       <div class="w-2 h-2 rounded-full mt-2 shrink-0 ${n.is_read?'bg-transparent border border-slate-200':'bg-blue-500'}"></div>
       <div class="flex-1 min-w-0">
         <div class="text-[13px] font-semibold text-slate-800 leading-snug">${escHtml(n.title)}</div>
@@ -530,7 +532,7 @@ _s.textContent='@keyframes dcToastIn{from{opacity:0;transform:translateX(20px)}t
 document.head.appendChild(_s);
 </script>
 
-<script>window.addEventListener('load',function(){ if(window.lucide) lucide.createIcons(); });</script>
+<script nonce="{{ csp_nonce() }}">window.addEventListener('load',function(){ if(window.lucide) lucide.createIcons(); });</script>
 {% block body_scripts %}{% endblock %}
 
 {# Maintenance / update-in-progress overlay #}
@@ -542,7 +544,7 @@ document.head.appendChild(_s);
   </div>
 </div>
 <style>@keyframes maintSpin{to{transform:rotate(360deg)}}</style>
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function(){
   var _failCount = 0;
   var _FAIL_THRESHOLD = 2;
@@ -571,6 +573,8 @@ document.head.appendChild(_s);
   }
   setInterval(checkHealth, 5000);
 })();
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('confirmCancel', 'confirmDo', 'dismissToast', 'markAllRead', 'openNotif', 'toggleNotifPanel');
 </script>
 </body>
 </html>

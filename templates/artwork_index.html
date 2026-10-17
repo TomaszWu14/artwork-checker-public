@@ -156,7 +156,7 @@
   </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 function artIndexApp(){
   return {
     stats:{total:null,with_ref:null,distinct_refs:null,last_scan:''}, loaded:false, msg:'', ok:false,

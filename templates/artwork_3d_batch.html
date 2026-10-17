@@ -59,7 +59,7 @@
 </div>
 {% endblock %}
 {% block body_scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function(){
   const inp=document.getElementById('b3dFiles'), drop=document.getElementById('b3dDrop');
   const startBtn=document.getElementById('b3dStart'), cnt=document.getElementById('b3dCount');

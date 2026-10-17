@@ -191,7 +191,7 @@
         </div>
       </div>
       <div style="margin-top:6px">
-        <button type="button" class="btn-save" onclick="saveProfile()">Zapisz zmiany</button>
+        <button type="button" class="btn-save" data-on-click="saveProfile()">Zapisz zmiany</button>
       </div>
     </div>
 
@@ -204,14 +204,14 @@
           <label for="fCurrent">Obecne hasło</label>
           <div class="pw-wrap">
             <input type="password" id="fCurrent" placeholder="••••••••" autocomplete="current-password">
-            <button type="button" class="pw-toggle" aria-label="Pokaż/ukryj obecne hasło" onclick="togglePw('fCurrent',this)">👁</button>
+            <button type="button" class="pw-toggle" aria-label="Pokaż/ukryj obecne hasło" data-on-click="togglePw('fCurrent',this)">👁</button>
           </div>
         </div>
         <div class="form-group">
           <label for="fNew">Nowe hasło</label>
           <div class="pw-wrap">
-            <input type="password" id="fNew" placeholder="min. 12 znaków, litera i cyfra" oninput="updateStrength(this.value)" autocomplete="new-password">
-            <button type="button" class="pw-toggle" aria-label="Pokaż/ukryj nowe hasło" onclick="togglePw('fNew',this)">👁</button>
+            <input type="password" id="fNew" placeholder="min. 12 znaków, litera i cyfra" data-on-input="updateStrength(this.value)" autocomplete="new-password">
+            <button type="button" class="pw-toggle" aria-label="Pokaż/ukryj nowe hasło" data-on-click="togglePw('fNew',this)">👁</button>
           </div>
           <div class="pw-strength" id="strengthBars">
             <div class="pw-strength-bar" id="sb1"></div>
@@ -225,11 +225,11 @@
           <label for="fConfirm">Potwierdź nowe</label>
           <div class="pw-wrap">
             <input type="password" id="fConfirm" placeholder="••••••••" autocomplete="new-password">
-            <button type="button" class="pw-toggle" aria-label="Pokaż/ukryj potwierdzenie hasła" onclick="togglePw('fConfirm',this)">👁</button>
+            <button type="button" class="pw-toggle" aria-label="Pokaż/ukryj potwierdzenie hasła" data-on-click="togglePw('fConfirm',this)">👁</button>
           </div>
         </div>
       </div>
-      <button type="button" class="btn-save" onclick="changePassword()">Zmień hasło</button>
+      <button type="button" class="btn-save" data-on-click="changePassword()">Zmień hasło</button>
     </div>
 
     <!-- Recent activity -->
@@ -263,7 +263,7 @@
           </div>
           {% endfor %}
         </div>
-        <button type="button" onclick="var m=document.getElementById('actMore');m.style.display='flex';m.style.flexDirection='column';m.style.gap='6px';this.style.display='none'"
+        <button type="button" data-on-click="showAllActivity()"
                 style="font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;padding:6px 0">
           Pokaż wszystkie ({{ activity | length }}) →
         </button>
@@ -277,7 +277,12 @@
   </div><!-- /right column -->
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
+function showAllActivity() {
+  var m = document.getElementById('actMore');
+  m.style.display = 'flex'; m.style.flexDirection = 'column'; m.style.gap = '6px';
+  this.style.display = 'none';
+}
 function togglePw(id, btn) {
   const inp = document.getElementById(id);
   if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
@@ -355,5 +360,7 @@ async function changePassword() {
     showMsg('pwdMsg', data.error || 'Błąd zmiany hasła', false);
   }
 }
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('changePassword', 'saveProfile', 'showAllActivity', 'togglePw', 'updateStrength');
 </script>
 {% endblock %}

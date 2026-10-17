@@ -74,11 +74,11 @@
   @keyframes admFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 </style>
 <div class="adm-tabs" role="tablist">
-  <button type="button" class="adm-tab active" data-pane="api" onclick="admTab('api')" role="tab">💰 Użycie i koszty Claude API</button>
-  <button type="button" class="adm-tab" data-pane="system" onclick="admTab('system')" role="tab">⚙️ Status systemu</button>
-  <button type="button" class="adm-tab" data-pane="aiconfig" onclick="admTab('aiconfig')" role="tab">🤖 Konfiguracja AI</button>
-  <button type="button" class="adm-tab" data-pane="database" onclick="admTab('database')" role="tab">💾 Baza danych</button>
-  <button type="button" class="adm-tab" data-pane="users" onclick="admTab('users'); loadUsers()" role="tab">👥 Konta</button>
+  <button type="button" class="adm-tab active" data-pane="api" data-on-click="admTab('api')" role="tab">💰 Użycie i koszty Claude API</button>
+  <button type="button" class="adm-tab" data-pane="system" data-on-click="admTab('system')" role="tab">⚙️ Status systemu</button>
+  <button type="button" class="adm-tab" data-pane="aiconfig" data-on-click="admTab('aiconfig')" role="tab">🤖 Konfiguracja AI</button>
+  <button type="button" class="adm-tab" data-pane="database" data-on-click="admTab('database')" role="tab">💾 Baza danych</button>
+  <button type="button" class="adm-tab" data-pane="users" data-on-click="admTab('users'); loadUsers()" role="tab">👥 Konta</button>
 </div>
 
 <div class="adm-pane" id="pane-users">
@@ -95,7 +95,7 @@
     <select id="nuRole"><option value="user">user</option><option value="manager">manager</option>
       <option value="superuser">superuser</option><option value="admin">admin</option></select></div>
   <div class="ff"><label for="nuDept">DZIAŁ</label><input id="nuDept" maxlength="100"></div>
-  <button type="button" class="badd" onclick="createUser()">➕ Utwórz konto</button>
+  <button type="button" class="badd" data-on-click="createUser()">➕ Utwórz konto</button>
 </div>
 <div class="msg" id="usersMsg" style="word-break:break-all"></div>
 <table style="margin-top:12px;font-size:12px">
@@ -264,7 +264,7 @@
   </template>
   <div x-show="d.error" style="color:var(--error);font-size:12px" x-text="d.error"></div>
 </div><!-- /pane-database -->
-<script>
+<script nonce="{{ csp_nonce() }}">
 function dbUsage(){
   return { d:{}, limitInput:'', artworkInput:'', savedMsg:'',
     async load(){ try{ const r=await fetch('/api/admin/db-usage'); this.d=await r.json();
@@ -281,7 +281,7 @@ function dbUsage(){
 </script>
 
 <!-- Edit user modal -->
-<script>
+<script nonce="{{ csp_nonce() }}">
 function esc(s){ /* US-008: jedno kanoniczne escapowanie HTML (& < > " ') */ return (s==null||s===false)?'':String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 let _editUid = null;
 const ALL_MODULES = ['artwork','dane_ref','admin'];   // moduły forka Artwork (usunięto zakupy/transport/spedycja/magazyn)
@@ -353,7 +353,7 @@ async function loadSystemStatus() {
     let html = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
       <span style="font-size:22px;font-weight:700;color:${allOk?'var(--ok)':'var(--error)'}">${allOk?'✓ Wszystko OK':'✕ '+s.fail+' błędów'}</span>
       <span style="font-size:12px;color:var(--muted)">${s.ok}/${s.total} zależności aktywnych</span>
-      <button type="button" onclick="loadSystemStatus()" style="margin-left:auto;background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;color:var(--muted)">↻ Odśwież</button>
+      <button type="button" data-on-click="loadSystemStatus()" style="margin-left:auto;background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;color:var(--muted)">↻ Odśwież</button>
     </div>`;
     const sys = d.checks.filter(c=>!c.name.startsWith('py_'));
     const py  = d.checks.filter(c=> c.name.startsWith('py_'));
@@ -403,13 +403,13 @@ async function loadUsers(){
     const rows=await r.json();
     body.innerHTML = rows.map(u => `<tr>
       <td>${esc(u.username)}</td><td>${esc(u.email||'—')}</td>
-      <td><select onchange="patchUser(${Number(u.id)},{role:this.value})">${ROLES.map(x=>`<option value="${x}"${x===u.role?' selected':''}>${x}</option>`).join('')}</select></td>
+      <td><select data-on-change="patchUser(${Number(u.id)},{role:this.value})">${ROLES.map(x=>`<option value="${x}"${x===u.role?' selected':''}>${x}</option>`).join('')}</select></td>
       <td>${esc(u.department||'—')}</td>
       <td>${Number(u.is_active)?'<span style="color:var(--ok)">aktywne</span>':'<span style="color:var(--error)">nieaktywne</span>'}</td>
       <td>${esc(String(u.last_login||'—').slice(0,16))}</td>
       <td style="white-space:nowrap">
-        <button type="button" class="badd" onclick="patchUser(${Number(u.id)},{is_active:${Number(u.is_active)?'false':'true'}})">${Number(u.is_active)?'Dezaktywuj':'Aktywuj'}</button>
-        <button type="button" class="badd" onclick="inviteUser(${Number(u.id)})">🔑 Link do hasła</button>
+        <button type="button" class="badd" data-on-click="patchUser(${Number(u.id)},{is_active:${Number(u.is_active)?'false':'true'}})">${Number(u.is_active)?'Dezaktywuj':'Aktywuj'}</button>
+        <button type="button" class="badd" data-on-click="inviteUser(${Number(u.id)})">🔑 Link do hasła</button>
       </td></tr>`).join('') || '<tr><td colspan="7">Brak kont</td></tr>';
   }catch(e){ body.innerHTML = `<tr><td colspan="7" style="color:var(--error)">Błąd: ${esc(e.message)}</td></tr>`; }
 }
@@ -453,5 +453,7 @@ loadAiStatus();
 loadSystemStatus();
 // Przywróć ostatnio otwartą zakładkę.
 try { var _at = localStorage.getItem('admTab'); if (_at && document.getElementById('pane-'+_at)) { admTab(_at); if (_at === 'users') loadUsers(); } } catch(e){}
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('admTab', 'createUser', 'inviteUser', 'loadSystemStatus', 'loadUsers', 'patchUser');
 </script>
 {% endblock %}

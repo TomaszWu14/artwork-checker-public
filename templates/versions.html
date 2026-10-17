@@ -122,5 +122,5 @@
 {% endblock %}
 
 {% block body_scripts %}
-<script>document.addEventListener('DOMContentLoaded',()=>{if(typeof lucide!=='undefined')lucide.createIcons();});</script>
+<script nonce="{{ csp_nonce() }}">document.addEventListener('DOMContentLoaded',()=>{if(typeof lucide!=='undefined')lucide.createIcons();});</script>
 {% endblock %}

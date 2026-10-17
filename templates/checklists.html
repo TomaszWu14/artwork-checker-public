@@ -148,15 +148,15 @@ tbody tr:hover td { background: var(--surface2); }
     <div class="page-title">📋 Checklisty dokumentów</div>
     <div class="page-sub">Śledzenie kompletności dokumentacji dla dostaw i szablony wymaganych dokumentów per dostawca</div>
   </div>
-  <button type="button" class="btn btn-primary" onclick="openModal('newDeliveryModal')">
+  <button type="button" class="btn btn-primary" data-on-click="openModal('newDeliveryModal')">
     ➕ Nowe zamówienie
   </button>
 </div>
 
 <!-- TABS -->
 <div class="tabs">
-  <div class="tab active" id="tab-deliveries" onclick="switchTab('deliveries')">🚢 Dostawy</div>
-  <div class="tab" id="tab-templates" onclick="switchTab('templates')">📄 Szablony dostawców</div>
+  <div class="tab active" id="tab-deliveries" data-on-click="switchTab('deliveries')">🚢 Dostawy</div>
+  <div class="tab" id="tab-templates" data-on-click="switchTab('templates')">📄 Szablony dostawców</div>
 </div>
 
 <!-- ═══════════════════════════════════════════════
@@ -204,7 +204,7 @@ tbody tr:hover td { background: var(--surface2); }
       <td style="color:var(--muted);font-size:12px">{{ d.last_update[:16] if d.last_update else '—' }}</td>
       <td>
         <button type="button" class="btn btn-outline btn-sm"
-                onclick="openDeliveryDetail({{ d.po_number|tojson }})">
+                data-on-click="openDeliveryDetail({{ d.po_number|tojson|forceescape }})">
           Szczegóły
         </button>
       </td>
@@ -231,7 +231,7 @@ tbody tr:hover td { background: var(--surface2); }
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
     <span style="font-size:14px;font-weight:700;color:var(--text)">Wymagane dokumenty per dostawca</span>
     {% if role in ['admin','superuser','manager'] %}
-    <button type="button" class="btn btn-primary btn-sm" onclick="openModal('newTemplateModal')">
+    <button type="button" class="btn btn-primary btn-sm" data-on-click="openModal('newTemplateModal')">
       ➕ Dodaj szablon
     </button>
     {% endif %}
@@ -266,7 +266,7 @@ tbody tr:hover td { background: var(--surface2); }
       {% if role in ['admin','superuser','manager'] %}
       <td>
         <button type="button" class="btn-danger btn-sm"
-                onclick="deleteTemplate({{ tmpl.id }}, this)">Usuń</button>
+                data-on-click="deleteTemplate({{ tmpl.id }}, this)">Usuń</button>
       </td>
       {% endif %}
     </tr>
@@ -289,7 +289,7 @@ tbody tr:hover td { background: var(--surface2); }
 ═══════════════════════════════════════════════ -->
 <div class="modal-overlay" id="newDeliveryModal" role="dialog" aria-modal="true" aria-labelledby="newDeliveryModalTitle">
   <div class="modal">
-    <button type="button" class="modal-close" onclick="closeModal('newDeliveryModal')" aria-label="Zamknij">&times;</button>
+    <button type="button" class="modal-close" data-on-click="closeModal('newDeliveryModal')" aria-label="Zamknij">&times;</button>
     <div id="newDeliveryModalTitle" class="modal-title">➕ Nowe zamówienie</div>
     <div class="form-grid">
       <div class="form-group">
@@ -298,7 +298,7 @@ tbody tr:hover td { background: var(--surface2); }
       </div>
       <div class="form-group">
         <label for="nd-supplier" class="form-label">Dostawca</label>
-        <select id="nd-supplier" class="form-select" onchange="prefillFromSupplier()">
+        <select id="nd-supplier" class="form-select" data-on-change="prefillFromSupplier()">
           <option value="">— wybierz lub wpisz —</option>
           {% for s in suppliers %}
           <option value="{{ s.name }}">{{ s.name }}</option>
@@ -322,9 +322,9 @@ tbody tr:hover td { background: var(--surface2); }
     <div class="form-group form-full">
       <label class="form-label">Typy dokumentów</label>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <button class="btn btn-outline btn-sm" type="button" onclick="checkAllDocs(true)">Zaznacz wszystkie</button>
-        <button class="btn btn-outline btn-sm" type="button" onclick="checkAllDocs(false)">Odznacz wszystkie</button>
-        <button class="btn btn-outline btn-sm" type="button" onclick="prefillFromSupplier()" id="prefillBtn" style="display:none">
+        <button class="btn btn-outline btn-sm" type="button" data-on-click="checkAllDocs(true)">Zaznacz wszystkie</button>
+        <button class="btn btn-outline btn-sm" type="button" data-on-click="checkAllDocs(false)">Odznacz wszystkie</button>
+        <button class="btn btn-outline btn-sm" type="button" data-on-click="prefillFromSupplier()" id="prefillBtn" style="display:none">
           📋 Użyj szablonu dostawcy
         </button>
       </div>
@@ -341,8 +341,8 @@ tbody tr:hover td { background: var(--surface2); }
       </div>
     </div>
     <div style="display:flex;gap:10px;margin-top:8px">
-      <button type="button" class="btn btn-primary" onclick="submitNewDelivery()">Utwórz zamówienie</button>
-      <button type="button" class="btn btn-outline" onclick="closeModal('newDeliveryModal')">Anuluj</button>
+      <button type="button" class="btn btn-primary" data-on-click="submitNewDelivery()">Utwórz zamówienie</button>
+      <button type="button" class="btn btn-outline" data-on-click="closeModal('newDeliveryModal')">Anuluj</button>
     </div>
   </div>
 </div>
@@ -352,7 +352,7 @@ tbody tr:hover td { background: var(--surface2); }
 ═══════════════════════════════════════════════ -->
 <div class="modal-overlay" id="deliveryDetailModal" role="dialog" aria-modal="true" aria-labelledby="detailModalTitle">
   <div class="modal modal-lg">
-    <button type="button" class="modal-close" onclick="closeModal('deliveryDetailModal')" aria-label="Zamknij">&times;</button>
+    <button type="button" class="modal-close" data-on-click="closeModal('deliveryDetailModal')" aria-label="Zamknij">&times;</button>
     <div class="modal-title" id="detailModalTitle">Szczegóły dostawy</div>
     <div id="detailModalBody">
       <div style="text-align:center;padding:40px;color:var(--muted)">Ładowanie...</div>
@@ -366,7 +366,7 @@ tbody tr:hover td { background: var(--surface2); }
 {% if role in ['admin','superuser','manager'] %}
 <div class="modal-overlay" id="newTemplateModal" role="dialog" aria-modal="true" aria-labelledby="newTemplateModalTitle">
   <div class="modal" style="max-width:480px">
-    <button type="button" class="modal-close" onclick="closeModal('newTemplateModal')" aria-label="Zamknij">&times;</button>
+    <button type="button" class="modal-close" data-on-click="closeModal('newTemplateModal')" aria-label="Zamknij">&times;</button>
     <div id="newTemplateModalTitle" class="modal-title">📄 Dodaj szablon dokumentu</div>
     <div class="form-group">
       <label for="tmpl-supplier" class="form-label">Dostawca *</label>
@@ -404,15 +404,15 @@ tbody tr:hover td { background: var(--surface2); }
       <textarea id="tmpl-notes" class="form-textarea" placeholder="Dodatkowe wymagania, terminy, uwagi..."></textarea>
     </div>
     <div style="display:flex;gap:10px;margin-top:4px">
-      <button type="button" class="btn btn-primary" onclick="submitTemplate()">Dodaj szablon</button>
-      <button type="button" class="btn btn-outline" onclick="closeModal('newTemplateModal')">Anuluj</button>
+      <button type="button" class="btn btn-primary" data-on-click="submitTemplate()">Dodaj szablon</button>
+      <button type="button" class="btn btn-outline" data-on-click="closeModal('newTemplateModal')">Anuluj</button>
     </div>
   </div>
 </div>
 {% endif %}
 
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 const USER_ROLE = {{ role | tojson }};
 const CAN_EDIT_CHECKLIST = ['manager','superuser','admin'].includes(USER_ROLE);
 // ── Supplier templates data (for prefill) ──────────────────
@@ -581,7 +581,7 @@ function renderDetailTable(items) {
                style="padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-size:12px;background:var(--surface);color:var(--text)">
       </td>
       <td>${compLink}</td>
-      ${CAN_EDIT_CHECKLIST ? `<td><button type="button" class="btn btn-primary btn-sm" onclick="saveItem(${item.id})">Zapisz</button></td>` : ''}
+      ${CAN_EDIT_CHECKLIST ? `<td><button type="button" class="btn btn-primary btn-sm" data-on-click="saveItem(${item.id})">Zapisz</button></td>` : ''}
     </tr>`;
   });
   html += '</tbody></table>';
@@ -656,5 +656,7 @@ async function submitTemplate() {
     showToast('Błąd sieci: ' + e.message, false);
   }
 }
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('checkAllDocs', 'closeModal', 'deleteTemplate', 'openDeliveryDetail', 'openModal', 'prefillFromSupplier', 'saveItem', 'submitNewDelivery', 'submitTemplate', 'switchTab');
 </script>
 {% endblock %}

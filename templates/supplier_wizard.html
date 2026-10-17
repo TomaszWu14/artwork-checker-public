@@ -126,7 +126,7 @@
   <div class="form-grid">
     <div class="form-row">
       <label for="fCode">Kod dostawcy *</label>
-      <input id="fCode" placeholder="np. SHIELDCO" oninput="this.value=this.value.toUpperCase()" maxlength="20" value="{{ supplier.code if supplier else '' }}" aria-required="true">
+      <input id="fCode" placeholder="np. SHIELDCO" data-on-input="upperCaseValue()" maxlength="20" value="{{ supplier.code if supplier else '' }}" aria-required="true">
       <div class="hint">Unikalny identyfikator, max 20 znaków</div>
     </div>
     <div class="form-row">
@@ -135,7 +135,7 @@
     </div>
     <div class="form-row">
       <label for="fCountry">Kraj (ISO 2)</label>
-      <input id="fCountry" placeholder="CN" maxlength="2" oninput="this.value=this.value.toUpperCase()" value="{{ supplier.country if supplier else '' }}">
+      <input id="fCountry" placeholder="CN" maxlength="2" data-on-input="upperCaseValue()" value="{{ supplier.country if supplier else '' }}">
     </div>
     <div class="form-row">
       <label for="fCurrency">Waluta domyślna</label>
@@ -165,8 +165,8 @@
   <div class="form-row">
     <label for="kwInput">Słowa kluczowe do auto-detekcji</label>
     <div class="hint">Wpisz słowo i naciśnij Enter — system będzie używał tych słów do rozpoznania dostawcy w PDF</div>
-    <div class="tags-wrap" id="kwTags" onclick="document.getElementById('kwInput').focus()">
-      <input class="tag-input" id="kwInput" placeholder="wpisz i Enter…" onkeydown="addKw(event)">
+    <div class="tags-wrap" id="kwTags" data-on-click="focusById('kwInput')">
+      <input class="tag-input" id="kwInput" placeholder="wpisz i Enter…" data-on-keydown="addKw(event)">
     </div>
   </div>
   <div class="form-row">
@@ -174,7 +174,7 @@
     <textarea id="fNotes" rows="2" placeholder="np. PI zawsze zawiera kolumnę z zdjęciem produktu, którą należy pomijać"></textarea>
   </div>
   <div class="wiz-nav">
-    <button type="button" class="btn-next" onclick="goStep(2)">Dalej — Mapowanie PI →</button>
+    <button type="button" class="btn-next" data-on-click="goStep(2)">Dalej — Mapowanie PI →</button>
   </div>
 </div>
 
@@ -186,13 +186,13 @@
   </p>
   <div class="form-row" style="max-width:400px">
     <label for="piFile">Plik PI (PDF)</label>
-    <input type="file" id="piFile" accept=".pdf" onchange="loadPreview('pi')">
+    <input type="file" id="piFile" accept=".pdf" data-on-change="loadPreview('pi')">
   </div>
   <div id="piPreview"></div>
   <div id="piRefFormat" style="display:none">
     <div class="form-row">
       <label for="piRefFmt">Format kodu REF w tym dokumencie</label>
-      <select id="piRefFmt" onchange="updateRefSamples('pi')">
+      <select id="piRefFmt" data-on-change="updateRefSamples('pi')">
         <option value="standard">Standardowy (np. AT-NFA-S_1)</option>
         <option value="sno_prefix">Prefiks numeryczny (np. 1.AT-NFA-S 1 → AT-NFA-S_1)</option>
         <option value="numeric_only">Tylko cyfry (np. 12345)</option>
@@ -202,8 +202,8 @@
     </div>
   </div>
   <div class="wiz-nav">
-    <button type="button" class="btn-back" onclick="goStep(1)">← Wróć</button>
-    <button type="button" class="btn-next" onclick="goStep(3)">Dalej — Mapowanie PO →</button>
+    <button type="button" class="btn-back" data-on-click="goStep(1)">← Wróć</button>
+    <button type="button" class="btn-next" data-on-click="goStep(3)">Dalej — Mapowanie PO →</button>
   </div>
 </div>
 
@@ -214,17 +214,17 @@
     Wgraj przykładowy plik PO ACME dla tego dostawcy. Możesz pominąć ten krok jeśli PO jest zawsze w standardowym formacie ACME SAP.
   </p>
   <div style="display:flex;gap:10px;margin-bottom:16px">
-    <button type="button" class="btn-back" style="font-size:12px;padding:5px 14px" onclick="skipPoMapping()">Użyj standardowego PO ACME (pomiń)</button>
+    <button type="button" class="btn-back" style="font-size:12px;padding:5px 14px" data-on-click="skipPoMapping()">Użyj standardowego PO ACME (pomiń)</button>
   </div>
   <div class="form-row" style="max-width:400px">
     <label for="poFile">Plik PO (PDF)</label>
-    <input type="file" id="poFile" accept=".pdf" onchange="loadPreview('po')">
+    <input type="file" id="poFile" accept=".pdf" data-on-change="loadPreview('po')">
   </div>
   <div id="poPreview"></div>
   <div id="poRefFormat" style="display:none">
     <div class="form-row">
       <label for="poRefFmt">Format kodu REF w PO</label>
-      <select id="poRefFmt" onchange="updateRefSamples('po')">
+      <select id="poRefFmt" data-on-change="updateRefSamples('po')">
         <option value="standard">Standardowy ACME (AT-NFA-S_1)</option>
         <option value="sno_prefix">Prefiks numeryczny</option>
         <option value="custom">Własny wzorzec</option>
@@ -232,8 +232,8 @@
     </div>
   </div>
   <div class="wiz-nav">
-    <button type="button" class="btn-back" onclick="goStep(2)">← Wróć</button>
-    <button type="button" class="btn-next" onclick="goStep(4)">Dalej — Mapowanie SAD →</button>
+    <button type="button" class="btn-back" data-on-click="goStep(2)">← Wróć</button>
+    <button type="button" class="btn-next" data-on-click="goStep(4)">Dalej — Mapowanie SAD →</button>
   </div>
 </div>
 
@@ -254,16 +254,16 @@
     Pole 46 = wartość celna
   </div>
   <div style="display:flex;gap:10px;margin-bottom:16px">
-    <button type="button" class="btn-back" style="font-size:12px;padding:5px 14px" onclick="skipSadMapping()">Pomiń mapowanie SAD</button>
+    <button type="button" class="btn-back" style="font-size:12px;padding:5px 14px" data-on-click="skipSadMapping()">Pomiń mapowanie SAD</button>
   </div>
   <div class="form-row" style="max-width:400px">
     <label for="sadFile">Plik SAD (PDF)</label>
-    <input type="file" id="sadFile" accept=".pdf" onchange="loadPreview('sad')">
+    <input type="file" id="sadFile" accept=".pdf" data-on-change="loadPreview('sad')">
   </div>
   <div id="sadPreview"></div>
   <div class="wiz-nav">
-    <button type="button" class="btn-back" onclick="goStep(3)">← Wróć</button>
-    <button type="button" class="btn-next" onclick="goStep(5)">Dalej — Tolerancje →</button>
+    <button type="button" class="btn-back" data-on-click="goStep(3)">← Wróć</button>
+    <button type="button" class="btn-next" data-on-click="goStep(5)">Dalej — Tolerancje →</button>
   </div>
 </div>
 
@@ -301,14 +301,14 @@
   </div>
 
   <div class="wiz-nav">
-    <button type="button" class="btn-back" onclick="goStep(4)">← Wróć</button>
-    <button type="button" class="btn-save" onclick="saveProfile()">✓ Zapisz profil dostawcy</button>
+    <button type="button" class="btn-back" data-on-click="goStep(4)">← Wróć</button>
+    <button type="button" class="btn-save" data-on-click="saveProfile()">✓ Zapisz profil dostawcy</button>
   </div>
 </div>
 
 </div><!-- /wiz-wrap -->
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 let currentStep = 1;
 let piMapping  = {};
 let poMapping  = {};
@@ -356,7 +356,7 @@ function renderKwTags(){
   wrap.innerHTML = '';
   keywords.forEach((kw,i)=>{
     const t=document.createElement('span');t.className='tag';
-    t.innerHTML=`${esc(kw)}<button type="button" onclick="removeKw(${i})">✕</button>`;
+    t.innerHTML=`${esc(kw)}<button type="button" data-on-click="removeKw(${i})">✕</button>`;
     wrap.appendChild(t);
   });
   wrap.appendChild(inp);
@@ -463,7 +463,7 @@ function renderTablePreview(side, data, container){
     h+=`<th scope="col"><div class="col-hdr" style="border-bottom-color:${roleColor}">
       <div class="col-name">${esc(hdr)}</div>
       <select class="col-role" data-role="${esc(detectedRole)}" data-hdr="${esc(hdr)}" data-side="${side}"
-        onchange="setRole(this,this.dataset.side,this.dataset.hdr)">
+        data-on-change="setRole(this,this.dataset.side,this.dataset.hdr)">
         ${roles.map(r=>`<option value="${r.v}" ${r.v===detectedRole?'selected':''}>${r.l}</option>`).join('')}
       </select>
     </div></th>`;
@@ -497,7 +497,7 @@ function renderManualMapping(side, container){
     h+=`<div class="form-row">
       <label style="color:${r.c}">${r.l}</label>
       <input placeholder="Nazwa nagłówka kolumny…" data-role="${r.v}" data-side="${side}"
-        oninput="setManualRole(this,'${side}')" value="${esc(Object.keys(target).find(k=>target[k]===r.v)||'')}">
+        data-on-input="setManualRole(this,'${side}')" value="${esc(Object.keys(target).find(k=>target[k]===r.v)||'')}">
     </div>`;
   });
   h+=`</div></div>`;
@@ -598,5 +598,7 @@ function showAlert(msg,type){
 }
 function clearAlert(){document.getElementById('alertBox').className='alert';}
 function esc(s){ /* US-008: jedno kanoniczne escapowanie HTML (& < > " ') */ return (s==null||s===false)?'':String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('addKw', 'goStep', 'loadPreview', 'removeKw', 'saveProfile', 'setManualRole', 'setRole', 'skipPoMapping', 'skipSadMapping', 'updateRefSamples');
 </script>
 {% endblock %}

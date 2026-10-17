@@ -152,7 +152,7 @@ tr:hover td{background:rgba(255,255,255,.012)}
 
 {% block body_scripts %}
 <script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.min.js') }}"></script>
-<script>
+<script nonce="{{ csp_nonce() }}">
   const SC_CARDS = {{ cards|tojson }};
   document.addEventListener('DOMContentLoaded', () => {
     if (typeof lucide !== 'undefined') lucide.createIcons();

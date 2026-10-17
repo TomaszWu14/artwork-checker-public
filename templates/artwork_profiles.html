@@ -217,11 +217,11 @@
   <div class="lib-sb">
     <div class="lib-sb-head">
       <h2>📁 Foldery</h2>
-      <button type="button" class="btn btn-outline btn-sm" onclick="newFolderPrompt()">+ Folder</button>
+      <button type="button" class="btn btn-outline btn-sm" data-on-click="newFolderPrompt()">+ Folder</button>
     </div>
     <div class="lib-tree" id="libTree"></div>
     <div class="lib-sb-foot" id="libSbFoot">— masterów</div>
-    <div class="lib-sb-foot" id="libStorageInfo" style="cursor:pointer;border-top:0" onclick="loadStorageInfo()" title="Kliknij aby odświeżyć">
+    <div class="lib-sb-foot" id="libStorageInfo" style="cursor:pointer;border-top:0" data-on-click="loadStorageInfo()" title="Kliknij aby odświeżyć">
       💾 <span id="libStorageTxt">Ładowanie…</span>
     </div>
   </div>
@@ -233,23 +233,23 @@
       <div class="lib-bc" id="libBc"></div>
       <div class="lib-toolbar">
         <input type="text" id="libSearch" placeholder="Szukaj nazwy / EAN / REF…"
-               oninput="renderContent()" autocomplete="off"
+               data-on-input="renderContent()" autocomplete="off"
                style="padding:5px 9px;border:1px solid #d1d5db;border-radius:5px;font-size:12px;width:180px">
-        <button type="button" class="btn btn-outline btn-sm" onclick="newFolderPrompt()">📁 Nowy folder</button>
+        <button type="button" class="btn btn-outline btn-sm" data-on-click="newFolderPrompt()">📁 Nowy folder</button>
         <!-- Upload label — works without JS frameworks -->
         <label for="bulkFileInput" class="btn btn-primary btn-sm" style="cursor:pointer">⬆ Wgraj mastery</label>
         <input type="file" id="bulkFileInput" accept=".pdf" multiple style="display:none"
-               onchange="onFilesSelected(this)">
+               data-on-change="onFilesSelected(this)">
       </div>
     </div>
 
     <!-- Tab bar -->
     <div style="display:flex;gap:0;border-bottom:2px solid #e5e7eb;margin-bottom:0;padding:0 20px;background:#fff">
-      <button type="button" id="tabMasters" onclick="switchTab('masters')"
+      <button type="button" id="tabMasters" data-on-click="switchTab('masters')"
         style="padding:8px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid #7c3aed;color:#7c3aed;margin-bottom:-2px">
         Mastery
       </button>
-      <button type="button" id="tabFieldDict" onclick="switchTab('fieldDict')"
+      <button type="button" id="tabFieldDict" data-on-click="switchTab('fieldDict')"
         style="padding:8px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:#6b7280;margin-bottom:-2px">
         Słownik pól
       </button>
@@ -264,7 +264,7 @@
             <h3 style="font-size:14px;font-weight:700;color:#1a1a2e">Słownik nazw pól</h3>
             <p style="font-size:12px;color:#6b7280;margin-top:2px">Globalne nazwy pól używane w szablonach. Kliknij wiersz aby edytować.</p>
           </div>
-          <button type="button" class="btn btn-primary" onclick="showAddFieldDictModal()">+ Dodaj pole</button>
+          <button type="button" class="btn btn-primary" data-on-click="showAddFieldDictModal()">+ Dodaj pole</button>
         </div>
         <div id="fieldDictTableWrap"></div>
 
@@ -295,7 +295,7 @@
               <option value="270">270° — obrót w lewo</option>
             </select>
             <label for="fdModalMode" style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Tryb porównania</label>
-            <select id="fdModalMode" onchange="fdModeChanged()" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;margin-bottom:12px;box-sizing:border-box">
+            <select id="fdModalMode" data-on-change="fdModeChanged()" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;margin-bottom:12px;box-sizing:border-box">
               <option value="text">📝 Tekst — OCR + różnica tokenów (domyślny)</option>
               <option value="table">📊 Tabela — tekst + kontrola wartości liczbowych</option>
               <option value="translation">🌍 Tłumaczenie — porównanie linii w kolejności</option>
@@ -308,8 +308,8 @@
               <input id="fdModalTol" type="number" min="0" step="0.01" value="0" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;margin-bottom:12px;box-sizing:border-box" inputmode="decimal">
             </div>
             <div style="display:flex;justify-content:flex-end;gap:8px">
-              <button type="button" class="btn btn-outline" onclick="closeFieldDictModal()">Anuluj</button>
-              <button type="button" class="btn btn-primary" onclick="saveFieldDictModal()">Zapisz</button>
+              <button type="button" class="btn btn-outline" data-on-click="closeFieldDictModal()">Anuluj</button>
+              <button type="button" class="btn btn-primary" data-on-click="saveFieldDictModal()">Zapisz</button>
             </div>
           </div>
         </div>
@@ -319,8 +319,8 @@
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════ EDITOR MODAL -->
-<div class="overlay hidden" id="editorOverlay" onclick="if(event.target===this)closeEditor()" role="dialog" aria-modal="true" aria-labelledby="edTitle">
-  <div class="modal" onclick="event.stopPropagation()">
+<div class="overlay hidden" id="editorOverlay" data-on-click="onSelf('closeEditor',event)" role="dialog" aria-modal="true" aria-labelledby="edTitle">
+  <div class="modal" data-on-click="event.stopPropagation()">
     <div class="modal-head">
       <div>
         <div style="font-size:14px;font-weight:700;color:#1a1a2e" id="edTitle">Edycja mastera</div>
@@ -328,7 +328,7 @@
       </div>
       <div style="display:flex;gap:6px;align-items:center">
         <span class="badge" id="edMappedBadge"></span>
-        <button type="button" onclick="closeEditor()" aria-label="Zamknij edytor" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280">×</button>
+        <button type="button" data-on-click="closeEditor()" aria-label="Zamknij edytor" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280">×</button>
       </div>
     </div>
 
@@ -347,36 +347,36 @@
         </div>
         <div class="fg" style="margin-bottom:10px">
           <label>Indeksy REF</label>
-          <div class="ref-tags" id="edRefTags" onclick="document.getElementById('edRefInput').focus()"></div>
+          <div class="ref-tags" id="edRefTags" data-on-click="focusById('edRefInput')"></div>
           <input type="hidden" id="edRefInput">
         </div>
         <!-- REF input row -->
         <div style="display:flex;gap:6px;margin-bottom:10px">
           <input id="edRefNew" placeholder="Dodaj REF (Enter)" style="flex:1;padding:5px 8px;border:1px solid #d1d5db;border-radius:5px;font-size:12px;outline:none"
-                 onkeydown="if(event.key==='Enter'||event.key===','){event.preventDefault();addRef()}"
-                 onblur="addRef()">
-          <button type="button" class="btn btn-outline btn-sm" onclick="addRef()">+ Dodaj</button>
+                 data-on-keydown="onKeys(['Enter',','],'addRef',event)"
+                 data-on-blur="addRef()">
+          <button type="button" class="btn btn-outline btn-sm" data-on-click="addRef()">+ Dodaj</button>
         </div>
 
         <!-- Toolbar -->
         <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
           <label for="edPdfInput" class="btn btn-outline btn-sm" style="cursor:pointer" id="edLoadBtn">📄 Wgraj master PDF</label>
-          <input type="file" id="edPdfInput" accept=".pdf" style="display:none" onchange="onEditorPdf(this)">
-          <button type="button" class="btn btn-ai btn-sm" id="edAiBtn" style="display:none" onclick="runAiDetect()">✨ Wykryj pola AI</button>
-          <button type="button" class="btn btn-outline btn-sm" id="edReloadBtn" style="display:none" onclick="document.getElementById('edPdfInput').click()">🔄 Zmień PDF</button>
+          <input type="file" id="edPdfInput" accept=".pdf" style="display:none" data-on-change="onEditorPdf(this)">
+          <button type="button" class="btn btn-ai btn-sm" id="edAiBtn" style="display:none" data-on-click="runAiDetect()">✨ Wykryj pola AI</button>
+          <button type="button" class="btn btn-outline btn-sm" id="edReloadBtn" style="display:none" data-on-click="clickById('edPdfInput')">🔄 Zmień PDF</button>
           <span id="edAiStatus" style="font-size:11px;color:#6b7280"></span>
         </div>
 
         <!-- Zoom controls -->
         <div id="edZoomBar" style="display:none;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">
-          <button type="button" class="btn btn-outline btn-sm" onclick="zoomOut()" title="Pomniejsz (-)">−</button>
+          <button type="button" class="btn btn-outline btn-sm" data-on-click="zoomOut()" title="Pomniejsz (-)">−</button>
           <span id="edZoomLabel" style="font-size:12px;font-weight:700;min-width:42px;text-align:center">100%</span>
-          <button type="button" class="btn btn-outline btn-sm" onclick="zoomIn()" title="Powiększ (+)">+</button>
-          <button type="button" class="btn btn-outline btn-sm" onclick="setZoom(1)" title="Rozmiar 1:1">1:1</button>
-          <button type="button" class="btn btn-outline btn-sm" onclick="zoomFit()" title="Dopasuj do okna">Dopasuj</button>
-          <button type="button" class="btn btn-outline btn-sm" onclick="setZoom(2)">200%</button>
-          <button type="button" class="btn btn-outline btn-sm" onclick="setZoom(3)">300%</button>
-          <button type="button" class="btn btn-outline btn-sm" onclick="setZoom(5)">500%</button>
+          <button type="button" class="btn btn-outline btn-sm" data-on-click="zoomIn()" title="Powiększ (+)">+</button>
+          <button type="button" class="btn btn-outline btn-sm" data-on-click="setZoom(1)" title="Rozmiar 1:1">1:1</button>
+          <button type="button" class="btn btn-outline btn-sm" data-on-click="zoomFit()" title="Dopasuj do okna">Dopasuj</button>
+          <button type="button" class="btn btn-outline btn-sm" data-on-click="setZoom(2)">200%</button>
+          <button type="button" class="btn btn-outline btn-sm" data-on-click="setZoom(3)">300%</button>
+          <button type="button" class="btn btn-outline btn-sm" data-on-click="setZoom(5)">500%</button>
           <span style="font-size:10px;color:#9ca3af">scroll = zoom · PPM (przytrzymaj) = przesuń</span>
         </div>
         <!-- Canvas -->
@@ -386,8 +386,8 @@
         <!-- Scrollable canvas outer -->
         <div id="edCanvasOuter" style="display:none;overflow:auto;flex:1;min-height:280px;border-radius:6px;background:#e5e7eb;cursor:crosshair">
           <div id="edCanvasWrap" class="canvas-wrap" style="display:inline-block;position:relative;cursor:crosshair"
-               onmousedown="cmDown(event)" onmousemove="cmMove(event)"
-               onmouseup="cmUp(event)" onmouseleave="cmUp(event)">
+               data-on-mousedown="cmDown(event)" data-on-mousemove="cmMove(event)"
+               data-on-mouseup="cmUp(event)" data-on-mouseleave="cmUp(event)">
             <img id="edCanvasImg" src="" alt="" style="display:block;pointer-events:none">
             <div id="edRects"></div>
             <div id="edDrawRect" class="draw-rect" style="display:none"></div>
@@ -410,11 +410,11 @@
           <div class="sfe" id="edFieldEditor" style="display:none">
             <div class="fg" style="margin-bottom:5px">
               <label>Nazwa</label>
-              <input id="edFName" oninput="updateSelField('display_name',this.value);renderRects()">
+              <input id="edFName" data-on-input="updateSelField('display_name',this.value);renderRects()">
             </div>
             <div class="fg" style="margin-bottom:5px">
               <label>Krytyczność</label>
-              <select id="edFSev" onchange="updateSelField('severity',this.value);renderRects()">
+              <select id="edFSev" data-on-change="updateSelField('severity',this.value);renderRects()">
                 <option value="critical">🔴 Krytyczne</option>
                 <option value="important">🟡 Ważne</option>
                 <option value="info">🔵 Info</option>
@@ -422,7 +422,7 @@
             </div>
             <div class="fg" style="margin-bottom:5px">
               <label>Wiersz rozmiaru</label>
-              <select id="edFSize" onchange="updateSelField('size_label',this.value);renderRects()">
+              <select id="edFSize" data-on-change="updateSelField('size_label',this.value);renderRects()">
                 <option value="">— brak —</option>
                 <option>XS</option><option>S</option><option>M</option>
                 <option>L</option><option>XL</option><option>XXL</option><option>XXXL</option>
@@ -432,11 +432,11 @@
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;padding:6px 8px;
                  border-radius:5px;background:#f9fafb;border:1px solid #e5e7eb">
               <span style="font-size:11px;font-weight:600;flex:1">Tryb analizy</span>
-              <button type="button" id="edFSkipBtn" onclick="toggleSkip()"
+              <button type="button" id="edFSkipBtn" data-on-click="toggleSkip()"
                 style="padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid"></button>
             </div>
             <div id="edFCoords" style="font-size:9px;color:#9ca3af;font-family:monospace;margin-bottom:5px"></div>
-            <button type="button" class="btn btn-danger btn-sm" onclick="delSelField()">🗑 Usuń pole</button>
+            <button type="button" class="btn btn-danger btn-sm" data-on-click="delSelField()">🗑 Usuń pole</button>
           </div>
         </div>
         <div class="er-fields" id="edFieldList"></div>
@@ -449,25 +449,25 @@
     </div>
 
     <div class="modal-foot">
-      <button type="button" class="btn btn-danger btn-sm" onclick="deleteProfile()">🗑 Usuń master</button>
+      <button type="button" class="btn btn-danger btn-sm" data-on-click="deleteProfile()">🗑 Usuń master</button>
       <div style="display:flex;gap:8px;align-items:center">
         <span id="edSaveErr" style="font-size:11px;color:#dc2626"></span>
-        <button type="button" class="btn btn-outline btn-sm" onclick="closeEditor()">Anuluj</button>
-        <button type="button" class="btn btn-primary btn-sm" id="edSaveBtn" onclick="saveEdit()">💾 Zapisz</button>
+        <button type="button" class="btn btn-outline btn-sm" data-on-click="closeEditor()">Anuluj</button>
+        <button type="button" class="btn btn-primary btn-sm" id="edSaveBtn" data-on-click="saveEdit()">💾 Zapisz</button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- ═══════════════════════════════════════ FIELD PICKER -->
-<div id="fpOverlay" style="display:none;position:fixed;inset:0;z-index:1100" onclick="hideFieldPicker()"></div>
+<div id="fpOverlay" style="display:none;position:fixed;inset:0;z-index:1100" data-on-click="hideFieldPicker()"></div>
 <div id="fpBox" class="fp-box" style="display:none;top:50%;left:50%;transform:translate(-50%,-50%)">
   <div style="padding:10px 12px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:8px;flex-shrink:0">
     <span style="font-size:13px;font-weight:700;flex:1">📌 Wybierz strefę</span>
-    <button type="button" onclick="hideFieldPicker()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280;line-height:1">×</button>
+    <button type="button" data-on-click="hideFieldPicker()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280;line-height:1">×</button>
   </div>
   <div class="fp-search">
-    <input id="fpSearch" placeholder="Szukaj strefy…" oninput="renderFpList()" onkeydown="fpKeydown(event)">
+    <input id="fpSearch" placeholder="Szukaj strefy…" data-on-input="renderFpList()" data-on-keydown="fpKeydown(event)">
   </div>
   <div class="fp-list" id="fpList"></div>
 </div>
@@ -478,13 +478,13 @@
      z-index:500;max-height:50vh;display:flex;flex-direction:column;">
   <div style="padding:10px 14px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:8px;flex-shrink:0">
     <span style="font-size:13px;font-weight:700;flex:1">⬆ Kolejka uploadów</span>
-    <button type="button" class="btn btn-primary btn-sm" id="qRunBtn" onclick="runUpload()">⬆ Wgraj mastery</button>
-    <button type="button" class="btn btn-outline btn-sm" onclick="clearQueue()">✕</button>
+    <button type="button" class="btn btn-primary btn-sm" id="qRunBtn" data-on-click="runUpload()">⬆ Wgraj mastery</button>
+    <button type="button" class="btn btn-outline btn-sm" data-on-click="clearQueue()">✕</button>
   </div>
   <div id="queueList" style="overflow-y:auto;padding:8px;flex:1"></div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 // ═══════════════════════════════════════════════════════════ STATE
 var _profiles = [];       // all profiles from API
 var _currentPath = '';    // current folder path
@@ -589,7 +589,7 @@ function renderTreeNodes(nodes, depth) {
     const children = buildTree(n.path);
     return `<div>
       <div class="tree-row${active?' active':''}" style="padding-left:${8+depth*16}px"
-           onclick="_nav('${esc(escJS(n.path))}')">
+           data-on-click="_nav('${esc(escJS(n.path))}')">
         <span class="tree-icon">${children.length?'📂':'📁'}</span>
         <span class="tree-name">${esc(n.name)}</span>
         <span class="tree-count">${n.count}</span>
@@ -603,7 +603,7 @@ function renderTree() {
   const nodes = buildTree('');
   const rootActive = _currentPath === '';
   document.getElementById('libTree').innerHTML =
-    `<div class="tree-row${rootActive?' active':''}" onclick="_nav('')">
+    `<div class="tree-row${rootActive?' active':''}" data-on-click="_nav('')">
        <span class="tree-icon">🏠</span>
        <span class="tree-name">Wszystkie mastery</span>
        <span class="tree-count">${_profiles.length}</span>
@@ -622,11 +622,11 @@ function renderContent() {
 
   // Breadcrumb
   const segs = _currentPath ? _currentPath.split('/') : [];
-  let bc = `<span class="bc-link" onclick="_nav('')">🏠 Główna</span>`;
+  let bc = `<span class="bc-link" data-on-click="_nav('')">🏠 Główna</span>`;
   segs.forEach((s, i) => {
     bc += `<span class="bc-sep"> / </span>`;
     if (i < segs.length-1)
-      bc += `<span class="bc-link" onclick="_nav('${esc(escJS(segs.slice(0,i+1).join('/')))}')">${esc(s)}</span>`;
+      bc += `<span class="bc-link" data-on-click="_nav('${esc(escJS(segs.slice(0,i+1).join('/')))}')">${esc(s)}</span>`;
     else bc += `<span class="bc-cur">${esc(s)}</span>`;
   });
   document.getElementById('libBc').innerHTML = bc;
@@ -640,9 +640,9 @@ function renderContent() {
       const mapped = _profiles.filter(p=>p.field_count>0).length;
       const uses = _profiles.reduce((s,p)=>s+(p.use_count||0),0);
       html += `<div class="stats-row">
-        <div class="stat-box" style="cursor:pointer${_mapFilter==='all'?';outline:2px solid #15803d':''}" onclick="setMapFilter('all')"><div class="stat-num" style="color:#15803d">${total}</div><div class="stat-lbl">Wszystkich</div></div>
-        <div class="stat-box" style="cursor:pointer${_mapFilter==='mapped'?';outline:2px solid #1d4ed8':''}" onclick="setMapFilter('mapped')"><div class="stat-num" style="color:#1d4ed8">${mapped}</div><div class="stat-lbl">Zmapowanych</div></div>
-        <div class="stat-box" style="cursor:pointer${_mapFilter==='unmapped'?';outline:2px solid #b45309':''}" onclick="setMapFilter('unmapped')"><div class="stat-num" style="color:#b45309">${total-mapped}</div><div class="stat-lbl">Do mapowania ⚠</div></div>
+        <div class="stat-box" style="cursor:pointer${_mapFilter==='all'?';outline:2px solid #15803d':''}" data-on-click="setMapFilter('all')"><div class="stat-num" style="color:#15803d">${total}</div><div class="stat-lbl">Wszystkich</div></div>
+        <div class="stat-box" style="cursor:pointer${_mapFilter==='mapped'?';outline:2px solid #1d4ed8':''}" data-on-click="setMapFilter('mapped')"><div class="stat-num" style="color:#1d4ed8">${mapped}</div><div class="stat-lbl">Zmapowanych</div></div>
+        <div class="stat-box" style="cursor:pointer${_mapFilter==='unmapped'?';outline:2px solid #b45309':''}" data-on-click="setMapFilter('unmapped')"><div class="stat-num" style="color:#b45309">${total-mapped}</div><div class="stat-lbl">Do mapowania ⚠</div></div>
         <div class="stat-box"><div class="stat-num" style="color:#c2410c">${uses}</div><div class="stat-lbl">Porównania</div></div>
       </div>`;
     }
@@ -651,7 +651,7 @@ function renderContent() {
     if (subfolders.length) {
       html += `<p class="section-head">Podfoldery</p><div class="folder-grid">`;
       subfolders.forEach(sf => {
-        html += `<div class="folder-card" onclick="_nav('${esc(escJS(sf.path))}')">
+        html += `<div class="folder-card" data-on-click="_nav('${esc(escJS(sf.path))}')">
           <div style="font-size:28px">📁</div>
           <div><div class="folder-card-name">${esc(sf.name)}</div>
           <div class="folder-card-meta">${sf.count} masterów${sf.mapped?' · '+sf.mapped+' zmapowanych':''}</div></div>
@@ -694,7 +694,7 @@ function renderContent() {
       const refs = parseRefs(p.ref_list_json).slice(0,2);
       const thumbSrc = `/api/artwork/profiles/${p.id}/thumb`;
       const thumbEl = p.has_thumb
-        ? `<img class="card-thumb" src="${thumbSrc}" loading="lazy" alt="" onerror="this.style.display='none'">`
+        ? `<img class="card-thumb" src="${thumbSrc}" loading="lazy" alt="" data-on-error="hideSelf()">`
         : `<div class="card-thumb-empty">📄</div>`;
       const mBadge = p.field_count > 0
         ? `<div class="mapped-badge mapped-yes">✓ ${p.field_count} pól</div>`
@@ -702,7 +702,7 @@ function renderContent() {
       const refBadges = refs.map(r=>`<span class="badge bg-purple" style="font-size:9px">${esc(r)}</span>`).join('');
       const eanBadge = p.ean ? `<span class="badge bg-gray" style="font-size:9px;font-family:monospace">${esc(p.ean)}</span>` : '';
       const useBadge = p.use_count > 0 ? `<span class="badge bg-blue">▶ ${p.use_count}×</span>` : '';
-      html += `<div class="master-card${p.field_count===0?' unmapped':''}" onclick="openEditor(${p.id})">
+      html += `<div class="master-card${p.field_count===0?' unmapped':''}" data-on-click="openEditor(${p.id})">
         ${mBadge}${thumbEl}
         <div class="card-body">
           <div class="card-name" title="${esc(p.name)}">${esc(p.name)}</div>
@@ -716,10 +716,10 @@ function renderContent() {
 
   // Upload drop zone
   html += `<div class="upload-zone" id="uploadZone"
-    ondragover="event.preventDefault();this.classList.add('drag-over')"
-    ondragleave="this.classList.remove('drag-over')"
-    ondrop="event.preventDefault();this.classList.remove('drag-over');onDrop(event)"
-    onclick="document.getElementById('bulkFileInput').click()">
+    data-on-dragover="event.preventDefault();bulkDragOver()"
+    data-on-dragleave="bulkDragLeave()"
+    data-on-drop="event.preventDefault();bulkDragLeave();onDrop(event)"
+    data-on-click="clickById('bulkFileInput')">
     <div style="font-size:28px">📦</div>
     <p>Przeciągnij PDF-y masterów tutaj lub kliknij<br>
     <strong>${esc(_currentPath || 'Katalog główny')}</strong></p>
@@ -735,6 +735,9 @@ function onFilesSelected(input) {
   if (!files.length) return;
   addToQueue(files);
 }
+
+function bulkDragOver() { this.classList.add('drag-over'); }
+function bulkDragLeave() { this.classList.remove('drag-over'); }
 
 function onDrop(evt) {
   const files = [...evt.dataTransfer.files].filter(f => f.name.toLowerCase().endsWith('.pdf'));
@@ -1009,9 +1012,9 @@ async function deleteProfile() {
 // ── REF tags ──
 function renderEdRefs() {
   document.getElementById('edRefTags').innerHTML =
-    _edRefs.map((r,i)=>`<span class="ref-tag">${esc(r)}<button type="button" onclick="removeRef(${i})">×</button></span>`).join('') +
+    _edRefs.map((r,i)=>`<span class="ref-tag">${esc(r)}<button type="button" data-on-click="removeRef(${i})">×</button></span>`).join('') +
     '<input id="edRefTagInput" class="ref-input" placeholder="REF…" style="flex:1" ' +
-    'onkeydown="if(event.key===\'Enter\'||event.key===\',\'){event.preventDefault();addRef()}" onblur="addRef()">';
+    'data-on-keydown="onKeys([\'Enter\',\',\'],\'addRef\',event)" data-on-blur="addRef()">';
 }
 function addRef() {
   const inp = document.getElementById('edRefNew') || document.getElementById('edRefTagInput');
@@ -1037,7 +1040,7 @@ function renderFieldList() {
   if (aEl) aEl.textContent = analyzeCnt ? analyzeCnt+' analizuj' : '';
   if (sEl) sEl.textContent = skipCnt ? skipCnt+' pomijaj' : '';
   document.getElementById('edFieldList').innerHTML = _edFields.map((f,i)=>`
-    <div class="fi${_edSelectedIdx===i?' active':''}${f.skip_analysis?' skip-item':''}" onclick="selectField(${i})">
+    <div class="fi${_edSelectedIdx===i?' active':''}${f.skip_analysis?' skip-item':''}" data-on-click="selectField(${i})">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:3px">
         <div class="fi-name" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
           ${esc(f.display_name||f.field_name||'Pole '+i)}</div>
@@ -1095,10 +1098,10 @@ function renderRects() {
     const sel = _edSelectedIdx === i;
     const skip = f.skip_analysis ? 1 : 0;
     const handles = sel ? ['nw','n','ne','w','e','sw','s','se'].map(h=>
-      `<div class="rh rh-${h}" onmousedown="startResize(event,${i},'${h}')"></div>`).join('') : '';
+      `<div class="rh rh-${h}" data-on-mousedown="startResize(event,${i},'${h}')"></div>`).join('') : '';
     return `<div class="f-rect sev-${f.severity||'critical'}${sel?' selected':''}${skip?' skip':''}"
       style="left:${f.x1_pct}%;top:${f.y1_pct}%;width:${f.x2_pct-f.x1_pct}%;height:${f.y2_pct-f.y1_pct}%"
-      onmousedown="startMove(event,${i})">
+      data-on-mousedown="startMove(event,${i})">
       <div class="f-label">${esc((f.size_label?f.size_label+' · ':'')+(f.display_name||f.field_name||''))}</div>
       ${handles}
     </div>`;
@@ -1374,7 +1377,7 @@ function renderFpList() {
   if (dbItems.length) {
     dbItems.forEach(f => {
       const used = usedIds.has(f.id);
-      html += `<div class="fp-item${used?' used':''}" onclick="pickDbField('${esc(f.id)}','${esc(f.display_name)}','${esc(f.severity)}','${esc(f.display_layout||'side_by_side')}')">
+      html += `<div class="fp-item${used?' used':''}" data-on-click="pickDbField('${esc(f.id)}','${esc(f.display_name)}','${esc(f.severity)}','${esc(f.display_layout||'side_by_side')}')">
         <span class="fp-sev fp-sev-${f.severity}"></span>
         <span style="flex:1">${esc(f.display_name)}</span>
         ${used?'<span style="font-size:10px;color:#9ca3af" aria-hidden="true">✓</span>':''}
@@ -1519,10 +1522,10 @@ async function loadFieldDict() {
       html += '<td style="padding:8px 10px;font-size:12px;color:#374151">' + (layout === 'stacked' ? '⬜ Dół' : '⬛ Bok') + (rot ? ' ↻'+rot+'°' : '') + '</td>';
       html += '<td style="padding:8px 10px;text-align:center">';
       if (item.in_dict) {
-        html += '<button type="button" onclick="showEditFieldDictModal(' + item.id + ',\'' + esc(escJS(item.display_name)) + '\',\'' + esc(escJS(sev)) + '\',\'' + esc(escJS(layout)) + '\',' + rot + ',\'' + esc(escJS(mode)) + '\',' + tol + ')" style="font-size:12px;padding:3px 10px;border:1px solid #d1d5db;border-radius:4px;background:#fff;cursor:pointer;margin-right:4px">Edytuj</button>';
-        html += '<button type="button" onclick="deleteFieldDictRow(' + item.id + ')" style="font-size:12px;padding:3px 10px;border:1px solid #fca5a5;border-radius:4px;background:#fff;color:#dc2626;cursor:pointer">Usuń</button>';
+        html += '<button type="button" data-on-click="showEditFieldDictModal(' + item.id + ',\'' + esc(escJS(item.display_name)) + '\',\'' + esc(escJS(sev)) + '\',\'' + esc(escJS(layout)) + '\',' + rot + ',\'' + esc(escJS(mode)) + '\',' + tol + ')" style="font-size:12px;padding:3px 10px;border:1px solid #d1d5db;border-radius:4px;background:#fff;cursor:pointer;margin-right:4px">Edytuj</button>';
+        html += '<button type="button" data-on-click="deleteFieldDictRow(' + item.id + ')" style="font-size:12px;padding:3px 10px;border:1px solid #fca5a5;border-radius:4px;background:#fff;color:#dc2626;cursor:pointer">Usuń</button>';
       } else {
-        html += '<button type="button" onclick="addFromProfileField(\'' + esc(escJS(item.display_name)) + '\',\'' + esc(escJS(sev)) + '\')" style="font-size:12px;padding:3px 10px;border:1px solid #d1d5db;border-radius:4px;background:#fff;cursor:pointer">Dodaj do słownika</button>';
+        html += '<button type="button" data-on-click="addFromProfileField(\'' + esc(escJS(item.display_name)) + '\',\'' + esc(escJS(sev)) + '\')" style="font-size:12px;padding:3px 10px;border:1px solid #d1d5db;border-radius:4px;background:#fff;cursor:pointer">Dodaj do słownika</button>';
       }
       html += '</td></tr>';
     });
@@ -1636,5 +1639,7 @@ async function deleteFieldDictRow(id) {
 
 // ═══════════════════════════════════════════════════════════ BOOT
 document.addEventListener('DOMContentLoaded', libInit);
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('_nav', 'addFromProfileField', 'addRef', 'bulkDragLeave', 'bulkDragOver', 'clearQueue', 'closeEditor', 'closeFieldDictModal', 'cmDown', 'cmMove', 'cmUp', 'delSelField', 'deleteFieldDictRow', 'deleteProfile', 'fdModeChanged', 'fpKeydown', 'hideFieldPicker', 'loadStorageInfo', 'newFolderPrompt', 'onDrop', 'onEditorPdf', 'onFilesSelected', 'openEditor', 'pickDbField', 'removeRef', 'renderContent', 'renderFpList', 'renderRects', 'runAiDetect', 'runUpload', 'saveEdit', 'saveFieldDictModal', 'selectField', 'setMapFilter', 'setZoom', 'showAddFieldDictModal', 'showEditFieldDictModal', 'startMove', 'startResize', 'switchTab', 'toggleSkip', 'updateSelField', 'zoomFit', 'zoomIn', 'zoomOut');
 </script>
 {% endblock %}

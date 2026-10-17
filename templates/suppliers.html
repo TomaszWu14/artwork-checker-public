@@ -113,9 +113,9 @@ table.dt tr.inactive td{opacity:.55}
     <div style="flex:1"></div>
     {% if is_admin %}
     <div style="display:flex;gap:6px;align-items:center">
-      <button type="button" class="btn btn-outline btn-sm" onclick="exportAllProfiles()">⬇ Eksport JSON</button>
+      <button type="button" class="btn btn-outline btn-sm" data-on-click="exportAllProfiles()">⬇ Eksport JSON</button>
       <label class="btn btn-outline btn-sm" style="cursor:pointer">⬆ Import JSON
-        <input type="file" accept=".json" style="display:none" onchange="importProfiles(this)">
+        <input type="file" accept=".json" style="display:none" data-on-change="importProfiles(this)">
       </label>
     </div>
     {% endif %}
@@ -123,8 +123,8 @@ table.dt tr.inactive td{opacity:.55}
 
   <!-- Toolbar -->
   <div class="toolbar">
-    <input id="searchInput" placeholder="Szukaj dostawcy, kodu, kraju…" oninput="applyFilters()">
-    <select id="filterStatus" onchange="applyFilters()">
+    <input id="searchInput" placeholder="Szukaj dostawcy, kodu, kraju…" data-on-input="applyFilters()">
+    <select id="filterStatus" data-on-change="applyFilters()">
       <option value="">Wszystkie</option>
       <option value="active">Aktywne</option>
       <option value="full">PI+PO skonfigurowane</option>
@@ -132,15 +132,15 @@ table.dt tr.inactive td{opacity:.55}
       <option value="none">Bez mapowania</option>
       <option value="inactive">Nieaktywne</option>
     </select>
-    <select id="sortBy" onchange="applyFilters()">
+    <select id="sortBy" data-on-change="applyFilters()">
       <option value="name">A–Z nazwa</option>
       <option value="comps">Najczęściej używane</option>
       <option value="config">Skonfigurowanie</option>
     </select>
     <span style="font-size:12px;color:#6b7280" id="countLabel">{{ total }} dostawców</span>
     <div style="margin-left:auto" class="view-toggle">
-      <button type="button" class="view-btn active" id="btnGrid" onclick="setView('grid')">⊞</button>
-      <button type="button" class="view-btn" id="btnList" onclick="setView('list')">☰</button>
+      <button type="button" class="view-btn active" id="btnGrid" data-on-click="setView('grid')">⊞</button>
+      <button type="button" class="view-btn" id="btnList" data-on-click="setView('list')">☰</button>
     </div>
   </div>
 
@@ -229,11 +229,11 @@ table.dt tr.inactive td{opacity:.55}
           <div style="flex:1"></div>
           {% if is_admin %}
           <a href="/suppliers/wizard/{{ s.id }}" class="btn btn-outline btn-sm">✏ Edytuj</a>
-          <button type="button" class="btn btn-outline btn-sm" onclick="showAudit({{ s.id }}, {{ s.name|tojson|e }})">📋</button>
-          <button type="button" class="btn-danger btn-sm" onclick="toggleActive({{ s.id }}, {{ 0 if s.active else 1 }})">{{ '⏸' if s.active else '▶' }}</button>
-          <button type="button" class="btn-danger btn-sm" onclick="delSupplier({{ s.id }})">🗑</button>
+          <button type="button" class="btn btn-outline btn-sm" data-on-click="showAudit({{ s.id }}, {{ s.name|tojson|forceescape }})">📋</button>
+          <button type="button" class="btn-danger btn-sm" data-on-click="toggleActive({{ s.id }}, {{ 0 if s.active else 1 }})">{{ '⏸' if s.active else '▶' }}</button>
+          <button type="button" class="btn-danger btn-sm" data-on-click="delSupplier({{ s.id }})">🗑</button>
           {% else %}
-          <button type="button" class="btn btn-outline btn-sm" onclick="showAudit({{ s.id }}, {{ s.name|tojson|e }})">📋 Historia</button>
+          <button type="button" class="btn btn-outline btn-sm" data-on-click="showAudit({{ s.id }}, {{ s.name|tojson|forceescape }})">📋 Historia</button>
           {% endif %}
         </div>
       </div>
@@ -319,10 +319,10 @@ table.dt tr.inactive td{opacity:.55}
               <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap">
                 {% if is_admin %}
                 <a href="/suppliers/wizard/{{ s.id }}" class="btn btn-outline btn-sm">✏</a>
-                <button type="button" class="btn btn-outline btn-sm" onclick="showAudit({{ s.id }}, {{ s.name|tojson|e }})">📋</button>
-                <button type="button" class="btn-danger btn-sm" onclick="toggleActive({{ s.id }}, {{ 0 if s.active else 1 }})">{{ '⏸' if s.active else '▶' }}</button>
+                <button type="button" class="btn btn-outline btn-sm" data-on-click="showAudit({{ s.id }}, {{ s.name|tojson|forceescape }})">📋</button>
+                <button type="button" class="btn-danger btn-sm" data-on-click="toggleActive({{ s.id }}, {{ 0 if s.active else 1 }})">{{ '⏸' if s.active else '▶' }}</button>
                 {% else %}
-                <button type="button" class="btn btn-outline btn-sm" onclick="showAudit({{ s.id }}, {{ s.name|tojson|e }})">📋</button>
+                <button type="button" class="btn btn-outline btn-sm" data-on-click="showAudit({{ s.id }}, {{ s.name|tojson|forceescape }})">📋</button>
                 {% endif %}
               </div>
             </td>
@@ -335,17 +335,17 @@ table.dt tr.inactive td{opacity:.55}
 </div>
 
 <!-- Audit modal -->
-<div class="ov" id="ov" onclick="if(event.target===this)closeOv()" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+<div class="ov" id="ov" data-on-click="onSelf('closeOv',event)" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
   <div class="modal">
     <div class="modal-hdr">
       <h3 id="modalTitle">Historia zmian</h3>
-      <button type="button" class="btn btn-outline btn-sm" onclick="closeOv()">✕ Zamknij</button>
+      <button type="button" class="btn btn-outline btn-sm" data-on-click="closeOv()">✕ Zamknij</button>
     </div>
     <div id="modalBody"></div>
   </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 // ── Filter / sort ─────────────────────────────────────────────────────────────
 var _view = 'grid';
 
@@ -469,5 +469,7 @@ async function importProfiles(inp){
   if(ok>0) location.reload();
 }
 function esc(s){ /* US-008: jedno kanoniczne escapowanie HTML (& < > " ') */ return (s==null||s===false)?'':String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('applyFilters', 'closeOv', 'delSupplier', 'exportAllProfiles', 'importProfiles', 'setView', 'showAudit', 'toggleActive');
 </script>
 {% endblock %}

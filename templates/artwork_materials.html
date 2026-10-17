@@ -119,21 +119,21 @@ table.md-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   <div class="md-toolbar">
     <h1>📦 Master Data Materiałowa</h1>
     <div class="sep"></div>
-    <input id="mdSearch" class="md-filter" type="text" placeholder="Szukaj REF lub nazwy…" oninput="debouncedLoad()" style="min-width:200px">
-    <select id="mdFilterFamily" class="md-filter" onchange="loadMaterials()">
+    <input id="mdSearch" class="md-filter" type="text" placeholder="Szukaj REF lub nazwy…" data-on-input="debouncedLoad()" style="min-width:200px">
+    <select id="mdFilterFamily" class="md-filter" data-on-change="loadMaterials()">
       <option value="">Wszystkie rodziny</option>
     </select>
-    <select id="mdFilterStatus" class="md-filter" onchange="loadMaterials()">
+    <select id="mdFilterStatus" class="md-filter" data-on-change="loadMaterials()">
       <option value="">Wszystkie statusy</option>
       <option value="complete">✅ Kompletne</option>
       <option value="partial">⚠ Częściowe</option>
       <option value="none">❌ Niezmapowane</option>
     </select>
     <div class="sep"></div>
-    <button type="button" class="btn btn-primary" onclick="openAddMat()">+ Dodaj REF</button>
-    <button type="button" class="btn btn-outline" onclick="openImportCsv()">📥 Import CSV</button>
-    <button type="button" class="btn btn-outline" onclick="exportCsv()">📤 Eksport CSV</button>
-    <button type="button" class="btn btn-outline" onclick="openLevelTypes()" title="Zarządzaj typami poziomów opakowań">⚙ Poziomy</button>
+    <button type="button" class="btn btn-primary" data-on-click="openAddMat()">+ Dodaj REF</button>
+    <button type="button" class="btn btn-outline" data-on-click="openImportCsv()">📥 Import CSV</button>
+    <button type="button" class="btn btn-outline" data-on-click="exportCsv()">📤 Eksport CSV</button>
+    <button type="button" class="btn btn-outline" data-on-click="openLevelTypes()" title="Zarządzaj typami poziomów opakowań">⚙ Poziomy</button>
   </div>
 
   <!-- ── Stats bar ── -->
@@ -160,7 +160,7 @@ table.md-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   <div class="modal-box">
     <div class="modal-head">
       <h3 id="matModalTitle">Dodaj materiał</h3>
-      <button type="button" class="modal-close" onclick="closeMatModal()" aria-label="Zamknij">✕</button>
+      <button type="button" class="modal-close" data-on-click="closeMatModal()" aria-label="Zamknij">✕</button>
     </div>
     <input type="hidden" id="matModalId">
     <div class="form-row">
@@ -184,8 +184,8 @@ table.md-table { width: 100%; border-collapse: collapse; font-size: 13px; }
       <input id="matNotes" class="form-input" type="text" placeholder="Opcjonalne uwagi…">
     </div>
     <div class="form-actions">
-      <button type="button" class="btn btn-outline" onclick="closeMatModal()">Anuluj</button>
-      <button type="button" class="btn btn-primary" onclick="saveMat()">Zapisz</button>
+      <button type="button" class="btn btn-outline" data-on-click="closeMatModal()">Anuluj</button>
+      <button type="button" class="btn btn-primary" data-on-click="saveMat()">Zapisz</button>
     </div>
   </div>
 </div>
@@ -195,13 +195,13 @@ table.md-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   <div class="modal-box wide">
     <div class="modal-head">
       <h3 id="assignModalTitle">Przypisz artwork</h3>
-      <button type="button" class="modal-close" onclick="closeAssignModal()" aria-label="Zamknij">✕</button>
+      <button type="button" class="modal-close" data-on-click="closeAssignModal()" aria-label="Zamknij">✕</button>
     </div>
     <p id="assignModalSub" style="font-size:12px;color:#6b7280;margin:-8px 0 14px"></p>
     <div class="assign-grid" id="assignGrid"></div>
     <div class="form-actions">
-      <button type="button" class="btn btn-outline" onclick="closeAssignModal()">Zamknij</button>
-      <button type="button" class="btn btn-primary" onclick="saveAllLevels()">Zapisz wszystkie poziomy</button>
+      <button type="button" class="btn btn-outline" data-on-click="closeAssignModal()">Zamknij</button>
+      <button type="button" class="btn btn-primary" data-on-click="saveAllLevels()">Zapisz wszystkie poziomy</button>
     </div>
   </div>
 </div>
@@ -211,7 +211,7 @@ table.md-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   <div class="modal-box">
     <div class="modal-head">
       <h3 id="importModalTitle">Import CSV</h3>
-      <button type="button" class="modal-close" onclick="document.getElementById('importModal').classList.remove('open')" aria-label="Zamknij">✕</button>
+      <button type="button" class="modal-close" data-on-click="removeClassById('importModal','open')" aria-label="Zamknij">✕</button>
     </div>
     <div class="csv-hint">
       Wymagana kolumna: <code>ref_code</code><br>
@@ -225,8 +225,8 @@ table.md-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     </div>
     <div id="importResult" style="display:none;margin-top:8px;font-size:13px;padding:10px;border-radius:6px;background:#f0fdf4;color:#065f46"></div>
     <div class="form-actions">
-      <button type="button" class="btn btn-outline" onclick="document.getElementById('importModal').classList.remove('open')">Anuluj</button>
-      <button type="button" class="btn btn-primary" onclick="runImport()">Importuj</button>
+      <button type="button" class="btn btn-outline" data-on-click="removeClassById('importModal','open')">Anuluj</button>
+      <button type="button" class="btn btn-primary" data-on-click="runImport()">Importuj</button>
     </div>
   </div>
 </div>
@@ -236,7 +236,7 @@ table.md-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   <div class="modal-box">
     <div class="modal-head">
       <h3 id="ltModalTitle">Poziomy opakowań</h3>
-      <button type="button" class="modal-close" onclick="document.getElementById('ltModal').classList.remove('open')" aria-label="Zamknij">✕</button>
+      <button type="button" class="modal-close" data-on-click="removeClassById('ltModal','open')" aria-label="Zamknij">✕</button>
     </div>
     <p style="font-size:12px;color:#6b7280;margin:-4px 0 12px">Zdefiniuj hierarchię poziomów opakowań obowiązującą dla wszystkich REF-ów.</p>
     <div id="ltList" style="margin-bottom:12px"></div>
@@ -244,15 +244,15 @@ table.md-table { width: 100%; border-collapse: collapse; font-size: 13px; }
       <input id="ltNewCode" class="form-input" type="text" placeholder="Kod (np. display)" style="width:110px">
       <input id="ltNewLabel" class="form-input" type="text" placeholder="Etykieta (np. Display Box)" style="flex:1">
       <input id="ltNewColor" type="color" value="#6b7280" style="width:36px;height:36px;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;padding:2px">
-      <button type="button" class="btn btn-primary btn-sm" onclick="addLevelType()">Dodaj</button>
+      <button type="button" class="btn btn-primary btn-sm" data-on-click="addLevelType()">Dodaj</button>
     </div>
     <div class="form-actions" style="margin-top:12px">
-      <button type="button" class="btn btn-primary" onclick="document.getElementById('ltModal').classList.remove('open');loadMaterials()">Gotowe</button>
+      <button type="button" class="btn btn-primary" data-on-click="removeClassById('ltModal','open');loadMaterials()">Gotowe</button>
     </div>
   </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 // ═══════════════════════════════════════════════════════════ STATE
 let _levelTypes = [];
 let _profiles = [];
@@ -324,7 +324,7 @@ function renderTable(d) {
 
   // Header
   let h = '<tr>';
-  h += '<th style="width:32px"><input type="checkbox" onchange="toggleAll(this)"></th>';
+  h += '<th style="width:32px"><input type="checkbox" data-on-change="toggleAll(this)"></th>';
   h += '<th>REF</th><th>Nazwa</th><th>Rodzina</th>';
   lts.forEach(lt => {
     h += `<th class="lvl-cell"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${esc(lt.color)};margin-right:4px"></span>${esc(lt.label)}</th>`;
@@ -353,9 +353,9 @@ function renderTable(d) {
         const mtype = lv.mapping_type || 'direct';
         const cls = mtype === 'inherited' ? 'inherited' : 'mapped';
         const icon = mtype === 'inherited' ? '🔗' : '✅';
-        rows += `<span class="lvl-badge ${cls}" title="${esc(lv.profile_name)}" onclick="openAssign(${m.id})">${icon} ${esc((lv.profile_name||'').substring(0,18))}</span>`;
+        rows += `<span class="lvl-badge ${cls}" title="${esc(lv.profile_name)}" data-on-click="openAssign(${m.id})">${icon} ${esc((lv.profile_name||'').substring(0,18))}</span>`;
       } else {
-        rows += `<span class="lvl-badge empty" onclick="openAssign(${m.id})">+ Przypisz</span>`;
+        rows += `<span class="lvl-badge empty" data-on-click="openAssign(${m.id})">+ Przypisz</span>`;
       }
       rows += `</td>`;
     });
@@ -366,8 +366,8 @@ function renderTable(d) {
     else if (m.assigned > 0) { scls = 'partial'; slbl = `⚠ ${m.assigned}/${m.total}`; }
     rows += `<td><span class="status-pill ${scls}">${slbl}</span></td>`;
     rows += `<td style="white-space:nowrap">
-      <button type="button" class="btn btn-outline btn-sm" onclick="openEditMat(${m.id})" title="Edytuj" aria-label="Edytuj ${esc(m.ref_code)}">✏</button>
-      <button type="button" class="btn btn-outline btn-sm" style="color:#dc2626" onclick="deleteMat(${m.id},'${esc(m.ref_code)}')" title="Usuń" aria-label="Usuń ${esc(m.ref_code)}">🗑</button>
+      <button type="button" class="btn btn-outline btn-sm" data-on-click="openEditMat(${m.id})" title="Edytuj" aria-label="Edytuj ${esc(m.ref_code)}">✏</button>
+      <button type="button" class="btn btn-outline btn-sm" style="color:#dc2626" data-on-click="deleteMat(${m.id},'${esc(m.ref_code)}')" title="Usuń" aria-label="Usuń ${esc(m.ref_code)}">🗑</button>
     </td>`;
     rows += '</tr>';
   });
@@ -460,7 +460,7 @@ function openAssign(mid) {
     const srcMid = lv.source_material_id || '';
     html += `<div class="assign-row">
       <span class="assign-lvl-badge" style="background:${esc(lt.color)}20;color:${esc(lt.color)};border:1px solid ${esc(lt.color)}40">${esc(lt.label)}</span>
-      <select class="assign-select" id="asel_${lt.id}" onchange="updateAssignType(${lt.id})">
+      <select class="assign-select" id="asel_${lt.id}" data-on-change="updateAssignType(${lt.id})">
         <option value="">— brak przypisania —</option>
         ${_profiles.map(p => `<option value="${p.id}"${p.id==pid?' selected':''}>${esc(p.name)}</option>`).join('')}
       </select>
@@ -544,7 +544,7 @@ function renderLtList() {
       <span class="lt-color-dot" style="background:${esc(lt.color)}"></span>
       <span class="lt-code">${esc(lt.code)}</span>
       <span class="lt-label">${esc(lt.label)}</span>
-      <button type="button" class="btn btn-outline btn-sm" style="color:#dc2626;margin-left:auto" onclick="deleteLevelType(${lt.id},'${esc(lt.label)}')">Usuń</button>
+      <button type="button" class="btn btn-outline btn-sm" style="color:#dc2626;margin-left:auto" data-on-click="deleteLevelType(${lt.id},'${esc(lt.label)}')">Usuń</button>
     </div>`;
   });
   document.getElementById('ltList').innerHTML = html || '<p style="color:#9ca3af;font-size:13px">Brak poziomów.</p>';
@@ -574,5 +574,7 @@ async function deleteLevelType(id, label) {
     renderLtList();
   }, {okLabel: 'Usuń', danger: true});
 }
+// US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
+CspActions.allow('addLevelType', 'closeAssignModal', 'closeMatModal', 'debouncedLoad', 'deleteLevelType', 'deleteMat', 'exportCsv', 'loadMaterials', 'openAddMat', 'openAssign', 'openEditMat', 'openImportCsv', 'openLevelTypes', 'runImport', 'saveAllLevels', 'saveMat', 'toggleAll', 'updateAssignType');
 </script>
 {% endblock %}

@@ -78,6 +78,6 @@
 
 <div class="no-print" style="margin-top:10px">
   <a href="{{ url_for('artwork_index_page') }}" style="font-size:13px">← Indeks artworków</a>
-  &nbsp;·&nbsp;<a href="#" onclick="window.print();return false" style="font-size:13px">🖨 Drukuj kartę</a>
+  &nbsp;·&nbsp;<a href="#" data-on-click="printPage()" style="font-size:13px">🖨 Drukuj kartę</a>
 </div>
 {% endblock %}
