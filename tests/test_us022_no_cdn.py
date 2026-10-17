@@ -54,7 +54,7 @@ def test_versions_pinned_in_package_json():
 def test_csp_has_no_cdn_hosts():
     pytest.importorskip("flask")
     import app as _app_mod
-    assert not CDN_RE.search(_app_mod._CSP_ENFORCED)
+    assert not CDN_RE.search(_app_mod._csp_enforced("n0nce"))
     assert not CDN_RE.search(_app_mod._csp_report_only("n0nce"))
 
 
