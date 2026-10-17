@@ -502,6 +502,9 @@ def run():
     add_column(db, "users", "last_login", "TEXT")
     add_column(db, "users", "email", "TEXT")
     add_column(db, "users", "is_active", "INTEGER DEFAULT 1")
+    # RODO (US-014): data dezaktywacji (auto-anonimizacja po 30 dniach) i anonimizacji
+    add_column(db, "users", "deactivated_at", "TEXT")
+    add_column(db, "users", "anonymized_at", "TEXT")
     add_column(db, "users", "forwarder_id", "INTEGER")  # spedytor zewnętrzny → firma spedycyjna
     add_column(db, "users", "customs_agency_id", "INTEGER")  # agent celny → agencja celna
 

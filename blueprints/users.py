@@ -5,6 +5,9 @@ blueprints/users.py — zarządzanie kontami przez administratora (US-009, FR-02
   POST  /api/admin/users              nowe konto + link do ustawienia hasła (bez hasła w e-mailu)
   PATCH /api/admin/users/<id>         rola / aktywność / dział / e-mail
   POST  /api/admin/users/<id>/invite  ponowny link ustawienia hasła
+  GET   /api/admin/users/<id>/export  eksport danych konta — RODO art. 15/20 (US-014)
+  POST  /api/admin/users/<id>/anonymize  anonimizacja konta — RODO art. 17 (US-014)
+  GET   /api/profile/export           eksport WŁASNYCH danych (każdy zalogowany)
 
 Zasady: tylko rola admin, CSRF na mutacjach, audyt każdej zmiany, ochrona ostatniego
 aktywnego administratora, admin nie dezaktywuje i nie degraduje samego siebie.
@@ -18,20 +21,26 @@ import os
 import re
 import secrets
 
-from flask import Blueprint, current_app, jsonify, request, session
+import json
+
+from flask import Blueprint, Response, current_app, jsonify, request, session
 from werkzeug.security import generate_password_hash
 
 from constants import INVITE_TOKEN_TTL_HOURS, VALID_ROLES
 from core.accounts import issue_password_token
 from core.audit import log_audit
-from core.security import csrf_protect, require_role
+from core.privacy import anonymize_user, export_user_data
+from core.security import csrf_protect, login_required, require_role
 from db import IntegrityError, get_db
 
 bp = Blueprint("users", __name__)
 
 _USERNAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{2,49}$")
 _EMAIL_RE = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,190}\.[^@\s]{2,63}$")
-_PUBLIC_COLS = "id, username, email, role, COALESCE(is_active,1) AS is_active, department, created_at, last_login"
+_PUBLIC_COLS = (
+    "id, username, email, role, COALESCE(is_active,1) AS is_active, department, created_at, last_login, "
+    "anonymized_at"
+)
 
 
 def _row(db, uid: int):
@@ -132,6 +141,8 @@ def api_users_update(uid):
         user = _row(db, uid)
         if not user:
             return jsonify({"error": "Nie znaleziono konta."}), 404
+        if user["anonymized_at"]:
+            return jsonify({"error": "Konto zostało zanonimizowane — nie można go zmienić."}), 409
         sets, params, changes = [], [], []
         if "role" in data:
             role = str(data.get("role") or "").strip()
@@ -158,6 +169,8 @@ def api_users_update(uid):
                     ), 409
                 sets.append("is_active=?")
                 params.append(active)
+                # RODO (US-014): od tej daty liczy się 30 dni do automatycznej anonimizacji.
+                sets.append("deactivated_at=" + ("NULL" if active else "datetime('now')"))
                 changes.append("aktywowane" if active else "dezaktywowane")
         if "department" in data:
             sets.append("department=?")
@@ -204,3 +217,81 @@ def api_users_invite(uid):
         "user_invite", session.get("username"), f"link ustawienia hasła dla {user['username']}"
     )
     return jsonify({"ok": True, **link})
+
+
+# ── RODO (US-014) ─────────────────────────────────────────────────────────────
+
+
+def _export_response(data: dict, uid: int) -> Response:
+    body = json.dumps(data, ensure_ascii=False, indent=2, default=str)
+    return Response(
+        body,
+        mimetype="application/json",
+        headers={
+            "Content-Disposition": f'attachment; filename="dane-konta-{int(uid)}.json"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+@bp.route("/api/profile/export", methods=["GET"])
+@login_required
+def api_profile_export():
+    uid = session.get("user_id")
+    db = get_db()
+    try:
+        data = export_user_data(db, uid)
+    finally:
+        db.close()
+    if not data:
+        return jsonify({"error": "Nie znaleziono konta."}), 404
+    log_audit("data_export", session.get("username"), "eksport własnych danych (RODO)")
+    return _export_response(data, uid)
+
+
+@bp.route("/api/admin/users/<int:uid>/export", methods=["GET"])
+@require_role("admin")
+def api_users_export(uid):
+    db = get_db()
+    try:
+        data = export_user_data(db, uid)
+    finally:
+        db.close()
+    if not data:
+        return jsonify({"error": "Nie znaleziono konta."}), 404
+    log_audit("data_export", session.get("username"), f"eksport danych konta id={uid} (RODO)")
+    return _export_response(data, uid)
+
+
+@bp.route("/api/admin/users/<int:uid>/anonymize", methods=["POST"])
+@require_role("admin")
+@csrf_protect
+def api_users_anonymize(uid):
+    """Nieodwracalne. Wymaga potwierdzenia nazwą konta: {"confirm": "<username>"}."""
+    data = request.get_json(silent=True) or {}
+    if uid == session.get("user_id"):
+        return jsonify({"error": "Nie możesz zanonimizować własnego konta."}), 400
+    db = get_db()
+    try:
+        user = _row(db, uid)
+        if not user:
+            return jsonify({"error": "Nie znaleziono konta."}), 404
+        if user["anonymized_at"]:
+            return jsonify({"error": "Konto jest już zanonimizowane."}), 409
+        if str(data.get("confirm") or "") != user["username"]:
+            return jsonify({"error": "Potwierdź, wpisując dokładną nazwę konta."}), 400
+        if (
+            user["role"] == "admin"
+            and int(user["is_active"])
+            and _active_admins_except(db, uid) == 0
+        ):
+            return jsonify(
+                {"error": "To ostatni aktywny administrator — nie można go usunąć."}
+            ), 409
+        new_name = anonymize_user(db, uid)
+        updated = dict(_row(db, uid))
+    finally:
+        db.close()
+    # Audyt bez nazwy usuwanej osoby — tylko identyfikator.
+    log_audit("user_anonymize", session.get("username"), f"konto id={uid} → {new_name} (RODO)")
+    return jsonify({"ok": True, "user": updated})

@@ -26,6 +26,7 @@ os.environ.setdefault("SECRET_KEY", "test-integration-secret")
 os.environ["SQLITE_PATH"] = os.path.join(_TMP, "it.db")
 os.environ.pop("DATABASE_URL", None)  # wymuś SQLite + wyłącz secure-cookie (http w teście)
 os.environ.pop("FORCE_HTTPS", None)
+os.environ["DISABLE_PRIVACY_JOBS"] = "1"  # US-014: bez wątku retencji w testach (wywoływany jawnie)
 
 import app as _app_mod  # noqa: E402
 

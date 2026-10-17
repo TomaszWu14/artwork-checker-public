@@ -397,15 +397,18 @@ async function loadUsers(){
   try{
     const r=await fetch('/api/admin/users'); if(!r.ok) throw new Error('HTTP '+r.status);
     const rows=await r.json();
+    window._usersCache = rows;
     body.innerHTML = rows.map(u => `<tr>
       <td>${esc(u.username)}</td><td>${esc(u.email||'—')}</td>
-      <td><select data-on-change="patchUser(${Number(u.id)},{role:this.value})">${ROLES.map(x=>`<option value="${x}"${x===u.role?' selected':''}>${x}</option>`).join('')}</select></td>
+      <td><select ${u.anonymized_at?'disabled':''} data-on-change="patchUser(${Number(u.id)},{role:this.value})">${ROLES.map(x=>`<option value="${x}"${x===u.role?' selected':''}>${x}</option>`).join('')}</select></td>
       <td>${esc(u.department||'—')}</td>
-      <td>${Number(u.is_active)?'<span style="color:var(--ok)">aktywne</span>':'<span style="color:var(--error)">nieaktywne</span>'}</td>
+      <td>${u.anonymized_at?'<span style="color:var(--muted)">zanonimizowane</span>':(Number(u.is_active)?'<span style="color:var(--ok)">aktywne</span>':'<span style="color:var(--error)">nieaktywne</span>')}</td>
       <td>${esc(String(u.last_login||'—').slice(0,16))}</td>
-      <td style="white-space:nowrap">
+      <td style="white-space:nowrap">${u.anonymized_at ? '' : `
         <button type="button" class="badd" data-on-click="patchUser(${Number(u.id)},{is_active:${Number(u.is_active)?'false':'true'}})">${Number(u.is_active)?'Dezaktywuj':'Aktywuj'}</button>
         <button type="button" class="badd" data-on-click="inviteUser(${Number(u.id)})">🔑 Link do hasła</button>
+        <a class="badd" style="display:inline-block;text-decoration:none" href="/api/admin/users/${Number(u.id)}/export" download title="Eksport danych konta (RODO)">⬇ Dane</a>
+        <button type="button" class="badd" data-on-click="anonymizeUser(${Number(u.id)})" title="Usunięcie danych osobowych konta (RODO) — nieodwracalne">Anonimizuj</button>`}
       </td></tr>`).join('') || '<tr><td colspan="7">Brak kont</td></tr>';
   }catch(e){ body.innerHTML = `<tr><td colspan="7" style="color:var(--error)">Błąd: ${esc(e.message)}</td></tr>`; }
 }
@@ -437,6 +440,21 @@ async function inviteUser(id){
   }catch(e){ usersMsg('✕ '+e.message, false); }
 }
 
+// US-014 (RODO art. 17): nieodwracalne — potwierdzenie dokładną nazwą konta.
+async function anonymizeUser(id){
+  const row=(window._usersCache||[]).find(u=>Number(u.id)===Number(id));
+  const name=row?row.username:'';
+  const typed=window.prompt('Anonimizacja jest NIEODWRACALNA: nazwa, e-mail, dział i telefon zostaną usunięte, '
+    +'a dziennik aktywności straci nazwę i IP. Porównania zostają.\n\nAby potwierdzić, wpisz nazwę konta: '+name);
+  if(typed===null) return;
+  try{
+    const r=await fetch('/api/admin/users/'+id+'/anonymize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirm:typed})});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||('HTTP '+r.status));
+    usersMsg('✓ Konto zanonimizowane ('+d.user.username+').', true);
+  }catch(e){ usersMsg('✕ '+e.message, false); }
+  loadUsers();
+}
+
 // ── zakładki panelu admina ─────────────────────────────────────────────────────
 function admTab(name){
   document.querySelectorAll('.adm-pane').forEach(function(p){ p.classList.toggle('active', p.id === 'pane-'+name); });
@@ -450,6 +468,6 @@ loadSystemStatus();
 // Przywróć ostatnio otwartą zakładkę.
 try { var _at = localStorage.getItem('admTab'); if (_at && document.getElementById('pane-'+_at)) { admTab(_at); if (_at === 'users') loadUsers(); } } catch(e){}
 // US-023: funkcje wywoływane z atrybutów data-on-* (static/js/csp_actions.js)
-CspActions.allow('admTab', 'createUser', 'inviteUser', 'loadSystemStatus', 'loadUsers', 'patchUser');
+CspActions.allow('admTab', 'anonymizeUser', 'createUser', 'inviteUser', 'loadSystemStatus', 'loadUsers', 'patchUser');
 </script>
 {% endblock %}

@@ -109,6 +109,7 @@ Copy `.env.example` to `.env` and fill in the values. Required at minimum: `SECR
 | `DATA_DIR` | Persistent data dir for master artwork PDFs (prod) |
 | `PALVIZ_PUSH_URL` / `PALVIZ_API_KEY` | Faza 4 push do PalViz — endpoint + Bearer secret. Bez `PALVIZ_PUSH_URL` push jest wyłączony (rendery zostają `pending`, zero wywołań sieciowych). |
 | `DISABLE_QWEN` | `1` disables the Qwen2.5-VL local OCR model (~12 GB RAM) |
+| `DISABLE_PRIVACY_JOBS` | `1` disables the daily RODO retention/anonymization thread (US-014; tests set it) |
 | `WEB_CONCURRENCY` / `THREADS_PER_WORKER` / `DB_POOL_SIZE` / `LOG_LEVEL` | Gunicorn / pool tuning |
 
 The app starts without `ANTHROPIC_API_KEY`/`MISTRAL_API_KEY`, but AI/OCR-dependent routes error at

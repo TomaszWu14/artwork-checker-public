@@ -1056,6 +1056,9 @@ def _db_run_migrations(db):
         "ALTER TABLE users ADD COLUMN allowed_modules TEXT DEFAULT ''",
         "ALTER TABLE users ADD COLUMN phone TEXT DEFAULT ''",
         "ALTER TABLE users ADD COLUMN avatar_initials TEXT DEFAULT ''",
+        # RODO (US-014): data dezaktywacji (auto-anonimizacja po 30 dniach) i anonimizacji
+        "ALTER TABLE users ADD COLUMN deactivated_at TEXT",
+        "ALTER TABLE users ADD COLUMN anonymized_at TEXT",
         """CREATE TABLE IF NOT EXISTS notifications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -1226,6 +1229,16 @@ try:
         pass
 except Exception as _e:
     logger.critical("init_db() failed at startup — DB schema may be incomplete: %s", _e)
+
+# RODO (US-014): retencja 12 mies. i anonimizacja kont nieaktywnych > 30 dni — raz na dobę w tle.
+# DISABLE_PRIVACY_JOBS=1 wyłącza wątek (testy); ręcznie: python tools/privacy_maintenance.py
+if not os.environ.get("DISABLE_PRIVACY_JOBS"):
+    try:
+        from core.privacy import start_daily_maintenance
+
+        start_daily_maintenance(get_db)
+    except Exception as _e:
+        logger.warning("RODO: nie uruchomiono przeglądu retencji: %s", _e)
 
 
 def _purge_legacy_api_key_setting() -> bool:

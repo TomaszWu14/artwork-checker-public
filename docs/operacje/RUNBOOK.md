@@ -53,6 +53,9 @@ zaloguj się, otwórz historię porównań i kartę artworku. Ostatni test: **br
 - **Logi:** stdout (gunicorn) + `LOG_DIR/app.log` (5×10 MB); poziom `LOG_LEVEL`.
 - **Miejsce na dysku:** `/admin` pokazuje użycie; `/health` ostrzega < 200 MB; `uploads/` czyszczone po porównaniu,
   `artwork3d/` i `glb_cache/` można usunąć (odtwarzalne).
+- **RODO (US-014):** przegląd retencji działa sam (start + raz na dobę): usuwa dziennik/koszty/limity starsze niż
+  12 mies., anonimizuje konta nieaktywne > 30 dni. Ręcznie: `python tools/privacy_maintenance.py` (wypisuje, co
+  zrobił). Wniosek osoby: eksport — admin → Konta → „⬇ Dane”; usunięcie — „Anonimizuj” (nieodwracalne).
 - **Jednorazowo — usunięcie tabel po DocCompare (US-028):** aplikacja już ich nie tworzy, ale istniejące bazy je
   mają. `python tools/drop_relic_tables.py` pokazuje tabele i liczbę wierszy (nic nie usuwa). Usunięcie:
   SQLite — `--apply` (najpierw automatyczna kopia `*.before-US-028-*.bak` obok bazy); PostgreSQL — najpierw
