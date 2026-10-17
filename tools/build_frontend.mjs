@@ -25,7 +25,8 @@ const vendor = [
   ["react/LICENSE", "vendor/react/LICENSE"],
   ["react-dom/umd/react-dom.production.min.js", "vendor/react/react-dom.production.min.js"],
   ["react-dom/LICENSE", "vendor/react/LICENSE.react-dom"],
-  ["alpinejs/dist/cdn.min.js", "vendor/alpinejs/alpine.min.js"],
+  // US-024: build CSP Alpine — wyrażenia bez eval (wymaga Alpine.data dla komponentów).
+  ["@alpinejs/csp/dist/cdn.min.js", "vendor/alpinejs/alpine-csp.min.js"],
   ["@alpinejs/collapse/dist/cdn.min.js", "vendor/alpinejs/collapse.min.js"],
   ["lucide/dist/umd/lucide.min.js", "vendor/lucide/lucide.min.js"],
   ["lucide/LICENSE", "vendor/lucide/LICENSE"],
@@ -35,7 +36,7 @@ for (const [src, dst] of vendor) {
   copyFileSync(nm(src), out(dst));
 }
 // Pakiety Alpine nie zawierają pliku LICENSE — zapisujemy informację o licencji z package.json.
-const alpineNotice = ["alpinejs", "@alpinejs/collapse"].map((name) => {
+const alpineNotice = ["@alpinejs/csp", "@alpinejs/collapse"].map((name) => {
   const pkg = JSON.parse(readFileSync(nm(`${name}/package.json`), "utf8"));
   return `${pkg.name}@${pkg.version} — licencja ${pkg.license} (https://github.com/alpinejs/alpine/blob/main/LICENSE.md)`;
 }).join("\n");
