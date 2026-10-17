@@ -119,6 +119,9 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
 - Given push/PR, When CI „Składnia + testy”, Then `coverage report --fail-under=80` dla zestawu blokuje merge
   przy pokryciu < 80 %; pokrycie całego repo pozostaje raportem informacyjnym.
 - Given zmiana listy modułów lub obniżenie progu w `ci.yml`, When pytest, Then test `test_us013_coverage_gate.py` czerwony.
+### US-029 · Could (PO 2026-10-17: „rób co uważasz najlepsze”) · ✅ (#53) · Usunięcie API `/api/products`
+- Given dowolna rola, When `/api/products*`, Then 404 (5 tras CRUD/import bez UI, dublujących `material_master`).
+- Tabela `products` i `POST /api/materials/migrate-from-products` zostają — dane można przenieść, nic nie jest kasowane.
 ### US-014 · Could · ✅ (#52; decyzje PO 2026-10-17) · RODO: retencja `audit_log` (12 mies.), eksport i usunięcie danych konta
 - Given zalogowany użytkownik, When „Profil → Pobierz moje dane”, Then JSON z profilem, dziennikiem, porównaniami,
   komentarzami, powiadomieniami i kosztami AI — bez hasha hasła i tokenów; admin pobiera dane dowolnego konta, manager → 403.

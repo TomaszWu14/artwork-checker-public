@@ -157,6 +157,6 @@ password_reset_tokens, products, webhooks.
 customs_agencies, po_line_items, doc_types, comparison_templates, translation_dictionary, incoterms_dictionary,
 transit_countries, sad_field_mapping, cn_reference, currency_rates, supplier_checklists, delivery_checklists,
 supplier_analysis_log, tickets, email_queue, job_progress). Z istniejących baz kasuje je jednorazowo operator
-(RUNBOOK §4). **Zostają** (żywy kod): `products` (API `/api/products`, migracja do `material_master` — bez UI,
-do decyzji PO), `intake_queue` (log `POST /api/intake/artwork`), `comparison_comments` (stara historia `/history`).
+(RUNBOOK §4). **Zostają** (żywy kod): `products` (API `/api/products` usunięte w US-029; tabela zostaje do przeniesienia danych przez
+`POST /api/materials/migrate-from-products`), `intake_queue` (log `POST /api/intake/artwork`), `comparison_comments` (stara historia `/history`).
 Kolumny `users.forwarder_id` / `users.customs_agency_id` zostają (usunięcie kolumn poza zakresem).

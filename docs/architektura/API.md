@@ -259,11 +259,6 @@
 | `/api/artwork/materials/import-csv` | POST | rola≥manager | tak | `app.py:12044` |
 | `/api/artwork/materials/export-csv` | GET | rola≥manager | — | `app.py:12126` |
 | `/products` | GET | zalogowany | — | `app.py:12613` |
-| `/api/products` | GET | zalogowany | — | `app.py:12620` |
-| `/api/products` | POST | rola≥manager | tak | `app.py:12657` |
-| `/api/products/<int:pid>` | PUT | rola≥manager | tak | `app.py:12687` |
-| `/api/products/<int:pid>` | DELETE | rola≥manager | tak | `app.py:12718` |
-| `/api/products/import` | POST | rola≥manager | tak | `app.py:12731` |
 
 ### Admin / AI / integracje
 

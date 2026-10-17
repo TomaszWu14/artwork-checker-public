@@ -43,6 +43,7 @@
 | Z-03 — usunięcie reliktów DocCompare (trasy, szablony, blueprinty, stałe, zmienne tracking) | US-010 | `test_us010_relics_removed.py`, `test_template_links.py` | #44 | ✅ |
 | NFR-008 — formatowanie jako bramka CI (`ruff format --check`, ruff przypięty) | US-020 | job CI `lint`, `.git-blame-ignore-revs` | #45 | ✅ |
 | Porządek dokumentacji — dokumenty DocCompare w `docs/archiwum/` | US-016 | `test_us016_docs_archive.py` | #46 | ✅ |
+| Mniejsza powierzchnia API — `/api/products` usunięte, migracja zostaje | US-029 | `test_us029_products_api_removed.py` | #53 | ✅ |
 | NFR-010 RODO: eksport danych konta, anonimizacja (ręczna + 30 dni), retencja 12 mies. | US-014 | `test_us014_rodo.py` + e2e Chromium | #52 | ✅ |
 | Usunięcie tabel-reliktów DocCompare (kod ich nie tworzy; skrypt z kopią) | US-028 | `test_us028_relic_tables.py` | #51 | ✅ |
 | `/artwork/design-preview` bez CDN/Babel — działa pod ścisłą CSP | US-027 | `test_us027_design_preview.py` + e2e Chromium | #50 | ✅ |

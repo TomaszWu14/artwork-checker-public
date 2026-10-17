@@ -6,6 +6,8 @@ Wersja aplikacji: `constants.APP_VERSION`.
 ## [Unreleased]
 
 ### Removed
+- US-029: API `/api/products` (lista, dodawanie, edycja, usuwanie, import) — bez UI, dublowało master data materiałów.
+  Tabela `products` i migracja do `material_master` (`POST /api/materials/migrate-from-products`) zostają.
 - US-028 (decyzja PO): 25 tabel-reliktów DocCompare (kolejka, transport, magazyn, agencje celne, typy dokumentów,
   szablony porównań, słowniki, kursy walut, `job_progress` i in.) — aplikacja i `migrate_db.py` już ich nie tworzą
   (także seedy `doc_types`/`sad_field_mapping` przy każdym starcie). Istniejące bazy: jednorazowo
