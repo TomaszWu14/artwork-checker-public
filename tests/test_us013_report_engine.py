@@ -39,9 +39,14 @@ INVALID = "5901234123458"
 
 
 @pytest.fixture(autouse=True)
-def _no_api_key(monkeypatch):
-    """Żaden test nie może wywołać prawdziwego Claude API (komentarz AI)."""
-    monkeypatch.setattr(are, "_get_api_key", lambda: "")
+def _no_network(monkeypatch):
+    """Budowanie raportu nie może wołać sieci (komentarz AI usunięty w US-026)."""
+    import urllib.request
+
+    def _fail(*a, **k):
+        raise AssertionError("raport wykonał wywołanie sieciowe")
+
+    monkeypatch.setattr(urllib.request, "urlopen", _fail)
 
 
 def _fr(field, a, b, changed=False, severity="info", note=""):
@@ -118,19 +123,6 @@ def test_us013_dataclass_properties():
     r.analyzed_files.append(f)
     assert r.has_summary is True
     assert r.files_count == 1
-
-
-def test_us013_ai_validator_import_fallback_reads_env(monkeypatch):
-    """Bez ai_validator moduł ma własny _get_api_key czytający zmienną środowiskową."""
-    monkeypatch.setitem(sys.modules, "ai_validator", None)  # import → ImportError
-    spec = importlib.util.spec_from_file_location("_us013_are_noai", are.__file__)
-    mod = importlib.util.module_from_spec(spec)
-    monkeypatch.setitem(sys.modules, "_us013_are_noai", mod)
-    spec.loader.exec_module(mod)
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test-us013")
-    assert mod._get_api_key() == "sk-test-us013"
-    monkeypatch.delenv("ANTHROPIC_API_KEY")
-    assert mod._get_api_key() == ""
 
 
 # ─── demo report ─────────────────────────────────────────────────────────────
@@ -806,106 +798,12 @@ def test_us013_profile_fields_and_disabled_performance():
     assert r.global_color == {}
 
 
-def test_us013_ai_comment_failure_does_not_break_report(monkeypatch):
-    def boom(_report):
-        raise RuntimeError("api down")
-
-    monkeypatch.setattr(are, "_generate_ai_comment", boom)
+def test_us026_report_has_no_ai_comment():
+    """US-026 (decyzja PO): komentarz AI nie jest generowany — brak pola i brak wywołania API."""
     r = _report()
-    assert r.ai_comment == ""
+    assert not hasattr(r, "ai_comment")
+    assert not hasattr(are, "_generate_ai_comment")
     assert r.approval_recommendation == "NEEDS_REVISION"
-
-
-# ─── _generate_ai_comment (bez sieci — urlopen podmieniony) ───────────────────
-
-
-class _FakeResp:
-    def __init__(self, payload):
-        self._payload = payload
-
-    def read(self):
-        return json.dumps(self._payload).encode("utf-8")
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc):
-        return False
-
-
-def test_us013_ai_comment_no_key_makes_no_request(monkeypatch):
-    import urllib.request
-
-    def fail(*a, **k):
-        raise AssertionError("network call without API key")
-
-    monkeypatch.setattr(urllib.request, "urlopen", fail)
-    assert are._generate_ai_comment(are.build_demo_report()) == ""
-
-
-def test_us013_ai_comment_builds_request_and_returns_text(monkeypatch):
-    import urllib.request
-
-    captured = {}
-
-    def fake_urlopen(req, timeout=None):
-        captured["req"] = req
-        captured["timeout"] = timeout
-        return _FakeResp({"content": [{"type": "text", "text": "  Artwork wymaga korekty.  "}]})
-
-    monkeypatch.setattr(are, "_get_api_key", lambda: " sk-test ")
-    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
-    rep = ArtworkReport(product_code="A.pdf", product_name="B.pdf", critical_count=2)
-    rep.matched_items = ["REF"]
-    rep.diff_items = ["EAN: 1 → 2"]
-    rep.manufacturer = [
-        ReportRow("Producent", "ACME", "ACME Ltd", "—", "Rozny"),
-        ReportRow("EU REP", "X", "X", "—", "Zgodny"),
-        ReportRow("Importer", "Y", "—", "—", "Brak"),
-    ]
-    assert are._generate_ai_comment(rep) == "Artwork wymaga korekty."
-    req = captured["req"]
-    assert req.full_url == "https://api.anthropic.com/v1/messages"
-    assert req.get_method() == "POST"
-    assert req.get_header("X-api-key") == "sk-test"
-    assert captured["timeout"] == 30
-    body = json.loads(req.data)
-    assert body["model"] == are._DEFAULT_REPORT_MODEL
-    assert body["max_tokens"] == 400
-    prompt = body["messages"][0]["content"]
-    assert "Plik A (wzorzec): A.pdf" in prompt
-    assert "Błędy krytyczne: 2, Ostrzeżenia: 0" in prompt
-    assert "• REF" in prompt and "• EAN: 1 → 2" in prompt
-    # tylko realne różnice producenta (carton ≠ „—" i ≠ master)
-    assert "Producent/adres: Producent: ACME → ACME Ltd\n" in prompt
-
-
-def test_us013_ai_comment_empty_lists_and_empty_content(monkeypatch):
-    import urllib.request
-
-    captured = {}
-
-    def fake_urlopen(req, timeout=None):
-        captured["body"] = json.loads(req.data)
-        return _FakeResp({"content": []})
-
-    monkeypatch.setattr(are, "_get_api_key", lambda: "k")
-    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
-    assert are._generate_ai_comment(ArtworkReport()) == ""
-    prompt = captured["body"]["messages"][0]["content"]
-    assert "Elementy zgodne: —" in prompt
-    assert "Producent/adres: brak różnic" in prompt
-
-
-def test_us013_ai_comment_network_error_returns_empty(monkeypatch):
-    import urllib.request
-
-    def fake_urlopen(req, timeout=None):
-        raise OSError("unreachable")
-
-    monkeypatch.setattr(are, "_get_api_key", lambda: "k")
-    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
-    assert are._generate_ai_comment(ArtworkReport()) == ""
 
 
 # ─── eksport HTML ────────────────────────────────────────────────────────────
@@ -1090,7 +988,6 @@ def fake_docx(monkeypatch):
 
 def test_us013_export_docx_structure_and_status_symbols(fake_docx):
     r = _report()
-    r.ai_comment = "Wymaga korekty EAN."
     out = are.export_to_docx(r)
     assert out == b"FAKE-DOCX"
     doc = fake_docx[-1]
@@ -1121,7 +1018,7 @@ def test_us013_export_docx_structure_and_status_symbols(fake_docx):
     assert f"• EAN-13: {VALID_A} → {INVALID}" in texts
     bullets = [p for p in doc.body if getattr(p, "style", None) == "List Bullet"]
     assert len(bullets) == len(r.matched_items) + len(r.diff_items)
-    assert texts[-2:] == ["Komentarz:", "Wymaga korekty EAN."]
+    assert "Komentarz:" not in texts  # US-026: brak komentarza AI
 
 
 def test_us013_export_docx_empty_report_uses_fallback_headers(fake_docx):
@@ -1253,7 +1150,6 @@ def _img(w, h):
 
 def test_us013_export_pdf_escapes_reportlab_markup(fake_reportlab):
     r = _report(file_a="/up/<b>evil<b> & co.pdf")
-    r.ai_comment = "Uwaga <font color=red>x</font>"
     r.approval_reason = "a<b"
     out = are.export_to_pdf(r)
     assert out == b"%PDF-FAKE"
@@ -1265,7 +1161,6 @@ def test_us013_export_pdf_escapes_reportlab_markup(fake_reportlab):
     assert paras[0].style.fontName == "DocFont-Bold"
     assert "&lt;b&gt;evil&lt;b&gt; &amp; co.pdf | DM-1_pouch.pdf" in texts
     assert not any("<b>evil" in t for t in texts)
-    assert "Uwaga &lt;font color=red&gt;x&lt;/font&gt;" in texts
     assert any(t.startswith("<b>Rekomendacja:</b> NEEDS_REVISION — a&lt;b") for t in texts), texts
     assert any("<b>Krytyczne:</b> 1</font>" in t for t in texts)
     # status → symbol + kolor
@@ -1273,7 +1168,7 @@ def test_us013_export_pdf_escapes_reportlab_markup(fake_reportlab):
     assert '<font color="#d35400">ZMIANA</font>' in texts
     assert '<font color="#333333">SZABLON</font>' in texts
     assert f"- EAN-13: {VALID_A} → {INVALID}" in texts
-    assert "<b>Komentarz:</b>" in texts
+    assert "<b>Komentarz:</b>" not in texts  # US-026
     # domyślny komunikat kodów kreskowych zawsze jest → sekcja obecna, EAN „—"
     assert "<b>Wzorzec A — EAN:</b> —" in texts
     assert any(t.startswith("- <b>[INFO]</b> Brak wyników walidacji kodów") for t in texts)

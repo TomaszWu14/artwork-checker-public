@@ -43,6 +43,7 @@
 | Z-03 — usunięcie reliktów DocCompare (trasy, szablony, blueprinty, stałe, zmienne tracking) | US-010 | `test_us010_relics_removed.py`, `test_template_links.py` | #44 | ✅ |
 | NFR-008 — formatowanie jako bramka CI (`ruff format --check`, ruff przypięty) | US-020 | job CI `lint`, `.git-blame-ignore-revs` | #45 | ✅ |
 | Porządek dokumentacji — dokumenty DocCompare w `docs/archiwum/` | US-016 | `test_us016_docs_archive.py` | #46 | ✅ |
+| REF bez dopasowania rozmytego; raport bez komentarza AI (bez kosztu API) | US-026 | `test_us013_master_data.py`, `test_us013_report_engine.py::test_us026_*` | #49 | ✅ |
 | Poprawki: EAN-8/UPC-A, EXP DD.MM.RRRR, formaty zxing-cpp, re-import dostawców, CE, fail-open EAN, wyszukiwanie „%”, MARM | US-025 | `test_us025_bugfixes.py` | #48 | ✅ |
 | NFR-009 pokrycie logiki domenowej ≥ 80 % (bramka CI) | US-013 | `test_us013_coverage_gate.py`, `test_us013_*.py` | #47 | ✅ |
 | SEC-007 403 per rola | US-009 i każda nowa trasa | `test_palviz_auth.py`, `test_artwork_idor.py` (wybrane) | — | ⚠️ |

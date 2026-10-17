@@ -12,20 +12,6 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Optional
 
-# ─── AI MODEL CONFIGURATION ──────────────────────────────────────────────────
-
-_DEFAULT_REPORT_MODEL = os.environ.get("ARTWORK_AI_MODEL", "claude-haiku-4-5-20251001")
-
-# ─── API KEY HELPER ──────────────────────────────────────────────────────────
-
-try:
-    from ai_validator import _get_api_key
-except ImportError:
-
-    def _get_api_key():  # type: ignore[misc]
-        return os.environ.get("ANTHROPIC_API_KEY", "")
-
-
 # ─── STATUS HELPERS ───────────────────────────────────────────────────────────
 
 CHECKLIST_ITEMS = [
@@ -175,7 +161,6 @@ class ArtworkReport:
     approval_reason: str = ""
     approval_confidence: int = 0  # 0-100 confidence in the approval recommendation
     ai_summary: str = ""
-    ai_comment: str = ""  # AI-generated narrative comment (Word/HTML report)
 
     # ── tabelaryczne sekcje porównania (nowy format raportu) ─────────────────
     comparison_sections: list = field(default_factory=list)  # [{title, rows}]
@@ -1202,10 +1187,8 @@ def build_report_from_comparison(result) -> ArtworkReport:
     # Globalne porównanie kolorów (cała strona) — liczone przy kolorymetrii.
     _gc = (d.get("colorimetry") or {}).get("global") if isinstance(d, dict) else None
     r.global_color = _gc if isinstance(_gc, dict) else {}
-    try:
-        r.ai_comment = _generate_ai_comment(r)
-    except Exception:
-        r.ai_comment = ""
+    # Komentarz AI do raportu usunięty (US-026, decyzja PO 2026-10-17): nie był pokazywany w HTML,
+    # a każdy raport kosztował wywołanie API.
     return r
 
 
@@ -1270,75 +1253,6 @@ def _build_comparison_sections(all_rows: list) -> tuple[list, list, list]:
             matched.append(fn)
 
     return secs, matched, diffs
-
-
-# ─── AI COMMENT GENERATOR ─────────────────────────────────────────────────────
-
-
-def _generate_ai_comment(report: "ArtworkReport") -> str:
-    """
-    Generuje narracyjny komentarz do raportu przy użyciu Claude API.
-    Fallback: pusty string gdy brak klucza lub błąd.
-    """
-    import json
-    import urllib.request as _ur
-
-    api_key = _get_api_key().strip()
-    if not api_key:
-        return ""
-
-    matched_str = "\n".join(f"• {m}" for m in report.matched_items) or "—"
-    diffs_str = "\n".join(f"• {d}" for d in report.diff_items) or "—"
-    mfr_rows = report.manufacturer or []
-    mfr_info = (
-        "; ".join(
-            f"{r.element}: {r.master} → {r.carton}"
-            for r in mfr_rows
-            if r.master != r.carton and r.carton != "—"
-        )
-        or "brak różnic"
-    )
-
-    prompt = (
-        f"Jesteś ekspertem ds. regulacyjnych wyrobów medycznych (MDR).\n"
-        f"Napisz ZWIĘZŁY komentarz końcowy do raportu porównania artworków (2-4 zdania po polsku).\n"
-        f"Plik A (wzorzec): {report.product_code}\n"
-        f"Plik B (dostawca): {report.product_name}\n"
-        f"Błędy krytyczne: {report.critical_count}, Ostrzeżenia: {report.warning_count}\n"
-        f"Elementy zgodne: {matched_str}\n"
-        f"Różnice: {diffs_str}\n"
-        f"Producent/adres: {mfr_info}\n\n"
-        f"Komentarz powinien: (1) ocenić ogólny stan artworku, "
-        f"(2) wymienić najważniejsze różnice wymagające weryfikacji, "
-        f"(3) podać zalecenie (zatwierdź / wymaga korekty). "
-        f"Odpowiedź: TYLKO tekst komentarza, bez nagłówków."
-    )
-
-    payload = json.dumps(
-        {
-            "model": _DEFAULT_REPORT_MODEL,
-            "max_tokens": 400,
-            "messages": [{"role": "user", "content": prompt}],
-        }
-    ).encode("utf-8")
-    req = _ur.Request(
-        "https://api.anthropic.com/v1/messages",
-        data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-        },
-        method="POST",
-    )
-    try:
-        # Bandit B310: URL stały w kodzie (https://api.anthropic.com), schemat nie pochodzi z wejścia.
-        with _ur.urlopen(req, timeout=30) as resp:  # nosec B310
-            data = json.loads(resp.read())
-        content = data.get("content") or []
-        return (content[0].get("text") or "").strip() if content else ""
-    except Exception:
-        return ""
 
 
 # ─── WORD EXPORT ──────────────────────────────────────────────────────────────
@@ -1459,14 +1373,6 @@ def export_to_docx(report: "ArtworkReport") -> bytes:
         r.font.color.rgb = RGBColor(0xD3, 0x54, 0x00)
         for item in report.diff_items:
             doc.add_paragraph(f"• {item}", style="List Bullet")
-
-    # ── AI Komentarz ──────────────────────────────────────────────────────────
-    if report.ai_comment:
-        doc.add_paragraph()
-        p = doc.add_paragraph()
-        r = p.add_run("Komentarz:")
-        r.bold = True
-        doc.add_paragraph(report.ai_comment)
 
     buf = BytesIO()
     doc.save(buf)
@@ -1743,11 +1649,6 @@ def export_to_pdf(report: "ArtworkReport") -> bytes:
             )
             for it in report.diff_items[:80]:
                 flow.append(Paragraph("- " + esc(it), st_small))
-
-    if report.ai_comment:
-        flow.append(Spacer(1, 6))
-        flow.append(Paragraph("<b>Komentarz:</b>", st_normal))
-        flow.append(Paragraph(esc(report.ai_comment), st_normal))
 
     if not flow:
         flow.append(Paragraph("Brak danych raportu.", st_normal))
