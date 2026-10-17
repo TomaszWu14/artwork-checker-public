@@ -5,6 +5,12 @@ Wersja aplikacji: `constants.APP_VERSION`.
 
 ## [Unreleased]
 
+### Added
+- US-013: blokująca bramka pokrycia w CI — łączne pokrycie 9 modułów logiki domenowej (kody kreskowe, normalizacja,
+  JM, nazewnictwo, indeks, raport, dane materiałów i dostawców) musi wynosić ≥ 80 % (decyzja PO 2026-10-17, Z-05);
+  pokrycie całego repo pozostaje informacyjne. Nowe testy (`tests/test_us013_*.py`, ~240) podniosły pokrycie
+  zestawu z 64 % do 97 %; test pilnuje, by lista modułów i próg nie zostały po cichu obniżone.
+
 ### Fixed
 - Przyciski z argumentem tekstowym z `|tojson` w atrybucie (filtr zdarzeń w Aktywności, usuwanie typu dokumentu
   i szablonu, szczegóły dostawy w Checklistach, historia dostawcy, szablony stref, podgląd par w raporcie) nie

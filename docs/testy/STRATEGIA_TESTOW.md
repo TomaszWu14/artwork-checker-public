@@ -1,7 +1,7 @@
 # Strategia testów
 
-> [DEV] Stan na 2026-10-15: **429 testów w 60 plikach**, 408 ✅ / 35 ⏭ w 4,4 s w środowisku bez pakietów
-> PDF/OCR/ML (skipy = `pytest.importorskip`). Uruchomienie: `python -m pytest tests/ -q`.
+> [DEV] Stan na 2026-10-17 (US-013): **1195 testów**, w środowisku CI (bez PyMuPDF/Pillow/ML) 1157 ✅ / 38 ⏭
+> (skipy = `pytest.importorskip`); pokrycie logiki domenowej 97 %, całego repo 47 %. Uruchomienie: `python -m pytest tests/ -q`.
 
 ## Piramida (cel)
 
@@ -24,7 +24,7 @@
 
 ## Luki (z macierzy `docs/analiza/SLEDZENIE.md`)
 Strefy (FR-007), eksport (FR-009), intake (FR-019), webhooki (FR-020), reset hasła (FR-002), PostgreSQL
-w CI (NFR-004: tylko SQLite). Pokrycie całego repo (ok. 45 %) — głównie `app.py`, `artwork_comparator.py`
+w CI (NFR-004: tylko SQLite). Pokrycie całego repo (47 %) — głównie `app.py`, `artwork_comparator.py`
 i kaskada OCR/ekstrakcji; poza progiem do decyzji PO.
 
 ## Próg pokrycia logiki domenowej (US-013, decyzja PO 2026-10-17)
