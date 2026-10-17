@@ -27,6 +27,9 @@ Wersja aplikacji: `constants.APP_VERSION`.
 - `.gitleaks.toml` z udokumentowaną allowlistą danych testowych; pre-commit z gitleaks i hookami porządkowymi.
 
 ### Changed
+- US-016: nieaktualne dokumenty DocCompare (`docs/architektura.md` → `architektura_doccompare.md`,
+  `DOKUMENTACJA_IT.md`, `PROCES_POTWIERDZENIE_ETD.md`, `PROCES_ZAKUPY_FLOW.md`) przeniesione do `docs/archiwum/`
+  z adnotacją i indeksem (`docs/archiwum/README.md`); treść bez zmian.
 - US-020: całe repozytorium sformatowane `ruff format` (124 pliki, bez zmian w logice — AST identyczne);
   `ruff format --check` blokuje w CI. Ruff przypięty na 0.17.1 w `dev-requirements.txt`, CI i pre-commit;
   commit formatujący dodany do `.git-blame-ignore-revs`.
