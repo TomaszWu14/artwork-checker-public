@@ -19,21 +19,22 @@ def test_enforced_csp_keeps_ui_working_and_adds_safe_directives(client):
     assert r.headers["X-XSS-Protection"] == "0"
 
 
-def test_report_only_policy_is_strict_and_uses_per_request_nonce(client):
+def test_enforced_policy_is_strict_and_uses_per_request_nonce(client):
+    # Etap 1 sprawdzał tu politykę Report-Only; od US-024 ta sama ścisła polityka jest egzekwowana.
     r1 = client.get("/login")
     r2 = client.get("/login")
-    ro1 = r1.headers["Content-Security-Policy-Report-Only"]
-    ro2 = r2.headers["Content-Security-Policy-Report-Only"]
-    assert "'unsafe-eval'" not in ro1 and "script-src 'self' 'nonce-" in ro1
-    assert "report-uri /csp-report" in ro1
-    n1 = re.search(r"'nonce-([^']+)'", ro1).group(1)
-    n2 = re.search(r"'nonce-([^']+)'", ro2).group(1)
+    p1 = r1.headers["Content-Security-Policy"]
+    p2 = r2.headers["Content-Security-Policy"]
+    assert "'unsafe-eval'" not in p1 and "'unsafe-inline'" not in p1.split("script-src")[1].split(";")[0]
+    assert "script-src 'self' 'nonce-" in p1 and "report-uri /csp-report" in p1
+    n1 = re.search(r"'nonce-([^']+)'", p1).group(1)
+    n2 = re.search(r"'nonce-([^']+)'", p2).group(1)
     assert n1 != n2 and len(n1) >= 16
 
 
-def test_report_only_header_only_on_html(client):
-    r = client.get("/health")
-    assert "Content-Security-Policy-Report-Only" not in r.headers
+def test_no_separate_report_only_policy(client):
+    for path in ("/login", "/health"):
+        assert "Content-Security-Policy-Report-Only" not in client.get(path).headers
 
 
 def test_csp_report_endpoint_accepts_and_limits(client):

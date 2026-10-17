@@ -15,7 +15,7 @@ CDN_RE = re.compile(r"https://(unpkg\.com|cdn\.tailwindcss\.com|cdn\.jsdelivr\.n
 VENDORED = [
     "static/vendor/react/react.production.min.js",
     "static/vendor/react/react-dom.production.min.js",
-    "static/vendor/alpinejs/alpine.min.js",
+    "static/vendor/alpinejs/alpine-csp.min.js",
     "static/vendor/alpinejs/collapse.min.js",
     "static/vendor/lucide/lucide.min.js",
     "static/js/artwork_report_pf.js",
@@ -55,7 +55,6 @@ def test_csp_has_no_cdn_hosts():
     pytest.importorskip("flask")
     import app as _app_mod
     assert not CDN_RE.search(_app_mod._csp_enforced("n0nce"))
-    assert not CDN_RE.search(_app_mod._csp_report_only("n0nce"))
 
 
 def test_exported_report_html_is_self_contained():
