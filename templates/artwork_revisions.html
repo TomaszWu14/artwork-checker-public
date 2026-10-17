@@ -60,6 +60,7 @@ table.rv th{background:var(--accent-bg,#eff6ff);font-size:11px;font-weight:700}
 </div>
 
 <script nonce="{{ csp_nonce() }}">
+document.addEventListener('alpine:init', () => Alpine.data('revApp', revApp));  // US-024: build CSP Alpine
 function revApp(){
   return {
     items:[], loaded:false, msg:'', ok:false,

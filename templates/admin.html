@@ -265,6 +265,7 @@
   <div x-show="d.error" style="color:var(--error);font-size:12px" x-text="d.error"></div>
 </div><!-- /pane-database -->
 <script nonce="{{ csp_nonce() }}">
+document.addEventListener('alpine:init', () => Alpine.data('dbUsage', dbUsage));  // US-024: build CSP Alpine
 function dbUsage(){
   return { d:{}, limitInput:'', artworkInput:'', savedMsg:'',
     async load(){ try{ const r=await fetch('/api/admin/db-usage'); this.d=await r.json();

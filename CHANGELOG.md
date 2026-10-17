@@ -27,6 +27,10 @@ Wersja aplikacji: `constants.APP_VERSION`.
 - `.gitleaks.toml` z udokumentowaną allowlistą danych testowych; pre-commit z gitleaks i hookami porządkowymi.
 
 ### Changed
+- US-024 (CSP etap 2b, ADR-0004): Alpine w buildzie CSP (`@alpinejs/csp` 3.17.4) — egzekwowana CSP bez
+  `'unsafe-eval'` i `'unsafe-inline'` dla skryptów, z `report-uri /csp-report`; osobna polityka Report-Only usunięta.
+  24 wyrażenia spoza gramatyki i 14 odwołań do globali przeniesione do metod komponentów, 15 komponentów
+  rejestrowanych przez `Alpine.data`; `tools/check_alpine_csp.mjs` w jobie CI `frontend`. R-05 zamknięte.
 - US-023 (CSP etapy 3–4, ADR-0004): egzekwowana CSP bez `'unsafe-inline'` dla skryptów — nonce zmieniany przy każdej
   odpowiedzi na wszystkich 67 skryptach inline; 425 handlerów `on*=` zastąpionych atrybutami `data-on-*`
   obsługiwanymi przez `static/js/csp_actions.js` (delegacja, parser bez `eval`, biała lista funkcji `CspActions.allow`).

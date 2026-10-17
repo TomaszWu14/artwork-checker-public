@@ -89,8 +89,10 @@ table.gp th{background:var(--accent-bg,#eff6ff);font-size:11px;font-weight:700}
 </div>
 
 <script nonce="{{ csp_nonce() }}">
+document.addEventListener('alpine:init', () => Alpine.data('gapsApp', gapsApp));  // US-024: build CSP Alpine
 function gapsApp(){
   return {
+    enumPL(kind, code){ return window.enumPL(kind, code); },
     tab:'gaps', gaps:[], dups:[], gq:'', loading:false, loadedG:false, loadedD:false,
     switchTab(t){ this.tab=t; if(t==='gaps'&&!this.loadedG) this.loadGaps(); if(t==='dups'&&!this.loadedD) this.loadDups(); },
     async loadGaps(){

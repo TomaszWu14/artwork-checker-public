@@ -86,6 +86,7 @@
 </div>
 
 <script nonce="{{ csp_nonce() }}">
+document.addEventListener('alpine:init', () => Alpine.data('emailSettings', emailSettings));  // US-024: build CSP Alpine
 function emailSettings(){
   return {
     cfg: { smtp_host:'', smtp_port:'587', smtp_user:'', smtp_pass:'', smtp_from:'' },

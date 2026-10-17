@@ -110,9 +110,9 @@ def test_enforced_policy_is_strict_and_matches_nonce(admin_client):
     value = nonce[0][len("'nonce-"):-1]
     inline = [t for t in SCRIPT_TAG_RE.findall(resp.get_data(as_text=True)) if "src=" not in t]
     assert inline and all(f'nonce="{value}"' in t for t in inline)
-    # nowy nonce przy każdej odpowiedzi; Report-Only (cel US-024) bez 'unsafe-eval'
+    # nowy nonce przy każdej odpowiedzi; od US-024 także bez 'unsafe-eval'
     assert admin_client.get("/history").headers["Content-Security-Policy"] != csp
-    assert "'unsafe-eval'" not in resp.headers["Content-Security-Policy-Report-Only"]
+    assert "'unsafe-eval'" not in script_src
 
 
 def test_report_html_renders_without_request_context():
@@ -249,3 +249,31 @@ def test_tojson_in_double_quoted_action_is_escaped(tpl):
         if re.search(r"\|\s*tojson(?!\s*\|\s*forceescape)", m.group(0))
     ]
     assert bad == []
+
+
+# ── US-024: Alpine w buildzie CSP, egzekwowana polityka bez 'unsafe-eval' ──────
+def test_alpine_csp_build_is_vendored():
+    assert (ROOT / "static/vendor/alpinejs/alpine-csp.min.js").is_file()
+    base = (ROOT / "templates/base.html").read_text(encoding="utf-8")
+    assert "alpine-csp.min.js" in base and "alpinejs/alpine.min.js" not in base
+
+
+@pytest.mark.parametrize("tpl", TEMPLATES, ids=lambda p: p.name)
+def test_alpine_components_are_registered(tpl):
+    """Build CSP nie wywoła globalnej funkcji z x-data — komponent musi być w Alpine.data."""
+    text = tpl.read_text(encoding="utf-8")
+    shell = (ROOT / "static/js/shell.js").read_text(encoding="utf-8")
+    for name in re.findall(r'\sx-data="[^"]*?(\w+)\(\)', text):
+        reg = re.compile(rf"Alpine\.data\(\s*['\"]{name}['\"]")
+        assert reg.search(text) or reg.search(shell), f"{tpl.name}: {name} bez Alpine.data"
+
+
+def test_alpine_expressions_pass_csp_parser():
+    """Pełne sprawdzenie parserem z @alpinejs/csp (job CI „frontend”); lokalnie, gdy jest node_modules."""
+    import shutil
+    import subprocess
+
+    if not shutil.which("node") or not (ROOT / "node_modules/@alpinejs/csp/src/parser.js").is_file():
+        pytest.skip("brak node lub node_modules — sprawdza job CI frontend")
+    r = subprocess.run(["node", "tools/check_alpine_csp.mjs"], cwd=ROOT, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr[-2000:]

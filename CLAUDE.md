@@ -235,6 +235,11 @@ Jinja2 templates (60+ in `templates/`) with Alpine.js for reactivity, Chart.js f
 Dropzone.js for uploads, and Tailwind CSS. `base.html` is the master layout. Design experiments live
 in `static/design/` (excluded from lint).
 
+The enforced CSP has no `'unsafe-inline'`/`'unsafe-eval'` for scripts (ADR-0004): inline `<script>` needs
+`nonce="{{ csp_nonce() }}"`, event handlers are `data-on-click="fn(…)"` + `CspActions.allow('fn')`
+(`static/js/csp_actions.js`), and Alpine is the CSP build — register components with `Alpine.data` and keep
+expressions to component members (`npm run check:alpine`). See CONTRIBUTING.md.
+
 ## Key Conventions
 
 - **Shared constants**: import from `constants.py` (`ComparisonStatus`, `DocType`, `Severity`,

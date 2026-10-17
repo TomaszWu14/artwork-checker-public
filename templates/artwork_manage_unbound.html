@@ -37,8 +37,8 @@ table.ub th{background:var(--accent-bg,#eff6ff);font-size:11px;font-weight:700}
 
   <div class="ub-bar">
     <input class="ub-input" type="search" placeholder="Filtruj po nazwie pliku…"
-           x-model="q" @keydown.enter="page=1;load()">
-    <button class="btn btn-sm" @click="page=1;load()">Szukaj</button>
+           x-model="q" @keydown.enter="loadPage(1)">
+    <button class="btn btn-sm" @click="loadPage(1)">Szukaj</button>
     <span class="ub-loading" x-show="loading">Wczytuję…</span>
     <span style="margin-left:auto;font-size:12px;color:var(--muted)" x-text="total+' plików bez REF'"></span>
   </div>
@@ -69,7 +69,7 @@ table.ub th{background:var(--accent-bg,#eff6ff);font-size:11px;font-weight:700}
                   <span class="ub-chip" @click="bind(r, s.ref_code)">
                     <b class="ub-mono" x-text="s.ref_code"></b>
                     <span x-text="s.opis ? (s.opis.length>40 ? s.opis.slice(0,40)+'…' : s.opis) : ''"></span>
-                    <span class="src" :class="s.source" x-text="s.source==='ean'?'EAN':(Math.round(s.score*100)+'%')"></span>
+                    <span class="src" :class="s.source" x-text="s.source==='ean'?'EAN':pct(s.score)"></span>
                   </span>
                 </template>
                 <template x-if="r._sugg && r._sugg.length===0">
@@ -89,15 +89,18 @@ table.ub th{background:var(--accent-bg,#eff6ff);font-size:11px;font-weight:700}
   </template>
 
   <div class="ub-pager" x-show="pages>1">
-    <button class="btn btn-sm btn-ghost" :disabled="page<=1" @click="page--;load()">← poprzednia</button>
+    <button class="btn btn-sm btn-ghost" :disabled="page<=1" @click="loadPage(page-1)">← poprzednia</button>
     <span x-text="'strona '+page+' z '+pages"></span>
-    <button class="btn btn-sm btn-ghost" :disabled="page>=pages" @click="page++;load()">następna →</button>
+    <button class="btn btn-sm btn-ghost" :disabled="page>=pages" @click="loadPage(page+1)">następna →</button>
   </div>
 </div>
 
 <script nonce="{{ csp_nonce() }}">
+document.addEventListener('alpine:init', () => Alpine.data('unboundApp', unboundApp));  // US-024: build CSP Alpine
 function unboundApp(){
   return {
+    loadPage(p){ this.page = p; this.load(); },
+    pct(x){ return Math.round(x * 100) + '%'; },
     rows:[], total:0, page:1, pages:1, q:'', loading:false, loaded:false,
     async load(){
       this.loading = true;

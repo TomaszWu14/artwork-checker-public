@@ -2,6 +2,9 @@
    DocCompare v6 — minimal Alpine shell for sidebar state
    =========================================================================== */
 
+// US-024: build CSP Alpine wymaga rejestracji komponentów (x-data="dcShell()" w base.html).
+document.addEventListener('alpine:init', () => Alpine.data('dcShell', dcShell));
+
 function dcShell() {
   return {
     rail:       false,

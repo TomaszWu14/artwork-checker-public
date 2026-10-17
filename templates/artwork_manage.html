@@ -95,6 +95,7 @@
 </div>
 
 <script nonce="{{ csp_nonce() }}">
+document.addEventListener('alpine:init', () => Alpine.data('manageApp', manageApp));  // US-024: build CSP Alpine
 function manageApp(){
   return {
     kpi:{total:0,with_ref:0,unbound:0,distinct_refs:0,obsolete:0,duplicates:0,gaps:0,ignored:0,last_scan:''},

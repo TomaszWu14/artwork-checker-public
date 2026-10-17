@@ -88,7 +88,7 @@
                 <span style="display:inline-flex;align-items:center;gap:8px">
                   <span x-text="sel.email || '— (brak)'"></span>
                   {% if role in ['manager','superuser','admin'] %}
-                  <button type="button" @click="emailDraft = sel.email || ''; editingEmail = true"
+                  <button type="button" @click="startEditEmail()"
                           style="font-size:11px;padding:2px 8px;border:1px solid #cbd5e1;border-radius:5px;background:#f8fafc;cursor:pointer">edytuj</button>
                   {% endif %}
                 </span>
@@ -117,8 +117,10 @@
 </div>
 
 <script nonce="{{ csp_nonce() }}">
+document.addEventListener('alpine:init', () => Alpine.data('supMasterApp', supMasterApp));  // US-024: build CSP Alpine
 function supMasterApp(){
   return {
+    startEditEmail(){ this.emailDraft = this.sel.email || ''; this.editingEmail = true; },
     q:'', items:[], total:0, sel:null, msg:'', ok:false,
     editingEmail:false, emailDraft:'', emailSaving:false,
     async saveEmail(){

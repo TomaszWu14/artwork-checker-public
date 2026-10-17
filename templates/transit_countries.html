@@ -54,6 +54,7 @@ table.tc th{background:var(--accent-bg,#eff6ff);font-size:11px;font-weight:700}
 </div>
 
 <script nonce="{{ csp_nonce() }}">
+document.addEventListener('alpine:init', () => Alpine.data('transitApp', transitApp));  // US-024: build CSP Alpine
 function transitApp(){
   return {
     items:[], loaded:false, newName:'', msg:'', ok:false,
