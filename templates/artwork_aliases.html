@@ -80,6 +80,7 @@ table.aa th{background:var(--accent-bg,#eff6ff);font-size:11px;font-weight:700}
 </div>
 
 <script nonce="{{ csp_nonce() }}">
+document.addEventListener('alpine:init', () => Alpine.data('aliasApp', aliasApp));  // US-024: build CSP Alpine
 function aliasApp(){
   return {
     ref:'', pattern:'', items:[], msg:'', ok:false, cands:[], opis:'',

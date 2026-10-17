@@ -11,15 +11,15 @@
   </div>
 
   <div class="filter-bar">
-    <input type="search" class="search-inp" x-model="ref" @keydown.enter="page=1;load()"
+    <input type="search" class="search-inp" x-model="ref" @keydown.enter="loadPage(1)"
            placeholder="REF lub fragment nazwy pliku…" autocomplete="off">
-    <select class="filter-sel" x-model="lvl1" @change="page=1;load()">
+    <select class="filter-sel" x-model="lvl1" @change="loadPage(1)">
       <option value="">— poziom (wszystkie) —</option>
       {% for lvl in lvl1_options %}
       <option value="{{ lvl }}">{{ lvl }}</option>
       {% endfor %}
     </select>
-    <button type="button" class="btn btn-sm btn-primary" @click="page=1;load()">
+    <button type="button" class="btn btn-sm btn-primary" @click="loadPage(1)">
       <i data-lucide="search" style="width:13px;height:13px;" aria-hidden="true"></i> Szukaj
     </button>
   </div>
@@ -63,7 +63,7 @@
             <template x-if="!r.has_dieline && !r.has_marm && !r.has_photo"><span class="badge badge-neutral">Brak 3D</span></template>
           </td>
           <td>
-            <template x-if="Object.keys(r.push||{}).length===0"><span style="color:var(--ink-3)">—</span></template>
+            <template x-if="isEmpty(r.push)"><span style="color:var(--ink-3)">—</span></template>
             <template x-for="(p, variant) in (r.push||{})" :key="variant">
               <span style="display:inline-flex;align-items:center;gap:4px;margin-right:8px;white-space:nowrap">
                 <span x-text="enumPL('variant', variant)" style="font-size:10px;color:var(--ink-3)"></span>
@@ -86,15 +86,20 @@
   </div>
 
   <nav class="pagination" aria-label="Paginacja" x-show="loaded && total>0">
-    <span x-text="total+' artworków · strona '+page+' / '+Math.max(pages,1)"></span>
-    <button type="button" class="btn btn-sm" :disabled="page<=1" @click="page--;load()">← Poprzednia</button>
-    <button type="button" class="btn btn-sm" :disabled="page>=pages" @click="page++;load()">Następna →</button>
+    <span x-text="total+' artworków · strona '+page+' / '+maxOf(pages,1)"></span>
+    <button type="button" class="btn btn-sm" :disabled="page<=1" @click="loadPage(page-1)">← Poprzednia</button>
+    <button type="button" class="btn btn-sm" :disabled="page>=pages" @click="loadPage(page+1)">Następna →</button>
   </nav>
 </div>
 
 <script nonce="{{ csp_nonce() }}">
+document.addEventListener('alpine:init', () => Alpine.data('coverageApp', coverageApp));  // US-024: build CSP Alpine
 function coverageApp(){
   return {
+    loadPage(p){ this.page = p; this.load(); },
+    maxOf(a, b){ return Math.max(a, b); },
+    isEmpty(o){ return Object.keys(o || {}).length === 0; },
+    enumPL(kind, code){ return window.enumPL(kind, code); },
     ref: '', lvl1: '', page: 1, per_page: 50,
     items: [], total: 0, pages: 1, loaded: false, err: '', busy: {},
     async load(){

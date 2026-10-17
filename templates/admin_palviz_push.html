@@ -60,7 +60,7 @@
                   :class="r.push_status==='sent'?'badge-ok':(r.push_status==='failed'?'badge-err':'badge-neutral')"
                   x-text="enumPL('push', r.push_status || 'pending')"></span>
           </td>
-          <td class="mono" x-text="r.push_attempts ?? 0"></td>
+          <td class="mono" x-text="r.push_attempts != null ? r.push_attempts : 0"></td>
           <td class="mono" x-text="dataPL(r.push_at, true)"></td>
           <td :title="r.push_error" style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
               x-text="r.push_error || '—'"></td>
@@ -77,8 +77,11 @@
 </div>
 
 <script nonce="{{ csp_nonce() }}">
+document.addEventListener('alpine:init', () => Alpine.data('palvizPushApp', palvizPushApp));  // US-024: build CSP Alpine
 function palvizPushApp(){
   return {
+    enumPL(kind, code){ return window.enumPL(kind, code); },
+    dataPL(v, withTime){ return window.dataPL(v, withTime); },
     status: '', items: [], loaded: false, err: '', busy: {},
     async load(){
       this.err = '';

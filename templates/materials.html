@@ -145,11 +145,12 @@ table.mm thead tr.mm-filter th{top:22px;background:#fbfdff;padding:2px 3px;text-
   <div class="mm-pager">
     <span x-text="'Wczytano wszystkie: ' + items.length + (filteredItems.length!==items.length ? (' · po filtrze: ' + filteredItems.length) : '') + ' · pokazano: ' + viewItems.length"></span>
     <button class="btn btn-sm btn-ghost" x-show="viewItems.length < filteredItems.length"
-            @click="renderLimit += 1000">Pokaż więcej (+1000)</button>
+            @click="renderLimit = renderLimit + 1000">Pokaż więcej (+1000)</button>
   </div>
 </div>
 
 <script nonce="{{ csp_nonce() }}">
+document.addEventListener('alpine:init', () => Alpine.data('materialsApp', materialsApp));  // US-024: build CSP Alpine
 function materialsApp(){
   const _roleAdmin = {{ ('true' if role in ['manager','superuser','admin'] else 'false') }};
   // Kolumny DOKŁADNIE w kolejności pliku migracyjnego (per poziom: Wymiar, EAN,
@@ -180,6 +181,7 @@ function materialsApp(){
   COLS.push({id:'supplier_codes',lbl:'Dostawcy',     cls:'', td:''});
   COLS.push({id:'updated_at',    lbl:'Data migracji',cls:'', td:'mm-mono'});
   return {
+    COLS: COLS,   // US-024: build CSP nie widzi stałych spoza komponentu
     COLS,
     q:'', rodzina:'', producent:'', before:'', after:'',
     items:[], families:[], total:0, offset:0, importMsg:'', importOk:false,
