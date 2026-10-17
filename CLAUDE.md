@@ -103,7 +103,6 @@ Copy `.env.example` to `.env` and fill in the values. Required at minimum: `SECR
 | `ANTHROPIC_API_KEY` | Claude API — AI validation, learning, Vision OCR, scan extraction |
 | `MISTRAL_API_KEY` | Mistral OCR — primary API OCR engine (~$0.001/page) |
 | `RESEND_API_KEY` / `EMAIL_FROM` | Transactional email (password reset, alerts) |
-| `SAFECUBE_API_KEY` / `TRACKCARGO_API_KEY` / `MAERSK_CONSUMER_KEY` | Shipment tracking providers |
 | `SENTRY_DSN` | Error tracking (optional) |
 | `APP_BASE_URL` | Used for password reset links |
 | `DATA_DIR` | Persistent data dir for master artwork PDFs (prod) |
@@ -127,8 +126,8 @@ Some logic has been extracted into packages to break `app.py` apart incrementall
 - **`core/`** — shared infrastructure imported by everything (no cycles): `security.py`
   (`login_required`, `require_role`, CSRF, session validation) and `audit.py` (`log_audit` →
   `audit_log` table).
-- **`blueprints/`** — real Flask blueprints registered in `app.py` (`incoterms`, `translation_dict`,
-  `transit_countries`) **plus** data-dictionary modules. Dependency direction is strictly
+- **`blueprints/`** — real Flask blueprints registered in `app.py` (`palviz`, `users`). The DocCompare
+  dictionaries (`incoterms`, `translation_dict`, `transit_countries`) were removed in US-010. Dependency direction is strictly
   `blueprint → core/db`, never back into `app`.
 
 `docs/PLAN_REFAKTORU.md` documents the roadmap for further extraction (RQ workers, ML microservice,
@@ -227,7 +226,7 @@ the `job_progress` table and polled by the frontend (`_update_progress`; allowed
 
 The app is Polish-first with English support. `translations.py` provides a `t(key, lang)` key-value
 map; `translation_en.py` post-processes rendered HTML to swap Polish phrases for English when
-`session lang == 'en'`. `blueprints/translation_dict.py` manages a DB-backed term dictionary.
+`session lang == 'en'`.
 
 ### Frontend
 
@@ -242,7 +241,7 @@ expressions to component members (`npm run check:alpine`). See CONTRIBUTING.md.
 
 ## Key Conventions
 
-- **Shared constants**: import from `constants.py` (`ComparisonStatus`, `DocType`, `Severity`,
+- **Shared constants**: import from `constants.py` (`ComparisonStatus`, `Severity`,
   `UserRole`, limits) — avoid magic strings. App version is `constants.APP_VERSION`.
 - **SQL**: always parameterized queries through `db.get_db()`; the abstraction handles dialects.
 - **Number parsing**: use `normalizer.normalize_number()` — raw `float()` fails on European numbers.
