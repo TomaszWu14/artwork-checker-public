@@ -209,11 +209,9 @@ def _auto_close_dbs(exc):
 
 
 # ── CSP (US-008, ADR-0004) ─────────────────────────────────────────────────────
-# Etap 4 (US-023): polityka EGZEKWOWANA bez 'unsafe-inline' dla skryptów — skrypty inline tylko
-# z nonce bieżącej odpowiedzi, handlery on*= zastąpione atrybutami data-on-* (static/js/csp_actions.js).
-# 'unsafe-eval' zostaje wyłącznie dla Alpine (standardowy build) — do zdjęcia w US-024 (odłożone
-# decyzją PO 2026-10-16). Równolegle polityka docelowa BEZ eval w trybie REPORT-ONLY — raporty
-# z /csp-report mierzą, co zostało do US-024.
+# Polityka docelowa, EGZEKWOWANA: skrypty tylko z 'self' i z nonce bieżącej odpowiedzi — bez
+# 'unsafe-inline' (US-023: handlery on*= → data-on-*, static/js/csp_actions.js) i bez 'unsafe-eval'
+# (US-024: Alpine w buildzie CSP, komponenty przez Alpine.data). Naruszenia raportowane do /csp-report.
 _CSP_COMMON = (
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
     "font-src 'self' data: https://fonts.gstatic.com; "
@@ -226,10 +224,6 @@ _CSP_COMMON = (
 
 
 def _csp_enforced(nonce: str) -> str:
-    return f"default-src 'self'; script-src 'self' 'nonce-{nonce}' 'unsafe-eval'; " + _CSP_COMMON
-
-
-def _csp_report_only(nonce: str) -> str:
     return f"default-src 'self'; script-src 'self' 'nonce-{nonce}'; " + _CSP_COMMON + " report-uri /csp-report"
 
 
@@ -263,7 +257,7 @@ def csp_report():
         return "", 413
     try:
         rep = (request.get_json(force=True, silent=True) or {}).get("csp-report") or {}
-        logger.info("CSP report-only violation: directive=%s blocked=%s page=%s",
+        logger.warning("CSP violation: directive=%s blocked=%s page=%s",
                     str(rep.get("violated-directive", ""))[:80],
                     str(rep.get("blocked-uri", ""))[:200],
                     str(rep.get("document-uri", "")).split("?")[0][:200])
@@ -281,8 +275,6 @@ def _set_security_headers(response):
     response.headers.setdefault("X-XSS-Protection", "0")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault("Content-Security-Policy", _csp_enforced(csp_nonce()))
-    if response.content_type and "text/html" in response.content_type:
-        response.headers.setdefault("Content-Security-Policy-Report-Only", _csp_report_only(csp_nonce()))
     response.headers.setdefault(
         "Permissions-Policy",
         "geolocation=(), camera=(), microphone=(), payment=()"
