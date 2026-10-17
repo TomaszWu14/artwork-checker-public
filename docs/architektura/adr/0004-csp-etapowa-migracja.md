@@ -87,3 +87,9 @@ dostępu do globali, `document`, przypisań do obiektów DOM i niebezpiecznych m
   wymaga decyzji PO o priorytecie.
 - (−) `/csp-report` jest publiczny (przeglądarki nie wysyłają CSRF) — ograniczony rozmiarem i limitem; log przycięty,
   bez query stringów.
+
+## Uzupełnienie — US-027 (2026-10-17, decyzja PO: „napraw”)
+`/artwork/design-preview` (makiety raportu w React) nie ładuje już React/Babel z unpkg: źródła przeniesione do
+`frontend/src/design_preview/`, `npm run build` kompiluje je esbuildem do `static/design/design_preview.js`, React
+z `static/vendor/react`. Weryfikacja w Chromium z egzekwowaną polityką: 0 naruszeń CSP, 0 błędów JS, 5 wariantów
+wyrenderowanych. Ostatni wyjątek z weryfikacji e2e powyżej jest zamknięty.
