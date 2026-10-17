@@ -1,4 +1,5 @@
 """Faza 4 portalu: browse() dołącza status pliku i filtruje pominięte (hide_ignored)."""
+
 import app as _app_mod
 import artwork_index as _ai
 import artwork_manage as _am
@@ -15,8 +16,11 @@ def _seed(db):
         ("XY777", "XY-777", "xy777_single.pdf", "z/c.pdf", "sztuka", "", 0, ""),
     ]
     for r in rows:
-        db.execute("INSERT INTO artwork_index(ref_norm,ref_code,filename,rel_path,"
-                   "packaging_type,revision,revision_rank,ean) VALUES(?,?,?,?,?,?,?,?)", r)
+        db.execute(
+            "INSERT INTO artwork_index(ref_norm,ref_code,filename,rel_path,"
+            "packaging_type,revision,revision_rank,ean) VALUES(?,?,?,?,?,?,?,?)",
+            r,
+        )
     db.commit()
 
 

@@ -38,6 +38,7 @@ except ImportError:
 
 try:
     import fitz
+
     HAS_FITZ = True
 except ImportError:
     HAS_FITZ = False
@@ -53,14 +54,14 @@ except ImportError:
 #   $env:LIBRARY_SYNC_URL="http://127.0.0.1:5000"; $env:LIBRARY_SYNC_TOKEN="<token>"; python library_sync.py
 
 LIBRARY_ROOT = os.environ.get("LIBRARY_SYNC_ROOT", r"Z:\ISO\WZORY ETYKIET I INSTRUKCJI")
-SERVER_URL   = os.environ.get("LIBRARY_SYNC_URL", "https://compare.example.com")
-SYNC_TOKEN   = os.environ.get("LIBRARY_SYNC_TOKEN", "WKLEJ_TOKEN_Z_STRONY_LIBRARY")
+SERVER_URL = os.environ.get("LIBRARY_SYNC_URL", "https://compare.example.com")
+SYNC_TOKEN = os.environ.get("LIBRARY_SYNC_TOKEN", "WKLEJ_TOKEN_Z_STRONY_LIBRARY")
 
 # Opcje zaawansowane:
-EXTENSIONS   = {".pdf", ".PDF", ".jpg", ".JPG", ".jpeg", ".JPEG", ".png", ".PNG"}
-TIMEOUT_S    = 60                   # timeout HTTP (sekundy)
-RETRY_COUNT  = 3                    # ile razy ponawiać po błędzie sieci
-STATE_FILE   = os.path.join(os.path.dirname(__file__), ".library_sync_state.json")
+EXTENSIONS = {".pdf", ".PDF", ".jpg", ".JPG", ".jpeg", ".JPEG", ".png", ".PNG"}
+TIMEOUT_S = 60  # timeout HTTP (sekundy)
+RETRY_COUNT = 3  # ile razy ponawiać po błędzie sieci
+STATE_FILE = os.path.join(os.path.dirname(__file__), ".library_sync_state.json")
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -116,7 +117,8 @@ def _make_thumb(abs_path: str) -> bytes | None:
         elif ext in {'.jpg', '.jpeg', '.png', '.tiff', '.tif', '.bmp', '.webp'}:
             from PIL import Image
             import io
-            with Image.open(abs_path) as _raw:   # BUGFIX: zamknij uchwyt pliku
+
+            with Image.open(abs_path) as _raw:  # BUGFIX: zamknij uchwyt pliku
                 img = _raw.convert("RGB")
             img.thumbnail((200, 300))
             buf = io.BytesIO()
@@ -127,8 +129,9 @@ def _make_thumb(abs_path: str) -> bytes | None:
     return None
 
 
-def _sync_file(rel_path: str, abs_path: str, checksum: str, dry_run: bool,
-               send_file: bool = False) -> str:
+def _sync_file(
+    rel_path: str, abs_path: str, checksum: str, dry_run: bool, send_file: bool = False
+) -> str:
     """
     Wysyła miniaturę i metadane do serwera. Zwraca 'created' | 'updated' | 'skipped' | 'error'.
     Gdy send_file=True — przesyła też PEŁNY plik PDF (tryb --upload-masters); w zwykłej
@@ -142,12 +145,12 @@ def _sync_file(rel_path: str, abs_path: str, checksum: str, dry_run: bool,
     size_bytes = os.path.getsize(abs_path)
 
     meta = {
-        "rel_path":    rel_path.replace("\\", "/"),
-        "filename":    filename,
-        "checksum":    checksum,
+        "rel_path": rel_path.replace("\\", "/"),
+        "filename": filename,
+        "checksum": checksum,
         "modified_at": modified,
-        "size_bytes":  size_bytes,
-        "z_path":      abs_path,
+        "size_bytes": size_bytes,
+        "z_path": abs_path,
     }
     if send_file:
         # Znacznik dla serwera: to potwierdzony master → zarejestruj jako profil
@@ -185,10 +188,11 @@ def _sync_file(rel_path: str, abs_path: str, checksum: str, dry_run: bool,
                 return resp.json().get("status", "ok")
             print(f"  [warn] HTTP {resp.status_code}: {resp.text[:100]}")
         except requests.exceptions.ConnectionError as e:
-            logger.warning("Library sync connection error (attempt %d/%d): %s",
-                           attempt + 1, RETRY_COUNT, e)
+            logger.warning(
+                "Library sync connection error (attempt %d/%d): %s", attempt + 1, RETRY_COUNT, e
+            )
             if attempt < RETRY_COUNT - 1:
-                time.sleep(2 ** attempt)
+                time.sleep(2**attempt)
                 continue
             return "error"
         except Exception as e:
@@ -295,14 +299,15 @@ def run_sync(full: bool = False, dry_run: bool = False):
     print("\n" + "=" * 60)
     if dry_run:
         would = stats.get('would_sync', 0)
-        print(f"Wyniki (dry-run): do_wysłania={would}  "
-              f"pominięte={stats.get('skipped',0)}")
+        print(f"Wyniki (dry-run): do_wysłania={would}  pominięte={stats.get('skipped', 0)}")
         print("(dry-run — żadne pliki nie zostały przesłane)")
     else:
-        print(f"Wyniki: nowe={stats.get('created',0)}  "
-              f"zaktualizowane={stats.get('updated',0)}  "
-              f"pominięte={stats.get('skipped',0)}  "
-              f"błędy={stats.get('error',0)}")
+        print(
+            f"Wyniki: nowe={stats.get('created', 0)}  "
+            f"zaktualizowane={stats.get('updated', 0)}  "
+            f"pominięte={stats.get('skipped', 0)}  "
+            f"błędy={stats.get('error', 0)}"
+        )
 
 
 def run_upload_masters(dry_run: bool = False):
@@ -371,7 +376,9 @@ def run_upload_masters(dry_run: bool = False):
     if dry_run:
         print(f"Wyniki (dry-run): do_wysłania={stats['would']}  brak_pliku={stats['missing']}")
     else:
-        print(f"Wyniki: wysłane={stats['sent']}  brak_pliku={stats['missing']}  błędy={stats['error']}")
+        print(
+            f"Wyniki: wysłane={stats['sent']}  brak_pliku={stats['missing']}  błędy={stats['error']}"
+        )
         print("Po wysyłce mastery podepną się do dostaw automatycznie.")
 
 
@@ -400,8 +407,9 @@ def run_search(query: str):
         print(f"  ID {r['id']:5d}  {r['filename']}")
         print(f"         {r['breadcrumb']}")
         if r.get("modified"):
-            print(f"         Zmieniony: {r['modified'][:16]}  "
-                  f"Rozmiar: {r.get('size',0)//1024} KB")
+            print(
+                f"         Zmieniony: {r['modified'][:16]}  Rozmiar: {r.get('size', 0) // 1024} KB"
+            )
         if r.get("z_path"):
             print(f"         Ścieżka: {r['z_path']}")
         print()
@@ -412,12 +420,15 @@ if __name__ == "__main__":
         print("Zainstaluj requests: pip install requests")
         sys.exit(1)
     parser = argparse.ArgumentParser(description="DocCompare Library Sync")
-    parser.add_argument("--full",    action="store_true", help="Prześlij wszystkie pliki od nowa")
+    parser.add_argument("--full", action="store_true", help="Prześlij wszystkie pliki od nowa")
     parser.add_argument("--dry-run", action="store_true", help="Tylko sprawdź co wymaga sync")
-    parser.add_argument("--search",  metavar="QUERY",     help="Wyszukaj plik w bibliotece")
-    parser.add_argument("--upload-masters", action="store_true",
-                        help="Wyślij PEŁNE pliki PDF tylko dla potwierdzonych masterów "
-                             "(potrzebnych przez dostawy) — bez całej biblioteki")
+    parser.add_argument("--search", metavar="QUERY", help="Wyszukaj plik w bibliotece")
+    parser.add_argument(
+        "--upload-masters",
+        action="store_true",
+        help="Wyślij PEŁNE pliki PDF tylko dla potwierdzonych masterów "
+        "(potrzebnych przez dostawy) — bez całej biblioteki",
+    )
     args = parser.parse_args()
 
     if args.search:

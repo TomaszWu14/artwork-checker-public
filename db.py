@@ -47,15 +47,17 @@ else:
 
 # Coolify / Heroku sometimes emit "postgres://" — psycopg2 requires "postgresql://"
 if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = "postgresql://" + DATABASE_URL[len("postgres://"):]
+    DATABASE_URL = "postgresql://" + DATABASE_URL[len("postgres://") :]
 
 # ── SQL translation ───────────────────────────────────────────────────────────
 
-_INTERVAL_RE      = re.compile(r"datetime\('now',\s*'([^']+)'\)", re.IGNORECASE)
-_NOW_RE           = re.compile(r"datetime\('now'\)", re.IGNORECASE)
-_DATE_NOW_RE      = re.compile(r"date\('now'\)", re.IGNORECASE)
-_DATE_NOW_INT_RE  = re.compile(r"date\('now',\s*'([^']+)'\)", re.IGNORECASE)
-_DATE_COL_RE      = re.compile(r"\bdate\(([\w.]+)\)", re.IGNORECASE)  # też kolumny kwalifikowane: date(t.created_at)
+_INTERVAL_RE = re.compile(r"datetime\('now',\s*'([^']+)'\)", re.IGNORECASE)
+_NOW_RE = re.compile(r"datetime\('now'\)", re.IGNORECASE)
+_DATE_NOW_RE = re.compile(r"date\('now'\)", re.IGNORECASE)
+_DATE_NOW_INT_RE = re.compile(r"date\('now',\s*'([^']+)'\)", re.IGNORECASE)
+_DATE_COL_RE = re.compile(
+    r"\bdate\(([\w.]+)\)", re.IGNORECASE
+)  # też kolumny kwalifikowane: date(t.created_at)
 
 
 def _pg_sql(sql: str) -> str:
@@ -67,8 +69,7 @@ def _pg_sql(sql: str) -> str:
     # with the ?→%s placeholder substitution.
     sql = _NOW_RE.sub("NOW()", sql)
     sql = _INTERVAL_RE.sub(lambda m: f"NOW() + INTERVAL '{m.group(1)}'", sql)
-    sql = _DATE_NOW_INT_RE.sub(
-        lambda m: f"(CURRENT_DATE + INTERVAL '{m.group(1)}')", sql)
+    sql = _DATE_NOW_INT_RE.sub(lambda m: f"(CURRENT_DATE + INTERVAL '{m.group(1)}')", sql)
     sql = _DATE_NOW_RE.sub("CURRENT_DATE", sql)
 
     # Split into segments: even idx = outside literals, odd idx = quoted literals.
@@ -79,10 +80,7 @@ def _pg_sql(sql: str) -> str:
         seg = _DATE_COL_RE.sub(lambda m: f"({m.group(1)})::date", seg)
         return seg
 
-    sql = "".join(
-        _xlate(p) if i % 2 == 0 else p
-        for i, p in enumerate(_parts)
-    )
+    sql = "".join(_xlate(p) if i % 2 == 0 else p for i, p in enumerate(_parts))
     sql = re.sub(r'\blast_insert_rowid\(\)', 'lastval()', sql, flags=re.IGNORECASE)
     # SQLite BLOB → PostgreSQL BYTEA
     sql = re.sub(r'\bBLOB\b', 'BYTEA', sql, flags=re.IGNORECASE)
@@ -94,12 +92,14 @@ def _pg_sql(sql: str) -> str:
         sql = re.sub(
             r"\bINTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT\b",
             "SERIAL PRIMARY KEY",
-            sql, flags=re.IGNORECASE,
+            sql,
+            flags=re.IGNORECASE,
         )
         sql = re.sub(
             r"\bINTEGER\s+PRIMARY\s+KEY\b",
             "SERIAL PRIMARY KEY",
-            sql, flags=re.IGNORECASE,
+            sql,
+            flags=re.IGNORECASE,
         )
         # DEFAULT (datetime('now')) already handled above; strip leftover parens
         sql = re.sub(r"DEFAULT\s+\(NOW\(\)\)", "DEFAULT NOW()", sql, flags=re.IGNORECASE)
@@ -107,7 +107,8 @@ def _pg_sql(sql: str) -> str:
         sql = re.sub(
             r'(\bTIMESTAMP(?:TZ)?\b[^,]*?)DEFAULT NOW\(\)(?!::)',
             r'\1DEFAULT NOW()::TIMESTAMPTZ',
-            sql, flags=re.IGNORECASE | re.DOTALL,
+            sql,
+            flags=re.IGNORECASE | re.DOTALL,
         )
         sql = re.sub(r"\bDEFAULT NOW\(\)(?!::)", "DEFAULT NOW()::TEXT", sql, flags=re.IGNORECASE)
     return sql
@@ -115,8 +116,10 @@ def _pg_sql(sql: str) -> str:
 
 # ── PostgreSQL row / cursor / connection wrappers ─────────────────────────────
 
+
 class _PGRow:
     """Mimics sqlite3.Row: supports row["col"] and dict(row)."""
+
     __slots__ = ("_d", "_vals")
 
     def __init__(self, description, values):
@@ -228,10 +231,7 @@ class _PGConnection:
         """
         # Split on ; only outside single-quoted strings to handle DEFAULT 'val;1' etc.
         _parts = re.split(r"('(?:[^']|'')*')", script)
-        _joined = "".join(
-            p.replace(";", "\x00") if i % 2 == 0 else p
-            for i, p in enumerate(_parts)
-        )
+        _joined = "".join(p.replace(";", "\x00") if i % 2 == 0 else p for i, p in enumerate(_parts))
         stmts = [s.strip() for s in _joined.split("\x00") if s.strip()]
         cur = self._conn.cursor()
         try:
@@ -281,12 +281,14 @@ _pg_pool_lock = __import__("threading").Lock()
 # lock waits below; that's a different thing). Configurable; "0" disables.
 _STMT_TIMEOUT_MS = os.environ.get("DB_STATEMENT_TIMEOUT_MS", "30000").strip()
 
+
 def _pg_connect_kwargs() -> dict:
     """kwargs passed to psycopg2.connect / pool so the timeout applies once per
     physical connection (session default), not as a per-query round-trip."""
     if _STMT_TIMEOUT_MS and _STMT_TIMEOUT_MS not in ("0", ""):
         return {"options": f"-c statement_timeout={_STMT_TIMEOUT_MS}"}
     return {}
+
 
 def _get_pg_pool():
     """Return a psycopg2 ThreadedConnectionPool (min=1, max=10).
@@ -300,14 +302,17 @@ def _get_pg_pool():
             if _pg_pool is None:
                 try:
                     from psycopg2 import pool as _pool
+
                     _pg_max = max(2, int(os.environ.get("DB_POOL_SIZE", "10")))
                     _pg_pool = _pool.ThreadedConnectionPool(
-                        minconn=1, maxconn=_pg_max, dsn=DATABASE_URL,
-                        **_pg_connect_kwargs()
+                        minconn=1, maxconn=_pg_max, dsn=DATABASE_URL, **_pg_connect_kwargs()
                     )
                 except Exception as _e:
                     import logging as _log
-                    _log.getLogger("db").warning("PG pool creation failed, falling back to direct connect: %s", _e)
+
+                    _log.getLogger("db").warning(
+                        "PG pool creation failed, falling back to direct connect: %s", _e
+                    )
     return _pg_pool
 
 
@@ -323,6 +328,7 @@ def get_db() -> "_PGConnection | sqlite3.Connection":
     """
     if DATABASE_URL:
         import psycopg2  # noqa: PLC0415
+
         pool = _get_pg_pool()
         if pool is not None:
             try:
@@ -334,6 +340,7 @@ def get_db() -> "_PGConnection | sqlite3.Connection":
                 # route that already called close() would putconn() twice,
                 # corrupting psycopg2's internal pool state.
                 _pool_returned = [False]
+
                 def _pool_close():
                     if _pool_returned[0]:
                         return
@@ -360,6 +367,7 @@ def get_db() -> "_PGConnection | sqlite3.Connection":
                                 raw_conn.close()
                             except Exception:
                                 pass
+
                 conn.close = _pool_close
             except Exception:
                 # Pool exhausted or error — fall back to direct connect
@@ -376,10 +384,10 @@ def get_db() -> "_PGConnection | sqlite3.Connection":
         db = sqlite3.connect(SQLITE_PATH, timeout=10)
         try:
             db.row_factory = sqlite3.Row
-            db.execute("PRAGMA journal_mode=WAL")    # concurrent reads during writes
-            db.execute("PRAGMA busy_timeout=8000")   # wait up to 8s if locked (multiple workers)
+            db.execute("PRAGMA journal_mode=WAL")  # concurrent reads during writes
+            db.execute("PRAGMA busy_timeout=8000")  # wait up to 8s if locked (multiple workers)
             db.execute("PRAGMA synchronous=NORMAL")  # WAL + NORMAL = safe + faster
-            db.execute("PRAGMA foreign_keys=ON")     # enforce FK constraints
+            db.execute("PRAGMA foreign_keys=ON")  # enforce FK constraints
         except Exception:
             # A failing PRAGMA must not leak the open connection (it is not yet
             # registered on flask.g for teardown cleanup).
@@ -390,6 +398,7 @@ def get_db() -> "_PGConnection | sqlite3.Connection":
             raise
     try:
         from flask import g, has_request_context
+
         if has_request_context():
             if not hasattr(g, "_open_dbs"):
                 g._open_dbs = []
@@ -402,6 +411,7 @@ def get_db() -> "_PGConnection | sqlite3.Connection":
 # Unified IntegrityError — catch this instead of sqlite3.IntegrityError
 try:
     import psycopg2 as _pg
+
     IntegrityError = (sqlite3.IntegrityError, _pg.IntegrityError)
 except ImportError:
     IntegrityError = (sqlite3.IntegrityError,)
@@ -414,7 +424,4 @@ def escape_like(value: str) -> str:
     value is matched literally. Use together with: ... LIKE ? ESCAPE '\\'.
     Centralises the pattern previously duplicated across route handlers.
     """
-    return (str(value or "")
-            .replace("\\", "\\\\")
-            .replace("%", "\\%")
-            .replace("_", "\\_"))
+    return str(value or "").replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")

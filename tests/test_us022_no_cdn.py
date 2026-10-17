@@ -5,6 +5,7 @@
 - przypięte kopie bibliotek i zbudowane pliki są w repo,
 - eksport raportu HTML (plik offline) ma React i widok pól wbudowane, bez zewnętrznych skryptów.
 """
+
 import pathlib
 import re
 
@@ -47,6 +48,7 @@ def test_vendored_and_built_files_present(rel):
 
 def test_versions_pinned_in_package_json():
     import json
+
     deps = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))["devDependencies"]
     assert all(re.fullmatch(r"\d+\.\d+\.\d+", v) for v in deps.values()), deps
 
@@ -54,20 +56,29 @@ def test_versions_pinned_in_package_json():
 def test_csp_has_no_cdn_hosts():
     pytest.importorskip("flask")
     import app as _app_mod
+
     assert not CDN_RE.search(_app_mod._csp_enforced("n0nce"))
 
 
 def test_exported_report_html_is_self_contained():
     pytest.importorskip("jinja2")
     from artwork_report_engine import build_demo_report, render_report_html
+
     report = build_demo_report()
     report.profile_active = True
-    report.profile_fields = [{"field": "EAN", "severity": "critical", "changed": True,
-                              "val_a": "5901234123457", "val_b": "5901234123458"}]
+    report.profile_fields = [
+        {
+            "field": "EAN",
+            "severity": "critical",
+            "changed": True,
+            "val_a": "5901234123457",
+            "val_b": "5901234123458",
+        }
+    ]
     html = render_report_html(report)
     assert not CDN_RE.search(html)
-    assert not re.search(r"<script[^>]+src=", html)          # brak zewnętrznych skryptów
-    assert "createRoot" in html and "React" in html          # widok pól wbudowany
+    assert not re.search(r"<script[^>]+src=", html)  # brak zewnętrznych skryptów
+    assert "createRoot" in html and "React" in html  # widok pól wbudowany
     # treść wbudowanych plików nie może zamknąć tagu <script> przedwcześnie
     body = html.split("<body", 1)[1]
     assert body.count("<script") == body.count("</script>")

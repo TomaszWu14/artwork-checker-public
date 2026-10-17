@@ -2,6 +2,7 @@
 
 Direct-DB przez migrate_db (tabele artwork_render_registry / artwork_marm_link
 żyją w migrate). Wzór jak tests/test_coverage_view.py."""
+
 import migrate_db
 import app as _app_mod
 import artwork_index as _ai
@@ -19,8 +20,10 @@ def _clean(db):
 
 
 def _seed_index(db, ref_norm, ref_code, filename):
-    db.execute("INSERT INTO artwork_index (ref_norm, ref_code, filename, rel_path) "
-               "VALUES (?,?,?,?)", (ref_norm, ref_code, filename, f"z/{filename}"))
+    db.execute(
+        "INSERT INTO artwork_index (ref_norm, ref_code, filename, rel_path) VALUES (?,?,?,?)",
+        (ref_norm, ref_code, filename, f"z/{filename}"),
+    )
     db.commit()
 
 
@@ -31,8 +34,11 @@ def test_variant_facet_filters_by_render_variant():
         _seed_index(db, "FA1", "FA1", "fa1.pdf")
         _seed_index(db, "FA2", "FA2", "fa2.pdf")
         # FA1 ma render marm, FA2 nie ma nic
-        db.execute("INSERT INTO artwork_render_registry (ref_norm, variant, glb_path) "
-                   "VALUES ('FA1',?,'/a.glb')", (RenderVariant.MARM.value,))
+        db.execute(
+            "INSERT INTO artwork_render_registry (ref_norm, variant, glb_path) "
+            "VALUES ('FA1',?,'/a.glb')",
+            (RenderVariant.MARM.value,),
+        )
         db.commit()
 
         res = _ai.browse(db, variant=RenderVariant.MARM.value)
@@ -54,8 +60,10 @@ def test_marm_linked_facet():
         _clean(db)
         _seed_index(db, "FB1", "FB1", "fb1.pdf")
         _seed_index(db, "FB2", "FB2", "fb2.pdf")
-        db.execute("INSERT INTO artwork_marm_link (art_ref_norm, marm_ref, marm_unit) "
-                   "VALUES ('FB1','300000','KAR')")
+        db.execute(
+            "INSERT INTO artwork_marm_link (art_ref_norm, marm_ref, marm_unit) "
+            "VALUES ('FB1','300000','KAR')"
+        )
         db.commit()
 
         res = _ai.browse(db, marm_linked=True)

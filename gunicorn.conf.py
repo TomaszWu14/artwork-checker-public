@@ -18,13 +18,14 @@ max_requests = 1000
 max_requests_jitter = 100
 
 # Logging
-accesslog = "-"   # stdout
-errorlog = "-"    # stderr
+accesslog = "-"  # stdout
+errorlog = "-"  # stderr
 loglevel = os.environ.get("LOG_LEVEL", "warning").lower()
 
 # Performance — use RAM-backed tmpfs for worker heartbeat files
 # (avoids disk I/O stalls when /tmp is slow or full). Tylko jeśli /dev/shm
 # istnieje — na minimalnych kontenerach bez tmpfs gunicorn inaczej nie wstaje.
 import os as _os
+
 # Bandit B108: /dev/shm to zalecany przez gunicorn tmpfs na pliki heartbeat workerów, nie dane aplikacji.
 worker_tmp_dir = "/dev/shm" if _os.path.isdir("/dev/shm") else None  # nosec B108

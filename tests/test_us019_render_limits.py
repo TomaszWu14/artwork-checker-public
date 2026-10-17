@@ -1,13 +1,23 @@
 """US-019 / R-13: limity renderowania PDF — liczba stron, rozmiar bitmapy, DPI z env."""
+
 import pytest
 
 from core import render_limits as rl
 
 
 # ── Czysta logika (bez PyMuPDF — działa w CI) ─────────────────────────────────
-@pytest.mark.parametrize("raw,expected", [
-    ("300", 300), (" 150 ", 150), ("10", 72), ("5000", 400), ("abc", 300), (None, 300), ("", 300),
-])
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("300", 300),
+        (" 150 ", 150),
+        ("10", 72),
+        ("5000", 400),
+        ("abc", 300),
+        (None, 300),
+        ("", 300),
+    ],
+)
 def test_clamp_dpi(raw, expected):
     assert rl.clamp_dpi(raw, 300) == expected
 
@@ -36,7 +46,7 @@ def test_page_indices_default_and_env(monkeypatch):
     assert len(rl.page_indices(500)) == 5
     monkeypatch.setenv("ARTWORK_MAX_PDF_PAGES", "nonsense")
     assert len(rl.page_indices(500)) == 50
-    monkeypatch.setenv("ARTWORK_MAX_PDF_PAGES", "0")   # dolna granica 1
+    monkeypatch.setenv("ARTWORK_MAX_PDF_PAGES", "0")  # dolna granica 1
     assert len(rl.page_indices(500)) == 1
 
 
@@ -70,7 +80,7 @@ def test_load_pages_respects_page_limit(tmp_path, monkeypatch, comparator):
     _make_pdf(pdf, 60)
     monkeypatch.delenv("ARTWORK_MAX_PDF_PAGES", raising=False)
     assert len(comparator._load_pages(str(pdf), 72)) == 50
-    pdf2 = tmp_path / "many2.pdf"           # inny plik — bez trafienia w cache stron
+    pdf2 = tmp_path / "many2.pdf"  # inny plik — bez trafienia w cache stron
     _make_pdf(pdf2, 12)
     monkeypatch.setenv("ARTWORK_MAX_PDF_PAGES", "4")
     assert len(comparator._load_pages(str(pdf2), 72)) == 4
@@ -82,7 +92,7 @@ def test_large_format_page_is_never_rendered_at_full_dpi(tmp_path, monkeypatch, 
     """Bitmapa ma limit JUŻ przy renderze, a nie dopiero po zmniejszeniu."""
     fitz = pytest.importorskip("fitz")
     pdf = tmp_path / "sheet.pdf"
-    _make_pdf(pdf, 1, width_pt=5669, height_pt=2835)   # ~2 m × 1 m
+    _make_pdf(pdf, 1, width_pt=5669, height_pt=2835)  # ~2 m × 1 m
     widths = []
     orig = fitz.Page.get_pixmap
 
@@ -103,6 +113,7 @@ def test_large_format_page_is_never_rendered_at_full_dpi(tmp_path, monkeypatch, 
 
 def test_ocr_dpi_env_is_clamped():
     from core.render_limits import clamp_dpi
+
     # moduł liczy OCR_DPI tą samą funkcją; sprawdzamy kontrakt dla skrajnych wartości env
     assert clamp_dpi("2000", 300) == 400
     assert clamp_dpi("300dpi", 300) == 300

@@ -22,6 +22,7 @@ Bezpieczeństwo/kontrakt:
 Moduł „czysty": operuje na połączeniu DB przekazanym z wołającego; HTTP przez
 seam `_http_post` (lazy import requests w środku) — testowalny bez sieci.
 """
+
 from __future__ import annotations
 
 import os
@@ -62,6 +63,7 @@ def _http_post(url, payload, headers, timeout):
     """Seam sieciowy — realny POST. Testy podmieniają tę funkcję (bez requests/sieci).
     Zwraca (status_code:int, text:str). requests importowany leniwie (CI-safe)."""
     import requests
+
     r = requests.post(url, json=payload, headers=headers, timeout=timeout)
     return r.status_code, (r.text or "")[:500]
 
@@ -70,8 +72,12 @@ def _set_status(db, registry_id, status, error="") -> None:
     db.execute(
         "UPDATE artwork_render_registry SET push_status=?, push_error=?, "
         "push_at=?, push_attempts=push_attempts+1 WHERE id=?",
-        (status, error[:500], datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-         registry_id),
+        (
+            status,
+            error[:500],
+            datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+            registry_id,
+        ),
     )
     db.commit()
 
@@ -84,7 +90,8 @@ def push_row(db, registry_id, *, user=None) -> dict:
     próba zwiększa push_attempts i jest audytowana (PUSH-05)."""
     row = db.execute(
         "SELECT id, ref_norm, variant, source_hash, glb_path FROM artwork_render_registry "
-        "WHERE id=?", (registry_id,)
+        "WHERE id=?",
+        (registry_id,),
     ).fetchone()
     if not row:
         return {"status": "missing"}
@@ -93,8 +100,7 @@ def push_row(db, registry_id, *, user=None) -> dict:
 
     url = os.environ["PALVIZ_PUSH_URL"].strip()
     api_key = (os.environ.get("PALVIZ_API_KEY") or "").strip()
-    headers = {"Idempotency-Key": idempotency_key(registry_id),
-               "Content-Type": "application/json"}
+    headers = {"Idempotency-Key": idempotency_key(registry_id), "Content-Type": "application/json"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
     payload = build_payload(row)
@@ -104,20 +110,21 @@ def push_row(db, registry_id, *, user=None) -> dict:
     except Exception as e:  # sieć/timeout/DNS — nie wywalamy daemon-threadu
         err = f"{type(e).__name__}: {e}"
         _set_status(db, registry_id, "failed", err)
-        _log_audit("palviz_push_failed", user,
-                   f"reg={registry_id} variant={row['variant']} err={err}")
+        _log_audit(
+            "palviz_push_failed", user, f"reg={registry_id} variant={row['variant']} err={err}"
+        )
         return {"status": "failed", "error": err}
 
     if 200 <= code < 300:
         _set_status(db, registry_id, "sent", "")
-        _log_audit("palviz_push_sent", user,
-                   f"reg={registry_id} variant={row['variant']} http={code}")
+        _log_audit(
+            "palviz_push_sent", user, f"reg={registry_id} variant={row['variant']} http={code}"
+        )
         return {"status": "sent", "http": code}
 
     err = f"HTTP {code}: {text}"
     _set_status(db, registry_id, "failed", err)
-    _log_audit("palviz_push_failed", user,
-               f"reg={registry_id} variant={row['variant']} err={err}")
+    _log_audit("palviz_push_failed", user, f"reg={registry_id} variant={row['variant']} err={err}")
     return {"status": "failed", "error": err}
 
 
@@ -153,7 +160,8 @@ def _latest_row_ids_for_fids(db, fids) -> list:
     rows = db.execute(
         # Bandit B608: interpolowane są tylko placeholdery ? (liczba = długość listy); wartości jako parametry.
         "SELECT id, fid, variant, created_at FROM artwork_render_registry "  # nosec B608
-        f"WHERE fid IN ({','.join('?' * len(fids))})", fids
+        f"WHERE fid IN ({','.join('?' * len(fids))})",
+        fids,
     ).fetchall()
     latest: dict = {}
     for r in rows:
@@ -191,8 +199,7 @@ def retry_row(db, registry_id, *, user=None) -> dict:
         try:
             prev = datetime.strptime(last, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
             if (datetime.now(timezone.utc) - prev).total_seconds() < _RETRY_MIN_INTERVAL_S:
-                return {"status": "backoff",
-                        "retry_after_s": _RETRY_MIN_INTERVAL_S}
+                return {"status": "backoff", "retry_after_s": _RETRY_MIN_INTERVAL_S}
         except (ValueError, TypeError):
             pass  # nieparsowalny timestamp — nie blokuj retry
     return push_row(db, registry_id, user=user)

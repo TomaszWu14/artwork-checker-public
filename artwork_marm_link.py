@@ -11,6 +11,7 @@ przez DELETE+INSERT (portable SQLite/PG przez db.py — bez dialektowego ON CONF
 
 Moduł „czysty": operuje na połączeniu DB przekazanym z app.py.
 """
+
 from __future__ import annotations
 
 from artwork_index import normalize_ref
@@ -23,7 +24,8 @@ def get_link(db, art_ref) -> dict | None:
         return None
     row = db.execute(
         "SELECT art_ref_norm, marm_ref, marm_unit, updated_by, updated_at "
-        "FROM artwork_marm_link WHERE art_ref_norm = ?", (rn,)
+        "FROM artwork_marm_link WHERE art_ref_norm = ?",
+        (rn,),
     ).fetchone()
     return dict(row) if row else None
 
@@ -38,7 +40,7 @@ def set_link(db, art_ref, marm_ref, marm_unit, user) -> bool:
     db.execute(
         "INSERT INTO artwork_marm_link (art_ref_norm, marm_ref, marm_unit, updated_by) "
         "VALUES (?, ?, ?, ?)",
-        (rn, (marm_ref or "").strip(), (marm_unit or "").strip(), user)
+        (rn, (marm_ref or "").strip(), (marm_unit or "").strip(), user),
     )
     db.commit()
     return True

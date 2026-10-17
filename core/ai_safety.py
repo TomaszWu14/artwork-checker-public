@@ -12,6 +12,7 @@ i jest NIEZAUFANA. Zasady:
 
 Moduł bez zależności (importowany przez artwork_comparator i ai_learning).
 """
+
 from __future__ import annotations
 
 import re

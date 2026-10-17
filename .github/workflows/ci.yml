@@ -3,8 +3,8 @@ name: CI
 # Bramka jakości na każdy push do main i każdy PR (ADR-0002):
 #   lint → składnia + testy → SAST (Bandit, Semgrep) → SCA (pip-audit) → sekrety (gitleaks) → konfiguracja (Trivy)
 # Blokują: compileall, pytest, Bandit (≥ średnie), pip-audit, gitleaks.
-# Blokuje też ruff check (od US-002). Doradcze (continue-on-error na KROKU — job zielony z ostrzeżeniem;
-# termin w ADR-0002 / RYZYKA.md W-03): ruff format (US-020), Semgrep (do pierwszego triage),
+# Blokuje też ruff check (od US-002) i ruff format --check (od US-020). Doradcze (continue-on-error na KROKU —
+# job zielony z ostrzeżeniem; termin w ADR-0002 / RYZYKA.md W-03): Semgrep (do pierwszego triage),
 # Trivy misconfig (do US-012 — kontener non-root).
 # Skan obrazu Docker (ciężki, ~8 min) jest w security.yml (ręcznie / co miesiąc).
 
@@ -28,7 +28,7 @@ env:
 
 jobs:
   lint:
-    name: Lint (ruff check blokuje; format doradczy)
+    name: Lint (ruff check + ruff format --check — blokują)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -36,12 +36,11 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Instalacja ruff
-        run: pip install "ruff>=0.6,<1.0"
+        run: pip install "ruff==0.17.1"   # US-020: ta sama wersja co dev-requirements.txt i pre-commit
       - name: ruff check (reguły F, E9, W6 z pyproject.toml) — BLOKUJE od US-002
         run: ruff check . --output-format github
-      - name: ruff format --check (doradczy — jednorazowe formatowanie 108 plików to osobna decyzja PO, US-020)
-        continue-on-error: true
-        run: ruff format --check .
+      - name: "ruff format --check — BLOKUJE od US-020 (naprawa: ruff format . w wersji z dev-requirements.txt)"
+        run: ruff format --check --diff .
 
   tests:
     name: Składnia + testy (pytest)

@@ -9,6 +9,7 @@ gdzie ref_norm = '*' oznacza regułę globalną (dla wszystkich produktów).
 
 Moduł jest „czysty": operuje na połączeniu DB przekazanym z app.py.
 """
+
 from __future__ import annotations
 
 import re
@@ -18,18 +19,44 @@ import re
 # generyczny strip (obsługuje tylko angielskie -Y/-S), więc częste formy mnogie
 # PL podajemy wprost (OPAKOWANIA, SZTUKI, PALETY…).
 _UNIT_ALIASES = {
-    "PCS": "PCS", "PC": "PCS", "PIECE": "PCS", "PIECES": "PCS",
-    "SZT": "PCS", "SZTUKA": "PCS", "SZTUKI": "PCS", "SZTUK": "PCS",
-    "SZT.": "PCS", "EA": "PCS", "EACH": "PCS", "EACHES": "PCS",
-    "UNIT": "PCS", "UNITS": "PCS",
-    "CTN": "CTN", "CARTON": "CTN", "CARTONS": "CTN", "KARTON": "CTN",
-    "KARTONY": "CTN", "KAR": "CTN", "BOX": "CTN", "BOXES": "CTN",
-    "OP": "OP", "OPAKOWANIE": "OP", "OPAKOWANIA": "OP", "PACK": "OP",
-    "PACKS": "OP", "PKG": "OP",
+    "PCS": "PCS",
+    "PC": "PCS",
+    "PIECE": "PCS",
+    "PIECES": "PCS",
+    "SZT": "PCS",
+    "SZTUKA": "PCS",
+    "SZTUKI": "PCS",
+    "SZTUK": "PCS",
+    "SZT.": "PCS",
+    "EA": "PCS",
+    "EACH": "PCS",
+    "EACHES": "PCS",
+    "UNIT": "PCS",
+    "UNITS": "PCS",
+    "CTN": "CTN",
+    "CARTON": "CTN",
+    "CARTONS": "CTN",
+    "KARTON": "CTN",
+    "KARTONY": "CTN",
+    "KAR": "CTN",
+    "BOX": "CTN",
+    "BOXES": "CTN",
+    "OP": "OP",
+    "OPAKOWANIE": "OP",
+    "OPAKOWANIA": "OP",
+    "PACK": "OP",
+    "PACKS": "OP",
+    "PKG": "OP",
     "OPZ": "OPZ",
-    "PAL": "PAL", "PALLET": "PAL", "PALLETS": "PAL", "PALETA": "PAL",
+    "PAL": "PAL",
+    "PALLET": "PAL",
+    "PALLETS": "PAL",
+    "PALETA": "PAL",
     "PALETY": "PAL",
-    "SET": "SET", "SETS": "SET", "KPL": "SET", "ZESTAW": "SET",
+    "SET": "SET",
+    "SETS": "SET",
+    "KPL": "SET",
+    "ZESTAW": "SET",
     "ZESTAWY": "SET",
 }
 
@@ -77,9 +104,7 @@ def ensure_table(db) -> None:
 def load_conversions(db) -> list:
     """Zwraca listę konwersji jako dict-y (kanoniczne jednostki)."""
     ensure_table(db)
-    rows = db.execute(
-        "SELECT ref_norm, unit_from, unit_to, factor FROM uom_conversion"
-    ).fetchall()
+    rows = db.execute("SELECT ref_norm, unit_from, unit_to, factor FROM uom_conversion").fetchall()
     out = []
     for r in rows:
         d = dict(r)
@@ -103,7 +128,7 @@ def get_factor(unit_from, unit_to, ref, conversions) -> float | None:
         return 1.0
     rn = normalize_ref(ref)
     # Preferuj regułę dopasowaną do REF, potem globalną.
-    for want_ref in ([rn, "*"] if rn else ["*"]):
+    for want_ref in [rn, "*"] if rn else ["*"]:
         for c in conversions:
             if c.get("ref_norm", "*") != want_ref:
                 continue

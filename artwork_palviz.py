@@ -28,15 +28,18 @@ ORIENT = {"front": 0, "back": 0, "left": 0, "right": 0, "top": 180, "bottom": 0}
 # regex 3-osiowych wymiarów: "210 x 120 x 55 mm", "290×250×222", spacje/×/x, opc. mm
 _DIM_RE = re.compile(r"(\d{1,4})\s*[x×]\s*(\d{1,4})\s*[x×]\s*(\d{1,4})\s*(?:mm)?", re.I)
 
-MAX_TEX_PX = 2048          # dłuższy bok tekstury
-MAX_PIXMAP_MPIX = 100      # limit renderu strony
+MAX_TEX_PX = 2048  # dłuższy bok tekstury
+MAX_PIXMAP_MPIX = 100  # limit renderu strony
 
 # Proporcje ścianki wg wymiarów opakowania (l=w_mm długość, w=d_mm szerokość, h=h_mm wys.).
 # (num_attr, den_attr) → szerokość:wysokość obrazka. front/back=l×h, left/right=w×h, top/bottom=l×w.
 FACE_DIMS = {
-    "front": ("w_mm", "h_mm"), "back":  ("w_mm", "h_mm"),
-    "left":  ("d_mm", "h_mm"), "right": ("d_mm", "h_mm"),
-    "top":   ("w_mm", "d_mm"), "bottom": ("w_mm", "d_mm"),
+    "front": ("w_mm", "h_mm"),
+    "back": ("w_mm", "h_mm"),
+    "left": ("d_mm", "h_mm"),
+    "right": ("d_mm", "h_mm"),
+    "top": ("w_mm", "d_mm"),
+    "bottom": ("w_mm", "d_mm"),
 }
 # Poziom = typ artworku (spójne z katalogiem/docs). box/carton/carton_print = netty 3D;
 # sztuka/opz/karton zachowane dla kompatybilności starszego UI.
@@ -63,8 +66,8 @@ class DielineInfo:
     page_w_mm: float = 0.0
     page_h_mm: float = 0.0
     page_idx: int = 0
-    pkg_type: str = "indywidualne"   # indywidualne | pośrednie | karton transportowy
-    source: str = "parsed"           # parsed | manual
+    pkg_type: str = "indywidualne"  # indywidualne | pośrednie | karton transportowy
+    source: str = "parsed"  # parsed | manual
     warnings: list = field(default_factory=list)
 
     @property
@@ -96,6 +99,7 @@ def extract_dieline_info(pdf_path: str, manual_dims: tuple | None = None) -> Die
     page_idx, pw, ph = 0, 0.0, 0.0
     try:
         import fitz
+
         doc = fitz.open(pdf_path)
         best = -1.0
         for i, page in enumerate(doc):
@@ -164,11 +168,11 @@ def locate_panels(info: DielineInfo, content: tuple | None = None) -> dict:
 
     band_bot = band_top + sH
     return {
-        "front":  (fx0, band_top, fx1, band_bot),
-        "right":  (rx0, band_top, rx1, band_bot),
-        "back":   (bx0, band_top, bx1, band_bot),
-        "left":   (lx0, band_top, lx1, band_bot),
-        "top":    (fx0, oy, fx1, band_top),
+        "front": (fx0, band_top, fx1, band_bot),
+        "right": (rx0, band_top, rx1, band_bot),
+        "back": (bx0, band_top, bx1, band_bot),
+        "left": (lx0, band_top, lx1, band_bot),
+        "top": (fx0, oy, fx1, band_top),
         "bottom": (fx0, band_bot, fx1, band_bot + sD),
     }
 
@@ -190,9 +194,12 @@ def render_panels(pdf_path: str, rects: dict, info: DielineInfo, dpi: int = 220)
 
     out = {}
     for face, (x0, y0, x1, y1) in rects.items():
-        box = (max(0, int(x0 * px_per_mm)), max(0, int(y0 * px_per_mm)),
-               min(page_img.width, int(x1 * px_per_mm)),
-               min(page_img.height, int(y1 * px_per_mm)))
+        box = (
+            max(0, int(x0 * px_per_mm)),
+            max(0, int(y0 * px_per_mm)),
+            min(page_img.width, int(x1 * px_per_mm)),
+            min(page_img.height, int(y1 * px_per_mm)),
+        )
         if box[2] <= box[0] or box[3] <= box[1]:
             out[face] = Image.new("RGB", (16, 16), (210, 205, 195))  # brak grafiki → tło
         else:
@@ -210,6 +217,7 @@ def _rot_for(face: str, orient: dict | None) -> int:
 def _prep_texture(img, face: str, orient: dict | None = None):
     """Rotacja (override szablonu lub ORIENT), RGB, ograniczenie dłuższego boku."""
     from PIL import Image
+
     img = img.convert("RGB")
     rot = _rot_for(face, orient)
     if rot:
@@ -224,12 +232,12 @@ def _prep_texture(img, face: str, orient: dict | None = None):
 # hx=W/2, hy=H/2, hz=D/2 (metry). Front = +Z. UV: bl(0,1) br(1,1) tr(1,0) tl(0,0).
 def _face_corners(hx, hy, hz):
     return {
-        "front":  [(-hx, -hy,  hz), ( hx, -hy,  hz), ( hx,  hy,  hz), (-hx,  hy,  hz)],
-        "back":   [( hx, -hy, -hz), (-hx, -hy, -hz), (-hx,  hy, -hz), ( hx,  hy, -hz)],
-        "right":  [( hx, -hy,  hz), ( hx, -hy, -hz), ( hx,  hy, -hz), ( hx,  hy,  hz)],
-        "left":   [(-hx, -hy, -hz), (-hx, -hy,  hz), (-hx,  hy,  hz), (-hx,  hy, -hz)],
-        "top":    [(-hx,  hy,  hz), ( hx,  hy,  hz), ( hx,  hy, -hz), (-hx,  hy, -hz)],
-        "bottom": [(-hx, -hy, -hz), ( hx, -hy, -hz), ( hx, -hy,  hz), (-hx, -hy,  hz)],
+        "front": [(-hx, -hy, hz), (hx, -hy, hz), (hx, hy, hz), (-hx, hy, hz)],
+        "back": [(hx, -hy, -hz), (-hx, -hy, -hz), (-hx, hy, -hz), (hx, hy, -hz)],
+        "right": [(hx, -hy, hz), (hx, -hy, -hz), (hx, hy, -hz), (hx, hy, hz)],
+        "left": [(-hx, -hy, -hz), (-hx, -hy, hz), (-hx, hy, hz), (-hx, hy, -hz)],
+        "top": [(-hx, hy, hz), (hx, hy, hz), (hx, hy, -hz), (-hx, hy, -hz)],
+        "bottom": [(-hx, -hy, -hz), (hx, -hy, -hz), (hx, -hy, hz), (-hx, -hy, hz)],
     }
 
 
@@ -250,8 +258,10 @@ def build_glb(panels: dict, info: DielineInfo, out_path: str, orient: dict | Non
         img = panels.get(face)
         if img is None:
             from PIL import Image
+
             img = Image.new("RGB", (16, 16), (210, 205, 195))
         from artwork_3d import _to_power_of_two  # POT: inaczej trimesh≥5 → NPOT+REPEAT → biały box
+
         tex = _to_power_of_two(_prep_texture(img, face, orient))
         verts = np.array(corners[face], dtype=float)
         mat = PBRMaterial(baseColorTexture=tex, metallicFactor=0.0, roughnessFactor=0.85)
@@ -266,6 +276,7 @@ def build_glb(panels: dict, info: DielineInfo, out_path: str, orient: dict | Non
 def _fit_face(img, aspect_w: float, aspect_h: float, min_px: int = 1024):
     """Przeskaluj obraz do DOKŁADNEJ proporcji ścianki, dłuższy bok ≥ min_px."""
     from PIL import Image
+
     ratio = aspect_w / aspect_h
     if ratio >= 1:
         w = max(min_px, img.width)
@@ -276,9 +287,16 @@ def _fit_face(img, aspect_w: float, aspect_h: float, min_px: int = 1024):
     return img.resize((w, h), Image.LANCZOS)
 
 
-def _export_faces_from_panels(panels: dict, info: DielineInfo, out_dir: str,
-                              level: str, sku: str, min_px: int = 1024,
-                              blank_std: float = 6.0, orient: dict | None = None) -> dict:
+def _export_faces_from_panels(
+    panels: dict,
+    info: DielineInfo,
+    out_dir: str,
+    level: str,
+    sku: str,
+    min_px: int = 1024,
+    blank_std: float = 6.0,
+    orient: dict | None = None,
+) -> dict:
     """PalViz: zapis gotowych paneli jako 6 PNG + manifest.json (bez ekstrakcji)."""
     from PIL import ImageStat
 
@@ -307,22 +325,34 @@ def _export_faces_from_panels(panels: dict, info: DielineInfo, out_dir: str,
     manifest = {
         "level": level,
         "sku": sku,
-        "dims_cm": {"l": round(info.w_mm / 10, 1),
-                    "w": round(info.d_mm / 10, 1),
-                    "h": round(info.h_mm / 10, 1)},
+        "dims_cm": {
+            "l": round(info.w_mm / 10, 1),
+            "w": round(info.d_mm / 10, 1),
+            "h": round(info.h_mm / 10, 1),
+        },
         "faces": faces,
     }
     with open(os.path.join(out_dir, "manifest.json"), "w", encoding="utf-8") as fh:
         json.dump(manifest, fh, ensure_ascii=False, indent=2)
 
-    return {"needs_manual_dims": False, "manifest": manifest,
-            "out_dir": out_dir, "faces_written": len(faces),
-            "warnings": info.warnings}
+    return {
+        "needs_manual_dims": False,
+        "manifest": manifest,
+        "out_dir": out_dir,
+        "faces_written": len(faces),
+        "warnings": info.warnings,
+    }
 
 
-def export_faces(pdf_path: str, out_dir: str, level: str, sku: str,
-                 manual_dims: tuple | None = None, min_px: int = 1024,
-                 blank_std: float = 6.0) -> dict:
+def export_faces(
+    pdf_path: str,
+    out_dir: str,
+    level: str,
+    sku: str,
+    manual_dims: tuple | None = None,
+    min_px: int = 1024,
+    blank_std: float = 6.0,
+) -> dict:
     """Eksport dla PalViz (standalone): ekstrakcja → 6 PNG + manifest.json.
 
     Ścianki „na wprost", przycięte do krawędzi, proporcje = wymiary opakowania.
@@ -346,8 +376,12 @@ def generate_glb(pdf_path: str, out_path: str, manual_dims: tuple | None = None)
     """
     info = extract_dieline_info(pdf_path, manual_dims=manual_dims)
     if not info.has_dims:
-        return {"needs_manual_dims": True, "warnings": info.warnings,
-                "dims_mm": None, "panels_found": 0}
+        return {
+            "needs_manual_dims": True,
+            "warnings": info.warnings,
+            "dims_mm": None,
+            "panels_found": 0,
+        }
     rects = locate_panels(info)
     panels = render_panels(pdf_path, rects, info)
     build_glb(panels, info, out_path)
@@ -362,10 +396,18 @@ def generate_glb(pdf_path: str, out_path: str, manual_dims: tuple | None = None)
     }
 
 
-def build_bundle(pdf_path: str, glb_out: str, faces_out_dir: str, level: str,
-                 sku: str, manual_dims: tuple | None = None, min_px: int = 1024,
-                 blank_std: float = 6.0, rects: dict | None = None,
-                 orient: dict | None = None) -> dict:
+def build_bundle(
+    pdf_path: str,
+    glb_out: str,
+    faces_out_dir: str,
+    level: str,
+    sku: str,
+    manual_dims: tuple | None = None,
+    min_px: int = 1024,
+    blank_std: float = 6.0,
+    rects: dict | None = None,
+    orient: dict | None = None,
+) -> dict:
     """Jeden przebieg: podgląd (GLB) + eksport PalViz (PNG+manifest) z jednego renderu.
 
     Panele liczone raz i podane do obu builderów. `rects` (regiony w mm, np. z szablonu
@@ -379,15 +421,16 @@ def build_bundle(pdf_path: str, glb_out: str, faces_out_dir: str, level: str,
     if not info.has_dims:
         return {"needs_manual_dims": True, "warnings": info.warnings}
 
-    allowed = faces_for_level(level)                       # carton=4, box=6
+    allowed = faces_for_level(level)  # carton=4, box=6
     src_rects = rects if rects is not None else locate_panels(info)
     if rects is not None:
         info.warnings.append("Panele wg zapisanego szablonu wykrojnika.")
     rects = {f: r for f, r in src_rects.items() if f in allowed}
-    panels = render_panels(pdf_path, rects, info)          # jeden render
-    build_glb(panels, info, glb_out, orient=orient)        # brakujące ściany → domyślne
-    exp = _export_faces_from_panels(panels, info, faces_out_dir, level, sku,
-                                    min_px, blank_std, orient=orient)
+    panels = render_panels(pdf_path, rects, info)  # jeden render
+    build_glb(panels, info, glb_out, orient=orient)  # brakujące ściany → domyślne
+    exp = _export_faces_from_panels(
+        panels, info, faces_out_dir, level, sku, min_px, blank_std, orient=orient
+    )
     return {
         "needs_manual_dims": False,
         "glb_path": glb_out,
@@ -426,8 +469,9 @@ def save_contact_sheet(panels: dict, out_path: str, cell: int = 300) -> str:
         rot = ORIENT.get(face, 0)
         thumb = (img.rotate(rot, expand=True) if rot else img).convert("RGB")
         thumb.thumbnail((cell, cell), Image.LANCZOS)
-        sheet.paste(thumb, (cx + (cell - thumb.width) // 2,
-                            cy + label_h + (cell - thumb.height) // 2))
+        sheet.paste(
+            thumb, (cx + (cell - thumb.width) // 2, cy + label_h + (cell - thumb.height) // 2)
+        )
     sheet.save(out_path)
     return out_path
 
@@ -439,6 +483,7 @@ def _cli(argv=None):
     front.png … bottom.png + _contact.png. Podaje odczytane wymiary.
     """
     import sys
+
     argv = argv if argv is not None else sys.argv[1:]
     if not argv:
         print("użycie: python -m artwork_3d <plik.pdf> [outdir]")
@@ -453,7 +498,7 @@ def _cli(argv=None):
         print("Ostrzeżenia:", info.warnings)
         return 1
     print(f"Wymiary (mm): {info.w_mm}×{info.h_mm}×{info.d_mm}  typ={info.pkg_type}")
-    rects = locate_panels(info)                    # wszystkie 6 do inspekcji
+    rects = locate_panels(info)  # wszystkie 6 do inspekcji
     panels = render_panels(pdf, rects, info)
     for face in FACES:
         img = panels.get(face)
@@ -461,7 +506,8 @@ def _cli(argv=None):
             continue
         rot = ORIENT.get(face, 0)
         (img.rotate(rot, expand=True) if rot else img).convert("RGB").save(
-            os.path.join(out_dir, f"{face}.png"))
+            os.path.join(out_dir, f"{face}.png")
+        )
     sheet = save_contact_sheet(panels, os.path.join(out_dir, "_contact.png"))
     if info.warnings:
         print("Ostrzeżenia:", info.warnings)

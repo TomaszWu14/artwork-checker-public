@@ -5,6 +5,7 @@ Uruchom: pytest tests/
 """
 
 import sys, os
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import pytest
@@ -12,6 +13,7 @@ from barcode_validator import validate_ean13, parse_gs1_128
 
 
 # ── validate_ean13 ────────────────────────────────────────────────────────────
+
 
 class TestValidateEAN13:
     """validate_ean13() returns a dict with 'valid' bool key."""
@@ -48,6 +50,7 @@ class TestValidateEAN13:
 
 
 # ── parse_gs1_128 ─────────────────────────────────────────────────────────────
+
 
 class TestParseGS1128:
     """parse_gs1_128() returns a dict with 'gtin', 'lot', 'exp_date', etc."""

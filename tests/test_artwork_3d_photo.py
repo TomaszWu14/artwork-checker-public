@@ -1,4 +1,5 @@
 """Model 3D ze zdjęć: _a3d_photo_panels — komplet 6 ścian z częściowego zestawu."""
+
 import pytest
 
 PIL = pytest.importorskip("PIL")  # CI ma Pillow w prod deps, ale zabezpieczenie

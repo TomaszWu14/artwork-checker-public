@@ -3,6 +3,7 @@
 Wzorzec propose/correct/remember — jak uczenie orientacji 3D: ustawiane ręcznie,
 zawsze nadpisywalne, czytane jako domyślne przy otwarciu generatora 3D z MARM.
 """
+
 import sqlite3
 
 import migrate_db

@@ -45,19 +45,19 @@ def test_extract_numbers_from_table_text():
 
 
 def test_distinctive_num_skips_small_integers():
-    assert ac._distinctive_num(2) is False       # poziom — pomijamy (powtarza się)
+    assert ac._distinctive_num(2) is False  # poziom — pomijamy (powtarza się)
     assert ac._distinctive_num(6) is False
-    assert ac._distinctive_num(17.0) is True      # ≥10
-    assert ac._distinctive_num(1.4) is True        # ma część dziesiętną
+    assert ac._distinctive_num(17.0) is True  # ≥10
+    assert ac._distinctive_num(1.4) is True  # ma część dziesiętną
     assert ac._distinctive_num(-25.6) is True
 
 
 def test_locate_value_boxes_numeric_match(monkeypatch):
     rows = [
         ("K 40% Sodium Hydroxide 6 -25,6", (10, 10, 40, 15)),
-        ("P 30% Hydrogen 2 17,0",          (10, 20, 40, 25)),
-        ("Level 6 > 480 min",              (10, 40, 40, 45)),
-        ("www.example.com",                   (10, 50, 40, 55)),
+        ("P 30% Hydrogen 2 17,0", (10, 20, 40, 25)),
+        ("Level 6 > 480 min", (10, 40, 40, 45)),
+        ("www.example.com", (10, 50, 40, 55)),
     ]
     monkeypatch.setattr(ac, "_paddle_readtext_with_boxes", lambda crop: rows)
     # '17' dopasuje '17,0'; '-25.6' dopasuje '-25,6'; nic poza tym.

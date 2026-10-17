@@ -4,11 +4,13 @@ Guard w /api/artwork/page/<cache_id> musi odmówić, gdy wpis należy do innego
 użytkownika LUB ma nieznanego właściciela (owner_id=None) — wcześniej `owner_id is None`
 omijało kontrolę i czyniło wpis world-readable.
 """
+
 import app as _app_mod
 
 
 class _FakeResult:
     """Atrapa wyniku porównania — page_images wołane dopiero PO bramce własności."""
+
     def page_images(self, idx):
         return {"pages": [], "idx": idx}
 

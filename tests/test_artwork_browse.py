@@ -1,4 +1,5 @@
 """#6/#20 Sprint 2: przeszukiwalna biblioteka masterów — browse() z filtrami i paginacją."""
+
 import app as _app_mod
 import artwork_index as _ai
 
@@ -8,15 +9,35 @@ def _seed(db):
     db.execute("DELETE FROM artwork_index")
     rows = [
         # ref_norm, ref_code, filename, rel_path, packaging_type, revision, revision_rank, ean
-        ("BT100", "BT-100", "bt100_carton_rev_a.pdf", "z/bt100_a.pdf", "karton", "A", 1, "5900000000017"),
-        ("BT100", "BT-100", "bt100_carton_rev_b.pdf", "z/bt100_b.pdf", "karton", "B", 2, "5900000000017"),
-        ("BT200", "BT-200", "bt200_pouch_rev_a.pdf", "z/bt200_a.pdf", "op",     "A", 1, ""),
-        ("XY777", "XY-777", "xy777_single.pdf",       "z/xy777.pdf",  "sztuka", "",  0, ""),
+        (
+            "BT100",
+            "BT-100",
+            "bt100_carton_rev_a.pdf",
+            "z/bt100_a.pdf",
+            "karton",
+            "A",
+            1,
+            "5900000000017",
+        ),
+        (
+            "BT100",
+            "BT-100",
+            "bt100_carton_rev_b.pdf",
+            "z/bt100_b.pdf",
+            "karton",
+            "B",
+            2,
+            "5900000000017",
+        ),
+        ("BT200", "BT-200", "bt200_pouch_rev_a.pdf", "z/bt200_a.pdf", "op", "A", 1, ""),
+        ("XY777", "XY-777", "xy777_single.pdf", "z/xy777.pdf", "sztuka", "", 0, ""),
     ]
     for r in rows:
         db.execute(
             "INSERT INTO artwork_index(ref_norm,ref_code,filename,rel_path,packaging_type,"
-            "revision,revision_rank,ean) VALUES(?,?,?,?,?,?,?,?)", r)
+            "revision,revision_rank,ean) VALUES(?,?,?,?,?,?,?,?)",
+            r,
+        )
     db.commit()
 
 
@@ -38,9 +59,9 @@ def test_browse_query_filters_filename_and_ref():
     db = _app_mod.get_db()
     try:
         _seed(db)
-        assert _ai.browse(db, q="pouch")["total"] == 1          # po nazwie pliku
-        assert _ai.browse(db, q="BT-200")["total"] == 1         # po ref_code
-        assert _ai.browse(db, q="bt100")["total"] == 2          # dwie rewizje
+        assert _ai.browse(db, q="pouch")["total"] == 1  # po nazwie pliku
+        assert _ai.browse(db, q="BT-200")["total"] == 1  # po ref_code
+        assert _ai.browse(db, q="bt100")["total"] == 2  # dwie rewizje
     finally:
         db.close()
 
@@ -63,8 +84,10 @@ def test_browse_like_escaping():
         _ai.ensure_table(db)
         db.execute("DELETE FROM artwork_index")
         for i, (fn, rp) in enumerate([("dlt_a_b.pdf", "z/1.pdf"), ("dlt_aXb.pdf", "z/2.pdf")]):
-            db.execute("INSERT INTO artwork_index(ref_norm,ref_code,filename,rel_path) "
-                       "VALUES('','',?,?)", (fn, rp))
+            db.execute(
+                "INSERT INTO artwork_index(ref_norm,ref_code,filename,rel_path) VALUES('','',?,?)",
+                (fn, rp),
+            )
         db.commit()
         # '_' jako literał: łapie tylko a_b, nie aXb
         res = _ai.browse(db, q="a_b")

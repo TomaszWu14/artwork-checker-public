@@ -6,6 +6,7 @@
   blok, w którym inicjalizowane są lightbox i skróty klawiszowe; martwy kod usunięty w całości.
 Sprawdzone też w Chromium (Playwright): brak `pageerror` na /artwork i /admin.
 """
+
 import pathlib
 import re
 
@@ -37,6 +38,8 @@ def test_artwork_references_only_existing_elements():
     """
     text = (TEMPLATES / "artwork.html").read_text(encoding="utf-8")
     used = set(re.findall(r"getElementById\(\s*['\"]([\w-]+)['\"]\s*\)", text))
-    defined = _ids_defined(text) | _ids_defined((TEMPLATES / "base.html").read_text(encoding="utf-8"))
+    defined = _ids_defined(text) | _ids_defined(
+        (TEMPLATES / "base.html").read_text(encoding="utf-8")
+    )
     assert used, "brak odwołań getElementById — zmienił się format szablonu?"
     assert not (used - defined), f"odwołania do nieistniejących elementów: {sorted(used - defined)}"

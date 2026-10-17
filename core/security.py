@@ -6,6 +6,7 @@ Wydzielone z app.py, by blueprinty mogły importować dekoratory bez cyklu impor
 (blueprint → core, NIGDY core → app). Operują wyłącznie na flask.session / request
 oraz na warstwie db — żadnej zależności od obiektu `app`.
 """
+
 from __future__ import annotations
 
 import logging
@@ -27,8 +28,8 @@ import sqlite3 as _sqlite3
 _DB_OUTAGE_ERRORS: tuple = (_sqlite3.OperationalError, _sqlite3.InterfaceError)
 try:  # psycopg2 is only present in production / when installed
     import psycopg2 as _psycopg2
-    _DB_OUTAGE_ERRORS = _DB_OUTAGE_ERRORS + (
-        _psycopg2.OperationalError, _psycopg2.InterfaceError)
+
+    _DB_OUTAGE_ERRORS = _DB_OUTAGE_ERRORS + (_psycopg2.OperationalError, _psycopg2.InterfaceError)
 except Exception:
     pass
 
@@ -80,7 +81,7 @@ def check_session_active() -> bool:
     finally:
         if db is not None:
             try:
-                db.close()   # zwolnij połączenie z puli na każdym żądaniu (login_required)
+                db.close()  # zwolnij połączenie z puli na każdym żądaniu (login_required)
             except Exception:
                 pass
 
@@ -95,11 +96,13 @@ def login_required(f):
             session.clear()
             return redirect(url_for("login"))
         return f(*args, **kwargs)
+
     return decorated
 
 
 def require_role(min_role: str):
     """Dekorator: wymaga minimum danej roli."""
+
     def decorator(f):
         @wraps(f)
         def decorated(*args, **kwargs):
@@ -111,7 +114,9 @@ def require_role(min_role: str):
             if role_level(session.get("role", "user")) < role_level(min_role):
                 return jsonify({"error": "Brak uprawnień"}), 403
             return f(*args, **kwargs)
+
         return decorated
+
     return decorator
 
 
@@ -131,28 +136,37 @@ def verify_csrf() -> bool:
     (np. z polskimi znakami) crashował widok 500 zamiast czystego 403.
     """
     import hmac as _hmac_mod
+
     tok = request.form.get("_csrf_token") or request.headers.get("X-CSRF-Token", "")
     expected = session.get("_csrf_token", "")
     if not tok or not expected:
         return False
     try:
         return _hmac_mod.compare_digest(
-            tok.encode("utf-8", "ignore"), expected.encode("utf-8", "ignore"))
+            tok.encode("utf-8", "ignore"), expected.encode("utf-8", "ignore")
+        )
     except (TypeError, AttributeError):
         return False
 
 
 def csrf_protect(f):
     """Decorator: validates CSRF token on POST/PUT/DELETE/PATCH requests."""
+
     @wraps(f)
     def decorated(*args, **kwargs):
         if request.method in ("POST", "PUT", "DELETE", "PATCH"):
             if not verify_csrf():
-                logger.warning("CSRF validation failed: %s %s from %s",
-                               request.method, request.path, request.remote_addr)
+                logger.warning(
+                    "CSRF validation failed: %s %s from %s",
+                    request.method,
+                    request.path,
+                    request.remote_addr,
+                )
                 if request.is_json or request.headers.get("X-CSRF-Token") is not None:
                     return jsonify({"error": "Błąd bezpieczeństwa — nieprawidłowy token CSRF"}), 403
-                return render_template("login.html",
-                                       error="Błąd bezpieczeństwa — odśwież stronę i spróbuj ponownie."), 403
+                return render_template(
+                    "login.html", error="Błąd bezpieczeństwa — odśwież stronę i spróbuj ponownie."
+                ), 403
         return f(*args, **kwargs)
+
     return decorated

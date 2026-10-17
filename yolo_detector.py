@@ -66,42 +66,52 @@ logger = logging.getLogger("yolo_detector")
 # ── Class definitions ─────────────────────────────────────────────────────────
 
 CLASS_NAMES = [
-    "ean_barcode",        # 0
-    "gs1_128",            # 1
-    "ce_mark",            # 2
-    "ref_number",         # 3
-    "lot_placeholder",    # 4
-    "exp_placeholder",    # 5
+    "ean_barcode",  # 0
+    "gs1_128",  # 1
+    "ce_mark",  # 2
+    "ref_number",  # 3
+    "lot_placeholder",  # 4
+    "exp_placeholder",  # 5
     "single_use_symbol",  # 6
-    "sterility_symbol",   # 7
-    "size_table",         # 8
-    "manufacturer_block", # 9
-    "eu_rep_block",       # 10
+    "sterility_symbol",  # 7
+    "size_table",  # 8
+    "manufacturer_block",  # 9
+    "eu_rep_block",  # 10
     "distributor_block",  # 11
-    "product_name",       # 12
-    "gauge_badge",        # 13
+    "product_name",  # 12
+    "gauge_badge",  # 13
     "latex_free_symbol",  # 14
-    "caution_symbol",     # 15
-    "ifu_symbol",         # 16
-    "revision_block",     # 17
-    "color_spec",         # 18
+    "caution_symbol",  # 15
+    "ifu_symbol",  # 16
+    "revision_block",  # 17
+    "color_spec",  # 18
     "translation_block",  # 19
 ]
 
 # MDR-critical classes — a missing or changed detection in these classes
 # triggers a 'critical' finding in the comparison report.
 CRITICAL_CLASSES = {
-    "ean_barcode", "gs1_128", "ce_mark", "ref_number",
-    "lot_placeholder", "exp_placeholder",
-    "single_use_symbol", "sterility_symbol",
-    "size_table", "manufacturer_block", "eu_rep_block",
+    "ean_barcode",
+    "gs1_128",
+    "ce_mark",
+    "ref_number",
+    "lot_placeholder",
+    "exp_placeholder",
+    "single_use_symbol",
+    "sterility_symbol",
+    "size_table",
+    "manufacturer_block",
+    "eu_rep_block",
 }
 
 # Clearly-minor classes — a change here is informational, not a defect.
 # (Pozostałe, nie-krytyczne i nie-info klasy pozostają „important".)
 INFO_CLASSES = {
-    "color_spec", "translation_block", "gauge_badge",
-    "ifu_symbol", "caution_symbol",
+    "color_spec",
+    "translation_block",
+    "gauge_badge",
+    "ifu_symbol",
+    "caution_symbol",
 }
 
 
@@ -112,6 +122,7 @@ def _class_severity(cls_name: str) -> str:
     if cls_name in INFO_CLASSES:
         return "info"
     return "important"
+
 
 # ── Lazy model singleton ──────────────────────────────────────────────────────
 
@@ -129,6 +140,7 @@ def _get_model(weights: str = "models/artwork_yolov8.pt"):
         return None
     try:
         from ultralytics import YOLO
+
         _yolo_model = YOLO(weights)
         _yolo_model_path = weights
         logger.info("YOLOv8 model loaded: %s", weights)
@@ -140,12 +152,12 @@ def _get_model(weights: str = "models/artwork_yolov8.pt"):
 
 # ── Inference ─────────────────────────────────────────────────────────────────
 
+
 class ArtworkDetector:
     """High-level detector — wraps YOLOv8 inference for artwork element detection."""
 
-    def __init__(self, weights: str = "models/artwork_yolov8.pt",
-                 confidence: float = 0.40):
-        self.weights    = weights
+    def __init__(self, weights: str = "models/artwork_yolov8.pt", confidence: float = 0.40):
+        self.weights = weights
         self.confidence = confidence
 
     def detect(self, img, page_idx: int = 0) -> list:
@@ -170,20 +182,23 @@ class ArtworkDetector:
             for r in results:
                 for box in r.boxes:
                     cls_id = int(box.cls[0])
-                    cls_name = (CLASS_NAMES[cls_id]
-                                if cls_id < len(CLASS_NAMES) else f"class_{cls_id}")
+                    cls_name = (
+                        CLASS_NAMES[cls_id] if cls_id < len(CLASS_NAMES) else f"class_{cls_id}"
+                    )
                     x1, y1, x2, y2 = box.xyxy[0].tolist()
-                    detections.append({
-                        "class_name":  cls_name,
-                        "class_id":    cls_id,
-                        "confidence":  round(float(box.conf[0]), 3),
-                        "x1_pct":      round(x1 / W * 100, 2),
-                        "y1_pct":      round(y1 / H * 100, 2),
-                        "x2_pct":      round(x2 / W * 100, 2),
-                        "y2_pct":      round(y2 / H * 100, 2),
-                        "severity":    _class_severity(cls_name),
-                        "page_idx":    page_idx,
-                    })
+                    detections.append(
+                        {
+                            "class_name": cls_name,
+                            "class_id": cls_id,
+                            "confidence": round(float(box.conf[0]), 3),
+                            "x1_pct": round(x1 / W * 100, 2),
+                            "y1_pct": round(y1 / H * 100, 2),
+                            "x2_pct": round(x2 / W * 100, 2),
+                            "y2_pct": round(y2 / H * 100, 2),
+                            "severity": _class_severity(cls_name),
+                            "page_idx": page_idx,
+                        }
+                    )
             return detections
         except Exception as exc:
             logger.warning("YOLOv8 detection error: %s", exc)
@@ -194,6 +209,7 @@ class ArtworkDetector:
 
         Returns field_report-compatible rows for integration with ArtworkCompareResult.
         """
+
         # Przy wielu detekcjach tej samej klasy zachowaj NAJPEWNIEJSZĄ (nie ostatnią
         # przypadkową) — deterministyczny wybór najlepszego pudełka.
         def _by_class_best(dets):
@@ -203,6 +219,7 @@ class ArtworkDetector:
                 if c not in out or d["confidence"] > out[c]["confidence"]:
                     out[c] = d
             return out
+
         dets_a = _by_class_best(self.detect(img_a, page_idx=0))
         dets_b = _by_class_best(self.detect(img_b, page_idx=0))
         all_classes = sorted(set(list(dets_a.keys()) + list(dets_b.keys())))
@@ -225,23 +242,25 @@ class ArtworkDetector:
                 note = f"YOLO: przesunięcie {shift:.1f}%" if changed else "YOLO: pozycja zgodna"
             elif da:
                 changed = True
-                val_a = f"({(da['x1_pct']+da['x2_pct'])/2:.0f}%, {(da['y1_pct']+da['y2_pct'])/2:.0f}%) conf={da['confidence']:.0%}"
+                val_a = f"({(da['x1_pct'] + da['x2_pct']) / 2:.0f}%, {(da['y1_pct'] + da['y2_pct']) / 2:.0f}%) conf={da['confidence']:.0%}"
                 val_b = "BRAK"
                 note = "YOLO: element obecny w matrycy, brak u dostawcy"
             else:
                 changed = True
                 val_a = "BRAK"
-                val_b = f"({(db['x1_pct']+db['x2_pct'])/2:.0f}%, {(db['y1_pct']+db['y2_pct'])/2:.0f}%) conf={db['confidence']:.0%}"
+                val_b = f"({(db['x1_pct'] + db['x2_pct']) / 2:.0f}%, {(db['y1_pct'] + db['y2_pct']) / 2:.0f}%) conf={db['confidence']:.0%}"
                 note = "YOLO: element dodany u dostawcy"
 
-            rows.append({
-                "field":    f"[YOLO] {cls}",
-                "val_a":    val_a,
-                "val_b":    val_b,
-                "severity": _class_severity(cls),
-                "changed":  changed,
-                "note":     note,
-            })
+            rows.append(
+                {
+                    "field": f"[YOLO] {cls}",
+                    "val_a": val_a,
+                    "val_b": val_b,
+                    "severity": _class_severity(cls),
+                    "changed": changed,
+                    "note": note,
+                }
+            )
         return rows
 
 
@@ -260,8 +279,7 @@ names: {names}
 """
 
 
-def generate_dataset_yaml(dataset_root: str,
-                           output_path: str = "dataset.yaml") -> str:
+def generate_dataset_yaml(dataset_root: str, output_path: str = "dataset.yaml") -> str:
     """Write a dataset.yaml for the artwork element classes."""
     content = DATASET_YAML_TEMPLATE.format(
         dataset_root=os.path.abspath(dataset_root),
@@ -274,14 +292,16 @@ def generate_dataset_yaml(dataset_root: str,
     return output_path
 
 
-def train(data_yaml: str = "dataset.yaml",
-          epochs: int = 100,
-          imgsz: int = 1024,
-          batch: int = 8,
-          base_model: str = "yolov8m.pt",
-          project: str = "runs/detect",
-          name: str = "artwork_train",
-          device: str = "cpu") -> str:
+def train(
+    data_yaml: str = "dataset.yaml",
+    epochs: int = 100,
+    imgsz: int = 1024,
+    batch: int = 8,
+    base_model: str = "yolov8m.pt",
+    project: str = "runs/detect",
+    name: str = "artwork_train",
+    device: str = "cpu",
+) -> str:
     """Launch YOLOv8 training.
 
     Recommended settings for medical artwork detection:
@@ -295,6 +315,7 @@ def train(data_yaml: str = "dataset.yaml",
     """
     try:
         from ultralytics import YOLO
+
         model = YOLO(base_model)
         model.train(
             data=data_yaml,
@@ -303,15 +324,15 @@ def train(data_yaml: str = "dataset.yaml",
             batch=batch,
             project=project,
             name=name,
-            patience=20,           # early stopping
+            patience=20,  # early stopping
             save=True,
             device=device,
             augment=True,
             mosaic=1.0,
-            degrees=5.0,           # small rotations (artworks are mostly upright)
-            scale=0.3,             # scale variation (±30% — simulates scan zoom)
-            fliplr=0.0,            # no horizontal flip (text would be mirrored)
-            flipud=0.0,            # no vertical flip
+            degrees=5.0,  # small rotations (artworks are mostly upright)
+            scale=0.3,  # scale variation (±30% — simulates scan zoom)
+            fliplr=0.0,  # no horizontal flip (text would be mirrored)
+            flipud=0.0,  # no vertical flip
             hsv_h=0.01,
             hsv_s=0.3,
             hsv_v=0.3,
@@ -328,12 +349,14 @@ def export_onnx(weights: str, output: str = "models/artwork_yolov8.onnx") -> str
     """Export trained weights to ONNX for CPU deployment."""
     try:
         from ultralytics import YOLO
+
         model = YOLO(weights)
         model.export(format="onnx", dynamic=True, simplify=True)
         src = str(Path(weights).with_suffix(".onnx"))
         os.makedirs(os.path.dirname(output) or ".", exist_ok=True)
         if src != output:
             import shutil
+
             shutil.move(src, output)
         logger.info("ONNX export: %s", output)
         return output
@@ -346,38 +369,47 @@ def export_onnx(weights: str, output: str = "models/artwork_yolov8.onnx") -> str
 
 if __name__ == "__main__":
     import argparse
-    logging.basicConfig(level=logging.INFO,
-                        format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
 
     parser = argparse.ArgumentParser(description="YOLOv8 artwork element detector")
     sub = parser.add_subparsers(dest="cmd")
 
     p_train = sub.add_parser("train", help="Train the model")
-    p_train.add_argument("--data",       default="dataset.yaml")
-    p_train.add_argument("--epochs",     type=int,   default=100)
-    p_train.add_argument("--imgsz",      type=int,   default=1024)
-    p_train.add_argument("--batch",      type=int,   default=8)
+    p_train.add_argument("--data", default="dataset.yaml")
+    p_train.add_argument("--epochs", type=int, default=100)
+    p_train.add_argument("--imgsz", type=int, default=1024)
+    p_train.add_argument("--batch", type=int, default=8)
     p_train.add_argument("--base-model", default="yolov8m.pt")
-    p_train.add_argument("--project",    default="runs/detect")
-    p_train.add_argument("--name",       default="artwork_train")
-    p_train.add_argument("--device",     default="cpu",
-                         help="Device: 'cpu', '0' (GPU 0), '0,1' (multi-GPU)")
+    p_train.add_argument("--project", default="runs/detect")
+    p_train.add_argument("--name", default="artwork_train")
+    p_train.add_argument(
+        "--device", default="cpu", help="Device: 'cpu', '0' (GPU 0), '0,1' (multi-GPU)"
+    )
 
     p_export = sub.add_parser("export", help="Export to ONNX")
     p_export.add_argument("--weights", required=True)
-    p_export.add_argument("--output",  default="models/artwork_yolov8.onnx")
+    p_export.add_argument("--output", default="models/artwork_yolov8.onnx")
 
     p_yaml = sub.add_parser("yaml", help="Generate dataset.yaml")
     p_yaml.add_argument("--dataset", required=True, help="Root directory of dataset")
-    p_yaml.add_argument("--output",  default="dataset.yaml")
+    p_yaml.add_argument("--output", default="dataset.yaml")
 
     args = parser.parse_args()
 
     if args.cmd == "train":
-        best = train(data_yaml=args.data, epochs=args.epochs, imgsz=args.imgsz,
-                     batch=args.batch, base_model=args.base_model,
-                     project=args.project, name=args.name,
-                     device=args.device)
+        best = train(
+            data_yaml=args.data,
+            epochs=args.epochs,
+            imgsz=args.imgsz,
+            batch=args.batch,
+            base_model=args.base_model,
+            project=args.project,
+            name=args.name,
+            device=args.device,
+        )
         print(f"Best weights: {best}")
 
     elif args.cmd == "export":

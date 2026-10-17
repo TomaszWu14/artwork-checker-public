@@ -1,0 +1,3 @@
+# US-020: jednorazowe `ruff format` całego repozytorium — pomijane przez git blame.
+# Lokalnie: git config blame.ignoreRevsFile .git-blame-ignore-revs (GitHub stosuje automatycznie).
+5439761edee36e151a639d9ec76399bbc2129e77

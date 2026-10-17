@@ -17,6 +17,7 @@ uom_conversion (#4 auto-przeliczanie ilości).
 
 Moduł „czysty” — operuje na połączeniu DB przekazanym z app.py.
 """
+
 from __future__ import annotations
 
 import json
@@ -28,11 +29,23 @@ LEVELS = ("sztuka", "op", "opz", "karton")
 CONV_LEVELS = ("sztuka", "op", "opz", "karton", "paz", "ppa")
 
 # Kod poziomu (banner / jednostka opakowania) → klucz wewnętrzny.
-_BANNER_LEVEL = {"SZT": "sztuka", "OP": "op", "OPZ": "opz", "KAR": "karton",
-                 "PAZ": "paz", "PPA": "ppa"}
+_BANNER_LEVEL = {
+    "SZT": "sztuka",
+    "OP": "op",
+    "OPZ": "opz",
+    "KAR": "karton",
+    "PAZ": "paz",
+    "PPA": "ppa",
+}
 # Jednostka UOM reprezentująca dany poziom (do uom_conversion).
-_LEVEL_UNIT = {"sztuka": "SZT", "op": "OP", "opz": "OPZ", "karton": "KAR",
-               "paz": "PAZ", "ppa": "PPA"}
+_LEVEL_UNIT = {
+    "sztuka": "SZT",
+    "op": "OP",
+    "opz": "OPZ",
+    "karton": "KAR",
+    "paz": "PAZ",
+    "ppa": "PPA",
+}
 
 
 def ensure_table(db) -> None:
@@ -72,12 +85,19 @@ def ensure_table(db) -> None:
     # Dla istniejących tabel — dodaj nowe kolumny (ignoruj jeśli już są).
     # WAŻNE (PostgreSQL): nieudany ALTER psuje transakcję → po błędzie rollback,
     # po sukcesie commit, żeby kolejne polecenia nie padały na 'transaction aborted'.
-    for _col in ("base_uom TEXT DEFAULT ''", "producer_code TEXT DEFAULT ''",
-                 "tariff_cn TEXT DEFAULT ''", "supplier_codes TEXT DEFAULT ''",
-                 "txt_short_pl TEXT DEFAULT ''", "active INTEGER DEFAULT 1",
-                 "customs_code TEXT DEFAULT ''",
-                 "vat_rate TEXT DEFAULT ''", "sent INTEGER DEFAULT 0",
-                 "grupa TEXT DEFAULT ''", "podgrupa TEXT DEFAULT ''"):
+    for _col in (
+        "base_uom TEXT DEFAULT ''",
+        "producer_code TEXT DEFAULT ''",
+        "tariff_cn TEXT DEFAULT ''",
+        "supplier_codes TEXT DEFAULT ''",
+        "txt_short_pl TEXT DEFAULT ''",
+        "active INTEGER DEFAULT 1",
+        "customs_code TEXT DEFAULT ''",
+        "vat_rate TEXT DEFAULT ''",
+        "sent INTEGER DEFAULT 0",
+        "grupa TEXT DEFAULT ''",
+        "podgrupa TEXT DEFAULT ''",
+    ):
         try:
             db.execute(f"ALTER TABLE material_master ADD COLUMN {_col}")
             db.commit()
@@ -90,8 +110,10 @@ def ensure_table(db) -> None:
     # Grupa/podgrupa produktowa — po nich uogólniamy wiedzę zebraną na pojedynczych REF-ach
     # (np. wyuczoną orientację 3D) na cały asortyment o tym samym charakterze.
     try:
-        db.execute("CREATE INDEX IF NOT EXISTS idx_material_master_grupa "
-                   "ON material_master(grupa, podgrupa)")
+        db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_material_master_grupa "
+            "ON material_master(grupa, podgrupa)"
+        )
         db.commit()
     except Exception:
         try:
@@ -101,7 +123,9 @@ def ensure_table(db) -> None:
     # Gwarancja UNIQUE na ref_code także dla starych tabel — bez tego ON CONFLICT(ref_code)
     # przy upsert rzuca na PG „no unique or exclusion constraint matching".
     try:
-        db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_material_master_ref ON material_master(ref_code)")
+        db.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_material_master_ref ON material_master(ref_code)"
+        )
         db.commit()
     except Exception:
         try:
@@ -144,8 +168,14 @@ def _classify(field_hdr: str, banner: str):
     # rodzinie (tak działały dotychczasowe importy); nowe pola wymagają jawnego nagłówka.
     if f in ("grupa produktowa", "grupa_produktowa", "grupa produktu", "product group"):
         return ("global", "grupa")
-    if f in ("podgrupa", "podgrupa produktowa", "podgrupa_produktowa", "podgrupa produktu",
-             "product subgroup", "subgrupa"):
+    if f in (
+        "podgrupa",
+        "podgrupa produktowa",
+        "podgrupa_produktowa",
+        "podgrupa produktu",
+        "product subgroup",
+        "subgrupa",
+    ):
         return ("global", "podgrupa")
     if f == "ean" and not lvl_banner:
         return ("global", "ean")
@@ -155,17 +185,41 @@ def _classify(field_hdr: str, banner: str):
         return ("global", "producer_code")
     if f in ("tariff_cn", "taryfa cn", "cn", "taryfa", "kod cn", "tariff"):
         return ("global", "tariff_cn")
-    if f in ("customs_code", "kod celny", "kod celny materialu", "kod celny materiału",
-             "kod taryfy celnej", "customs code", "customs"):
+    if f in (
+        "customs_code",
+        "kod celny",
+        "kod celny materialu",
+        "kod celny materiału",
+        "kod taryfy celnej",
+        "customs code",
+        "customs",
+    ):
         return ("global", "customs_code")
     if f in ("supplier_codes", "dostawcy", "kody dostawcow", "kody dostawców", "dostawca"):
         return ("global", "supplier_codes")
     if f in ("txt_short_pl", "txt short pl", "nazwa artworka", "nazwa skrocona", "txt_short"):
         return ("global", "txt_short_pl")
-    if f in ("vat", "vat_rate", "stawka vat", "stawka_vat", "vat %", "vat%", "stawka podatku vat", "podatek vat"):
+    if f in (
+        "vat",
+        "vat_rate",
+        "stawka vat",
+        "stawka_vat",
+        "vat %",
+        "vat%",
+        "stawka podatku vat",
+        "podatek vat",
+    ):
         return ("global", "vat_rate")
-    if f in ("sent", "czy sent", "sent t/n", "sent tak/nie", "nadzor sent", "nadzór sent",
-             "monitorowanie sent", "podlega sent"):
+    if f in (
+        "sent",
+        "czy sent",
+        "sent t/n",
+        "sent tak/nie",
+        "nadzor sent",
+        "nadzór sent",
+        "monitorowanie sent",
+        "podlega sent",
+    ):
         return ("global", "sent")
     # Pola z prefiksem poziomu (sztuka_wymiar, op_ean, karton_artwork_ref ...)
     m = re.match(r"(sztuka|szt|op|opz|karton|kar|paz|ppa)[_ ](wymiar|ean|artwork_ref|artwork)\b", f)
@@ -174,8 +228,11 @@ def _classify(field_hdr: str, banner: str):
         sub = "artwork_ref" if "artwork" in m.group(2) else m.group(2)
         return ("level", (lv, sub))
     # Przelicznik („Ilość podstawowej jednostki miary [PAZ/PPA]”)
-    if "ilosc podstawowej jednostki miary" in f or "ilość podstawowej jednostki miary" in f \
-            or f.startswith("przelicznik"):
+    if (
+        "ilosc podstawowej jednostki miary" in f
+        or "ilość podstawowej jednostki miary" in f
+        or f.startswith("przelicznik")
+    ):
         if f.endswith("paz") or b == "PAZ":
             return ("level", ("paz", "qty_base"))
         if f.endswith("ppa") or b == "PPA":
@@ -194,8 +251,12 @@ def _classify(field_hdr: str, banner: str):
 
 def sent_truthy(v) -> int:
     """Normalizuje wartość SENT z importu/UI do 0/1 (TAK/T/1/X/SENT → 1)."""
-    return 1 if str(v or "").strip().lower() in (
-        "1", "tak", "t", "yes", "y", "x", "true", "sent", "prawda") else 0
+    return (
+        1
+        if str(v or "").strip().lower()
+        in ("1", "tak", "t", "yes", "y", "x", "true", "sent", "prawda")
+        else 0
+    )
 
 
 def clean_ean(raw) -> str:
@@ -260,7 +321,7 @@ def parse_workbook_rows(rows: list) -> list:
         colmap.append((kind, key))
 
     records = []
-    for row in rows[hdr_idx + 1:]:
+    for row in rows[hdr_idx + 1 :]:
         glob = {}
         levels = {}
         for ci, (kind, key) in enumerate(colmap):
@@ -282,27 +343,29 @@ def parse_workbook_rows(rows: list) -> list:
         ref = glob.get("ref_code", "")
         if not ref:
             continue
-        records.append({
-            "ref_code": ref[:100],
-            "ref_norm": normalize_ref(ref),
-            "opis_pl": glob.get("opis_pl", "")[:500],
-            "opis_en": glob.get("opis_en", "")[:500],
-            "ean": clean_ean(glob.get("ean", "")),
-            "rodzina": glob.get("rodzina", "")[:160],
-            "grupa": glob.get("grupa", "")[:160],
-            "podgrupa": glob.get("podgrupa", "")[:160],
-            "base_uom": glob.get("base_uom", "")[:20],
-            "producer_code": glob.get("producer_code", "")[:60],
-            "tariff_cn": glob.get("tariff_cn", "")[:30],
-            "customs_code": glob.get("customs_code", "")[:30],
-            "vat_rate": norm_vat(glob.get("vat_rate", "")),
-            # None gdy kolumna SENT nieobecna/pusta — żeby import nie zerował ani nie
-            # ustawiał na stałe istniejącej flagi; aktualizujemy tylko gdy podano wartość.
-            "sent": (sent_truthy(glob["sent"]) if "sent" in glob else None),
-            "supplier_codes": glob.get("supplier_codes", "")[:500],
-            "txt_short_pl": glob.get("txt_short_pl", "")[:200],
-            "levels": levels,
-        })
+        records.append(
+            {
+                "ref_code": ref[:100],
+                "ref_norm": normalize_ref(ref),
+                "opis_pl": glob.get("opis_pl", "")[:500],
+                "opis_en": glob.get("opis_en", "")[:500],
+                "ean": clean_ean(glob.get("ean", "")),
+                "rodzina": glob.get("rodzina", "")[:160],
+                "grupa": glob.get("grupa", "")[:160],
+                "podgrupa": glob.get("podgrupa", "")[:160],
+                "base_uom": glob.get("base_uom", "")[:20],
+                "producer_code": glob.get("producer_code", "")[:60],
+                "tariff_cn": glob.get("tariff_cn", "")[:30],
+                "customs_code": glob.get("customs_code", "")[:30],
+                "vat_rate": norm_vat(glob.get("vat_rate", "")),
+                # None gdy kolumna SENT nieobecna/pusta — żeby import nie zerował ani nie
+                # ustawiał na stałe istniejącej flagi; aktualizujemy tylko gdy podano wartość.
+                "sent": (sent_truthy(glob["sent"]) if "sent" in glob else None),
+                "supplier_codes": glob.get("supplier_codes", "")[:500],
+                "txt_short_pl": glob.get("txt_short_pl", "")[:200],
+                "levels": levels,
+            }
+        )
     return records
 
 
@@ -338,13 +401,25 @@ def _save_record(db, rec) -> None:
         # nie nadpisuj ani nie utrwalaj na stałe istniejącej flagi.
         "sent=CASE WHEN excluded.sent IS NOT NULL THEN excluded.sent ELSE material_master.sent END, "
         "levels_json=excluded.levels_json, updated_at=datetime('now')",
-        (rec["ref_code"], rec["ref_norm"], rec["opis_pl"], rec["opis_en"], rec["ean"],
-         rec["rodzina"], rec.get("grupa", ""), rec.get("podgrupa", ""),
-         rec.get("base_uom", ""), rec.get("producer_code", ""),
-         rec.get("tariff_cn", ""), rec.get("supplier_codes", ""), rec.get("txt_short_pl", ""),
-         rec.get("customs_code", ""), rec.get("vat_rate", ""),
-         (int(rec["sent"]) if rec.get("sent") is not None else None),
-         json.dumps(rec.get("levels", {}), ensure_ascii=False)),
+        (
+            rec["ref_code"],
+            rec["ref_norm"],
+            rec["opis_pl"],
+            rec["opis_en"],
+            rec["ean"],
+            rec["rodzina"],
+            rec.get("grupa", ""),
+            rec.get("podgrupa", ""),
+            rec.get("base_uom", ""),
+            rec.get("producer_code", ""),
+            rec.get("tariff_cn", ""),
+            rec.get("supplier_codes", ""),
+            rec.get("txt_short_pl", ""),
+            rec.get("customs_code", ""),
+            rec.get("vat_rate", ""),
+            (int(rec["sent"]) if rec.get("sent") is not None else None),
+            json.dumps(rec.get("levels", {}), ensure_ascii=False),
+        ),
     )
 
 
@@ -355,6 +430,7 @@ def _save_conversions(db, rec) -> int:
         return 0
     try:
         import uom
+
         uom.ensure_table(db)
     except Exception:
         return 0
@@ -419,7 +495,9 @@ def migrate_from_products(db) -> dict:
             "base_uom": (ex.get("base_uom") or str(r["unit"] or ""))[:20],
             "producer_code": (ex.get("producer_code") or "")[:60],
             "tariff_cn": (str(r["tariff_cn"] or "") or ex.get("tariff_cn", ""))[:30],
-            "supplier_codes": (str(r["supplier_codes"] or "") or ex.get("supplier_codes", ""))[:500],
+            "supplier_codes": (str(r["supplier_codes"] or "") or ex.get("supplier_codes", ""))[
+                :500
+            ],
             "levels": levels,
         }
         _save_record(db, rec)

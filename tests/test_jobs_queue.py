@@ -63,6 +63,7 @@ def test_run_returns_result_inline_without_redis(monkeypatch):
 
 def test_run_uses_inline_semaphore(monkeypatch):
     import threading
+
     monkeypatch.delenv("REDIS_URL", raising=False)
     sem = threading.Semaphore(1)
     # Semafor musi być wolny przed i po (run zwalnia go po wykonaniu).

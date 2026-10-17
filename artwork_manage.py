@@ -15,6 +15,7 @@ biblioteki:
 Moduł jest „czysty": operuje na db przekazanym z app.py; ensure_status_table
 bootstrapuje własną tabelę wzorem artwork_index.ensure_table.
 """
+
 from __future__ import annotations
 
 _VALID_STATUS = ("active", "ignored", "archived")
@@ -32,8 +33,7 @@ def ensure_status_table(db) -> None:
         updated_by TEXT DEFAULT '',
         updated_at TEXT DEFAULT (datetime('now'))
     )""")
-    db.execute("CREATE INDEX IF NOT EXISTS idx_awm_status_status "
-               "ON artwork_file_status(status)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_awm_status_status ON artwork_file_status(status)")
     db.commit()
     try:
         db._awm_status_ensured = True
@@ -108,12 +108,14 @@ def list_unbound(db, q="", page=1, per_page=50) -> dict:
     """Stronicowana lista plików w indeksie BEZ rozpoznanego REF (ref_norm='').
     q — opcjonalny fragment nazwy pliku."""
     import artwork_index as _ai
+
     _ai.ensure_table(db)
     where = ["ref_norm=''"]
     params = []
     q = (q or "").strip()
     if q:
         from db import escape_like
+
         where.append("filename LIKE ? ESCAPE '\\'")
         params.append(f"%{escape_like(q)}%")
     wsql = " WHERE " + " AND ".join(where)
@@ -124,12 +126,15 @@ def list_unbound(db, q="", page=1, per_page=50) -> dict:
         per_page, page = 50, 1
     # Bandit B608: SQL złożony wyłącznie ze stałych fragmentów w kodzie; dane użytkownika idą jako parametry ?.
     total = _scalar(db, f"SELECT COUNT(*) FROM artwork_index{wsql}", params)  # nosec B608
-    rows = [dict(r) for r in db.execute(
-        # Bandit B608: SQL złożony wyłącznie ze stałych fragmentów w kodzie; dane użytkownika idą jako parametry ?.
-        "SELECT id, filename, rel_path, packaging_type, revision, ean, source_mtime "  # nosec B608
-        f"FROM artwork_index{wsql} ORDER BY filename LIMIT ? OFFSET ?",
-        params + [per_page, (page - 1) * per_page]
-    ).fetchall()]
+    rows = [
+        dict(r)
+        for r in db.execute(
+            # Bandit B608: SQL złożony wyłącznie ze stałych fragmentów w kodzie; dane użytkownika idą jako parametry ?.
+            "SELECT id, filename, rel_path, packaging_type, revision, ean, source_mtime "  # nosec B608
+            f"FROM artwork_index{wsql} ORDER BY filename LIMIT ? OFFSET ?",
+            params + [per_page, (page - 1) * per_page],
+        ).fetchall()
+    ]
     pages = (total + per_page - 1) // per_page if per_page else 1
     return {"rows": rows, "total": total, "page": page, "pages": pages, "per_page": per_page}
 
@@ -141,6 +146,7 @@ def suggest_ref(db, rel_path, limit: int = 5) -> list:
     Propozycja — nigdy nie zapisuje; użytkownik akceptuje przez bind_ref."""
     import artwork_index as _ai
     import material_master as _mm
+
     _ai.ensure_table(db)
     try:
         _mm.ensure_table(db)
@@ -158,12 +164,20 @@ def suggest_ref(db, rel_path, limit: int = 5) -> list:
     if ean:
         for m in db.execute(
             "SELECT ref_code, opis_pl, ean FROM material_master "
-            "WHERE ean=? AND COALESCE(active,1)=1 LIMIT ?", (ean, limit)
+            "WHERE ean=? AND COALESCE(active,1)=1 LIMIT ?",
+            (ean, limit),
         ).fetchall():
             if m["ref_code"] not in seen:
                 seen.add(m["ref_code"])
-                out.append({"ref_code": m["ref_code"], "opis": m["opis_pl"] or "",
-                            "ean": m["ean"] or "", "score": 1.0, "source": "ean"})
+                out.append(
+                    {
+                        "ref_code": m["ref_code"],
+                        "opis": m["opis_pl"] or "",
+                        "ean": m["ean"] or "",
+                        "score": 1.0,
+                        "source": "ean",
+                    }
+                )
 
     # 2) Tekst nazwy pliku → opis produktu (Jaccard po tokenach).
     toks = _ai._tok(row["filename"] or "")
@@ -172,11 +186,12 @@ def suggest_ref(db, rel_path, limit: int = 5) -> list:
         cand = {}
         for k in key:
             from db import escape_like
+
             esc = escape_like(k)
             for m in db.execute(
                 "SELECT ref_code, opis_pl, ean FROM material_master "
                 "WHERE COALESCE(active,1)=1 AND opis_pl LIKE ? ESCAPE '\\' LIMIT 200",
-                (f"%{esc}%",)
+                (f"%{esc}%",),
             ).fetchall():
                 cand[m["ref_code"]] = dict(m)
         scored = []
@@ -195,8 +210,15 @@ def suggest_ref(db, rel_path, limit: int = 5) -> list:
             if m["ref_code"] in seen:
                 continue
             seen.add(m["ref_code"])
-            out.append({"ref_code": m["ref_code"], "opis": m["opis_pl"] or "",
-                        "ean": m["ean"] or "", "score": round(s, 2), "source": "text"})
+            out.append(
+                {
+                    "ref_code": m["ref_code"],
+                    "opis": m["opis_pl"] or "",
+                    "ean": m["ean"] or "",
+                    "score": round(s, 2),
+                    "source": "text",
+                }
+            )
     return out[:limit]
 
 
@@ -205,6 +227,7 @@ def bind_ref(db, rel_path, ref_code, user="") -> dict:
     pliku, więc dotyczy dokładnie tego pliku i jego kopii). Cienka nakładka na
     artwork_index.add_alias — jedno źródło logiki backfillu."""
     import artwork_index as _ai
+
     _ai.ensure_table(db)
     row = db.execute(
         "SELECT filename FROM artwork_index WHERE rel_path=?", (str(rel_path),)
@@ -222,17 +245,22 @@ def find_gaps(db, q="", limit: int = 500) -> list:
     """Aktywne produkty z material_master bez ŻADNEGO pliku w indeksie (po ref_norm)."""
     import artwork_index as _ai
     import material_master as _mm
+
     _ai.ensure_table(db)
     try:
         _mm.ensure_table(db)
     except Exception:
         return []
-    where = ["COALESCE(m.active,1)=1", "m.ref_norm<>''",
-             "NOT EXISTS (SELECT 1 FROM artwork_index a WHERE a.ref_norm=m.ref_norm)"]
+    where = [
+        "COALESCE(m.active,1)=1",
+        "m.ref_norm<>''",
+        "NOT EXISTS (SELECT 1 FROM artwork_index a WHERE a.ref_norm=m.ref_norm)",
+    ]
     params = []
     q = (q or "").strip()
     if q:
         from db import escape_like
+
         esc = escape_like(q)
         where.append("(m.ref_code LIKE ? ESCAPE '\\' OR m.opis_pl LIKE ? ESCAPE '\\')")
         params += [f"%{esc}%", f"%{esc}%"]
@@ -245,7 +273,7 @@ def find_gaps(db, q="", limit: int = 500) -> list:
             # Bandit B608: SQL złożony wyłącznie ze stałych fragmentów w kodzie; dane użytkownika idą jako parametry ?.
             "SELECT m.ref_code, m.opis_pl, m.rodzina, m.ean FROM material_master m "  # nosec B608
             "WHERE " + " AND ".join(where) + " ORDER BY m.ref_code LIMIT ?",
-            params + [lim]
+            params + [lim],
         ).fetchall()
     except Exception:
         try:
@@ -253,14 +281,22 @@ def find_gaps(db, q="", limit: int = 500) -> list:
         except Exception:
             pass
         return []
-    return [{"ref_code": r["ref_code"], "opis": r["opis_pl"] or "",
-             "rodzina": r["rodzina"] or "", "ean": r["ean"] or ""} for r in rows]
+    return [
+        {
+            "ref_code": r["ref_code"],
+            "opis": r["opis_pl"] or "",
+            "rodzina": r["rodzina"] or "",
+            "ean": r["ean"] or "",
+        }
+        for r in rows
+    ]
 
 
 def find_duplicates(db, limit: int = 500) -> list:
     """Grupy (REF, opakowanie, rewizja) z >1 plikiem. Zwraca grupę + jej pliki
     (z aktualnym statusem), by w UI oznaczyć jeden aktywny, resztę pominąć."""
     import artwork_index as _ai
+
     _ai.ensure_table(db)
     ensure_status_table(db)
     try:
@@ -271,7 +307,8 @@ def find_duplicates(db, limit: int = 500) -> list:
         "SELECT ref_norm, ref_code, packaging_type, revision_rank, COUNT(*) AS n "
         "FROM artwork_index WHERE ref_norm<>'' "
         "GROUP BY ref_norm, packaging_type, revision_rank HAVING COUNT(*)>1 "
-        "ORDER BY n DESC, ref_code LIMIT ?", (lim,)
+        "ORDER BY n DESC, ref_code LIMIT ?",
+        (lim,),
     ).fetchall()
     out = []
     for g in groups:
@@ -282,13 +319,18 @@ def find_duplicates(db, limit: int = 500) -> list:
             "LEFT JOIN artwork_file_status s ON s.rel_path=ai.rel_path "
             "WHERE ai.ref_norm=? AND ai.packaging_type=? AND ai.revision_rank=? "
             "ORDER BY ai.source_mtime DESC, ai.filename",
-            (g["ref_norm"], g["packaging_type"], g["revision_rank"])
+            (g["ref_norm"], g["packaging_type"], g["revision_rank"]),
         ).fetchall()
-        out.append({
-            "ref_code": g["ref_code"], "ref_norm": g["ref_norm"],
-            "packaging_type": g["packaging_type"] or "", "revision_rank": g["revision_rank"],
-            "count": g["n"], "files": [dict(f) for f in files],
-        })
+        out.append(
+            {
+                "ref_code": g["ref_code"],
+                "ref_norm": g["ref_norm"],
+                "packaging_type": g["packaging_type"] or "",
+                "revision_rank": g["revision_rank"],
+                "count": g["n"],
+                "files": [dict(f) for f in files],
+            }
+        )
     return out
 
 
@@ -306,7 +348,7 @@ def set_file_status(db, rel_path, status, user="", note="") -> dict:
         "VALUES(?,?,?,?,datetime('now')) "
         "ON CONFLICT(rel_path) DO UPDATE SET status=excluded.status, "
         "note=excluded.note, updated_by=excluded.updated_by, updated_at=datetime('now')",
-        (rp, st, str(note or "")[:500], str(user or "")[:100])
+        (rp, st, str(note or "")[:500], str(user or "")[:100]),
     )
     db.commit()
     return {"ok": True, "rel_path": rp, "status": st}
@@ -316,6 +358,7 @@ def compute_kpis(db) -> dict:
     """Zbiorczy stan biblioteki do pulpitu. Każda metryka to osobne, tanie
     zapytanie agregujące (bez skanu 31k w Pythonie)."""
     import artwork_index as _ai
+
     _ai.ensure_table(db)
     ensure_status_table(db)
     stats = _ai.index_stats(db)  # total, with_ref, distinct_refs, last_scan

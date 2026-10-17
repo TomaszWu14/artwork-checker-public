@@ -9,6 +9,7 @@ Moduł jest „czysty" (kształt jak material_uom.py): funkcje db-first, żadnej
 kontroli przepływu opartej o Flask poza audytem — core.audit.log_audit jest
 już bezpieczny do wołania z daemon-threadu bez request contextu.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -45,8 +46,9 @@ def photo_source_hash(image_bytes_list) -> str:
     return h.hexdigest()
 
 
-def register_render(db, *, fid=None, ref_norm="", variant, source_hash="",
-                     glb_path, created_by=None) -> dict:
+def register_render(
+    db, *, fid=None, ref_norm="", variant, source_hash="", glb_path, created_by=None
+) -> dict:
     """Zapisuje lub potwierdza render w rejestrze.
 
     Klucz tożsamości: `fid` gdy podany, inaczej `ref_norm` (D-04). Ten sam
@@ -92,10 +94,16 @@ def register_render(db, *, fid=None, ref_norm="", variant, source_hash="",
         action, row_id = "inserted", cur.lastrowid
 
     _log_audit(
-        "render_registered", None,
+        "render_registered",
+        None,
         f"variant={variant} fid={fid} ref_norm={ref_norm!r} glb_path={glb_path}",
-        extra={"variant": variant, "source_hash": source_hash, "glb_path": glb_path,
-               "fid": fid, "ref_norm": ref_norm},
+        extra={
+            "variant": variant,
+            "source_hash": source_hash,
+            "glb_path": glb_path,
+            "fid": fid,
+            "ref_norm": ref_norm,
+        },
     )
     return {"action": action, "id": row_id}
 
@@ -136,14 +144,20 @@ def coverage(db, ref="", lvl1="", page=1, per_page=50) -> dict:
 
     total = db.execute(
         # Bandit B608: SQL złożony wyłącznie ze stałych fragmentów w kodzie; dane użytkownika idą jako parametry ?.
-        f"SELECT COUNT(*) FROM library_files{where_sql}", params).fetchone()[0]  # nosec B608
+        f"SELECT COUNT(*) FROM library_files{where_sql}",  # nosec B608
+        params,
+    ).fetchone()[0]
 
     offset = (page - 1) * per_page
-    rows = [dict(r) for r in db.execute(
-        # Bandit B608: SQL złożony wyłącznie ze stałych fragmentów w kodzie; dane użytkownika idą jako parametry ?.
-        f"SELECT id, ref, filename, lvl1, checksum FROM library_files{where_sql} "  # nosec B608
-        "ORDER BY filename LIMIT ? OFFSET ?",
-        params + [per_page, offset]).fetchall()]
+    rows = [
+        dict(r)
+        for r in db.execute(
+            # Bandit B608: SQL złożony wyłącznie ze stałych fragmentów w kodzie; dane użytkownika idą jako parametry ?.
+            f"SELECT id, ref, filename, lvl1, checksum FROM library_files{where_sql} "  # nosec B608
+            "ORDER BY filename LIMIT ? OFFSET ?",
+            params + [per_page, offset],
+        ).fetchall()
+    ]
 
     fids = [r["id"] for r in rows]
     refnorms = sorted({normalize_ref(r["ref"]) for r in rows if r.get("ref")})
@@ -158,9 +172,12 @@ def coverage(db, ref="", lvl1="", page=1, per_page=50) -> dict:
         vslot = bucket.setdefault(key, {})
         prev = vslot.get(rr["variant"])
         if prev is None or (rr["created_at"] or "") >= (prev["created_at"] or ""):
-            vslot[rr["variant"]] = {"id": rr["id"], "created_at": rr["created_at"],
-                                    "push_status": (rr["push_status"] or "pending"),
-                                    "source_hash": (rr["source_hash"] or "")}
+            vslot[rr["variant"]] = {
+                "id": rr["id"],
+                "created_at": rr["created_at"],
+                "push_status": (rr["push_status"] or "pending"),
+                "source_hash": (rr["source_hash"] or ""),
+            }
 
     if fids or refnorms:
         clauses, reg_params = [], []
@@ -174,7 +191,9 @@ def coverage(db, ref="", lvl1="", page=1, per_page=50) -> dict:
             # Bandit B608: interpolowane są tylko placeholdery ? (liczba = długość listy); wartości jako parametry.
             "SELECT id, fid, ref_norm, variant, push_status, source_hash, created_at "  # nosec B608
             "FROM artwork_render_registry "
-            f"WHERE {' OR '.join(clauses)}", reg_params).fetchall()
+            f"WHERE {' OR '.join(clauses)}",
+            reg_params,
+        ).fetchall()
         for rr in reg_rows:
             if rr["fid"] is not None:
                 _keep_latest(by_fid, rr["fid"], rr)
@@ -196,29 +215,41 @@ def coverage(db, ref="", lvl1="", page=1, per_page=50) -> dict:
                 if prev is None or (info["created_at"] or "") >= (prev["created_at"] or ""):
                     merged[v] = info
         # PUSH-02: status pusha najświeższego renderu per wariant (+ id do retry)
-        push = {v: {"registry_id": info["id"], "status": info["push_status"]}
-                for v, info in merged.items()}
+        push = {
+            v: {"registry_id": info["id"], "status": info["push_status"]}
+            for v, info in merged.items()
+        }
         # STALE-01: render dieline jest nieaktualny, gdy zapisany source_hash (md5
         # PDF przy renderze) ≠ bieżący library_files.checksum (md5 pliku po sync).
         # Oba już w pamięci — zero I/O. Tylko dieline (fid-owy, source_hash=checksum);
         # marm/photo (accept-path po ref_norm) nie mają tu taniego bieżącego źródła.
         dieline = slot_fid.get(RenderVariant.DIELINE.value)
-        cur_checksum = (r.get("checksum") or "")
+        cur_checksum = r.get("checksum") or ""
         dieline_stale = bool(
-            dieline and dieline["source_hash"] and cur_checksum
-            and dieline["source_hash"] != cur_checksum)
-        items.append({
-            "fid": r["id"],
-            "ref": r.get("ref") or "",
-            "filename": r["filename"],
-            "lvl1": r.get("lvl1") or "",
-            "has_dieline": RenderVariant.DIELINE.value in merged,
-            "has_marm": RenderVariant.MARM.value in merged,
-            "has_photo": RenderVariant.PHOTO.value in merged,
-            "push": push,
-            "dieline_stale": dieline_stale,
-        })
+            dieline
+            and dieline["source_hash"]
+            and cur_checksum
+            and dieline["source_hash"] != cur_checksum
+        )
+        items.append(
+            {
+                "fid": r["id"],
+                "ref": r.get("ref") or "",
+                "filename": r["filename"],
+                "lvl1": r.get("lvl1") or "",
+                "has_dieline": RenderVariant.DIELINE.value in merged,
+                "has_marm": RenderVariant.MARM.value in merged,
+                "has_photo": RenderVariant.PHOTO.value in merged,
+                "push": push,
+                "dieline_stale": dieline_stale,
+            }
+        )
 
     total_pages = max(1, (total + per_page - 1) // per_page)
-    return {"items": items, "total": total, "page": page, "per_page": per_page,
-            "total_pages": total_pages}
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": total_pages,
+    }

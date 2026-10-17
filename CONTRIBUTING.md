@@ -60,7 +60,7 @@ Funkcja jest skończona, gdy:
 
 | Narzędzie | Lokalnie | W CI |
 |---|---|---|
-| ruff | `ruff check . && ruff format --check .` | doradczo do US-002, potem blokująco |
+| ruff | `ruff check . && ruff format --check .` (wersja z `dev-requirements.txt`) | blokująco (check od US-002, format od US-020) |
 | pytest | `python -m pytest tests/ -q` | blokująco |
 | bandit | `bandit -r . -ll -x ./tests` | blokująco (≥ średnie) |
 | semgrep | `pip install semgrep && semgrep scan --config p/python --config p/flask --config p/owasp-top-ten` | doradczo |
@@ -73,6 +73,9 @@ Zależności produkcyjne: po zmianie `requirements-prod.txt` (także z PR Depend
 poleceniem z nagłówka pliku i dołącz go do tego samego PR.
 Obraz ML (US-021): `requirements-ml.lock` regeneruje workflow „Lock obrazu ML” przy pushu zmiany `requirements.txt`
 (lub lokalnie `tools/regen_ml_lock.sh`, wymaga dostępu do download.pytorch.org); PR z nieaktualnym lockiem nie przejdzie CI.
+
+Wyjątki Bandit (`# nosec B608` z uzasadnieniem) stawiaj na linii z samym napisem SQL, nie po `)` wywołania — `ruff format`
+przenosi komentarze końcowe razem ze zmianą łamania linii, a Bandit sprawdza tylko linię zgłoszenia (US-020).
 
 Frontend (US-022): po zmianie `frontend/src/*.jsx`, klas Tailwind w szablonach lub wersji w `package.json` uruchom
 `npm ci && npm run build` i zacommituj zmiany w `static/` — job CI `frontend` odrzuca rozjazd źródła i buildu.

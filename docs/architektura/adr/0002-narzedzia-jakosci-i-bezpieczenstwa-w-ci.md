@@ -13,7 +13,7 @@ osobistym (darmowe minuty Actions, gitleaks bez licencji organizacyjnej).
 | Narzędzie | Cel | Tryb | Uzasadnienie |
 |---|---|---|---|
 | `ruff check` | lint (reguły F, E9, W6) | **blokujący** od US-002 (66 błędów usuniętych 2026-10-16) | realne błędy: niezdefiniowane nazwy, zduplikowane klucze, martwe zmienne |
-| `ruff format --check` | formatowanie | doradczy do decyzji PO o jednorazowym sformatowaniu 108 plików (US-020) | wielki diff bez wartości funkcjonalnej — osobna decyzja |
+| `ruff format --check` | formatowanie | **blokujący** od US-020 (jednorazowe formatowanie 124 plików 2026-10-17; ruff przypięty na 0.17.1) | jeden styl, brak sporów o formatowanie w przeglądach; commit formatujący w `.git-blame-ignore-revs` |
 | `python -m compileall` | składnia każdego modułu | blokujący | tani, łapie literówki poza testami |
 | `pytest` (+ `pytest-cov` raport) | testy czystej logiki + integracyjne (Flask test client) | blokujący; próg pokrycia po decyzji Z-05 | 4 s, bez pakietów ML |
 | `bandit -ll` | SAST Pythona (≥ średnie) | **blokujący** (dziś 0 ustaleń) | fałszywe alarmy oznaczać `# nosec Bxxx` z uzasadnieniem w linii |
@@ -31,7 +31,7 @@ Kolejność w pipeline: lint → testy → SAST → SCA → sekrety → skan kon
 
 ## Konsekwencje
 - (+) Każdy PR ma widoczny wynik 7 kontroli; fałszywe alarmy są oznaczane, nie wyciszane hurtowo.
-- (−) Narzędzia doradcze (ruff format, semgrep, trivy misconfig) do czasu decyzji/triage — ryzyko „przyzwyczajenia się
+- (−) Narzędzia doradcze (semgrep, trivy misconfig; ruff format do US-020) do czasu decyzji/triage — ryzyko „przyzwyczajenia się
   do żółtego"; ruff check jest już blokujący (US-002); termin triage semgrep: Sprint 2.
 - (−) Lock obejmuje `requirements-prod.txt` (Render); pełny obraz ML (`requirements.txt` + torch z osobnego indeksu)
   nie ma jeszcze locka — kolejny krok (US-021). Lock nie aktualizuje się sam: PR Dependabota zmienia `requirements-prod.txt`,

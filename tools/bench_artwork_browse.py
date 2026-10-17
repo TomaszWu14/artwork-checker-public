@@ -19,6 +19,7 @@ Usage:
   python tools/bench_artwork_browse.py             # smoke run, 1000 rows
   python tools/bench_artwork_browse.py --rows 31000 # SRCH-03 real measurement
 """
+
 import argparse
 import os
 import shutil
@@ -41,8 +42,10 @@ def _open_isolated_db(sqlite_path: str):
     os.environ["SQLITE_PATH"] = sqlite_path
     os.environ.pop("DATABASE_URL", None)
     import migrate_db
+
     migrate_db.run()  # only place artwork_render_registry's table/index live (#1)
     from db import get_db
+
     return get_db()
 
 
@@ -61,13 +64,19 @@ def seed(db, n: int) -> str:
         filename = f"{ref_code.lower()}_{pt}_rev_a.pdf"
         index_rows.append((ref_norm, ref_code, filename, f"z/{i}/{filename}", pt, "A", 1, ""))
         if i % 3 == 0:
-            registry_rows.append((ref_norm, _VARIANTS[i % len(_VARIANTS)], "bench", f"/bench/{i}.glb"))
+            registry_rows.append(
+                (ref_norm, _VARIANTS[i % len(_VARIANTS)], "bench", f"/bench/{i}.glb")
+            )
     db.executemany(
         "INSERT INTO artwork_index(ref_norm,ref_code,filename,rel_path,packaging_type,"
-        "revision,revision_rank,ean) VALUES(?,?,?,?,?,?,?,?)", index_rows)
+        "revision,revision_rank,ean) VALUES(?,?,?,?,?,?,?,?)",
+        index_rows,
+    )
     db.executemany(
         "INSERT INTO artwork_render_registry(ref_norm,variant,source_hash,glb_path) "
-        "VALUES(?,?,?,?)", registry_rows)
+        "VALUES(?,?,?,?)",
+        registry_rows,
+    )
     db.commit()
     return index_rows[0][1]  # first ref_code, for the exact-match query
 
@@ -79,9 +88,15 @@ def _timed_browse(db, ai, **kwargs):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--rows", type=int, default=1000,
-                         help="synthetic artwork_index row count (default: 1000 smoke; SRCH-03 real run: 31000)")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--rows",
+        type=int,
+        default=1000,
+        help="synthetic artwork_index row count (default: 1000 smoke; SRCH-03 real run: 31000)",
+    )
     args = parser.parse_args()
 
     tmp_dir = tempfile.mkdtemp(prefix="artwork_bench_")
@@ -90,14 +105,19 @@ def main():
         db = _open_isolated_db(tmp_db)
         try:
             import artwork_index as ai
+
             first_ref = seed(db, args.rows)
-            print(f"Seeded {args.rows} artwork_index rows (+ ~{args.rows // 3} registry rows) at {tmp_db}")
+            print(
+                f"Seeded {args.rows} artwork_index rows (+ ~{args.rows // 3} registry rows) at {tmp_db}"
+            )
 
             ms_empty, _ = _timed_browse(db, ai, q="", per_page=50)
             print(f"  baseline (q=''):              {ms_empty:9.2f} ms")
 
             ms_exact, res_exact = _timed_browse(db, ai, q=first_ref, per_page=50)
-            print(f"  exact-REF pin ({first_ref!r}):    {ms_exact:9.2f} ms  (total={res_exact['total']})")
+            print(
+                f"  exact-REF pin ({first_ref!r}):    {ms_exact:9.2f} ms  (total={res_exact['total']})"
+            )
 
             ms_hc, res_hc = _timed_browse(db, ai, q="karton", per_page=50)
             print(f"  high-cardinality ('karton'):  {ms_hc:9.2f} ms  (total={res_hc['total']})")

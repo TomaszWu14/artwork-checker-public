@@ -25,6 +25,7 @@ from normalizer import (
 
 # ── numbers_equal ─────────────────────────────────────────────────────────────
 
+
 class TestNumbersEqual:
     def test_exact(self):
         assert numbers_equal("100", "100") is True
@@ -51,6 +52,7 @@ class TestNumbersEqual:
 
 # ── numbers_differ_only_by_rounding ───────────────────────────────────────────
 
+
 class TestRounding:
     def test_rounding_difference(self):
         assert numbers_differ_only_by_rounding("0.0257", "0.03", decimal_places=2) is True
@@ -60,6 +62,7 @@ class TestRounding:
 
 
 # ── normalize_ref / refs_match ────────────────────────────────────────────────
+
 
 class TestRef:
     def test_separators_stripped(self):
@@ -90,6 +93,7 @@ class TestRef:
 
 # ── normalize_company_name ────────────────────────────────────────────────────
 
+
 class TestCompanyName:
     def test_legal_form_normalized(self):
         a = normalize_company_name("ACME SP. Z O.O.")
@@ -99,6 +103,7 @@ class TestCompanyName:
 
 
 # ── payment terms ─────────────────────────────────────────────────────────────
+
 
 class TestPaymentTerms:
     def test_sap_code_mapped(self):
@@ -119,6 +124,7 @@ class TestPaymentTerms:
 
 
 # ── validate_checksum (qty × price = net) ─────────────────────────────────────
+
 
 class TestValidateChecksum:
     def test_net_fields_sum_to_declared(self):

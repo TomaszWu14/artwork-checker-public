@@ -33,6 +33,7 @@ wewnętrznej; dosyła nowe podglądy automatycznie, bez ręcznego ładowania):
       --user manager_login --root "Z:\\ISO\\WZORY ETYKIET I INSTRUKCJI" \\
       --watch --interval 120
 """
+
 import argparse
 import getpass
 import os
@@ -54,9 +55,13 @@ def _login(session, base_url, user, password):
     r = session.get(base_url + "/login", timeout=30)
     m = _CSRF_META.search(r.text) or _CSRF_FORM.search(r.text)
     token = m.group(1) if m else ""
-    r = session.post(base_url + "/login",
-                     data={"identifier": user, "password": password, "_csrf_token": token},
-                     headers={"X-CSRF-Token": token}, timeout=30, allow_redirects=True)
+    r = session.post(
+        base_url + "/login",
+        data={"identifier": user, "password": password, "_csrf_token": token},
+        headers={"X-CSRF-Token": token},
+        timeout=30,
+        allow_redirects=True,
+    )
     if "/login" in r.url:
         sys.exit("Logowanie nieudane — sprawdź login/hasło.")
     # token do kolejnych POST-ów
@@ -73,8 +78,7 @@ def _iter_entries(root):
                 continue
             full = os.path.join(dirpath, fn)
             try:
-                mtime = time.strftime("%Y-%m-%d %H:%M:%S",
-                                      time.localtime(os.path.getmtime(full)))
+                mtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(os.path.getmtime(full)))
             except OSError:
                 mtime = ""
             rel = os.path.relpath(full, root).replace("\\", "/")
@@ -87,12 +91,15 @@ def _upload_wanted(session, base_url, token, root):
     try:
         r = session.get(base_url + "/api/artwork/master-files/wanted", timeout=60)
         if r.status_code != 200:
-            print(f"  podgląd: HTTP {r.status_code}"); return
+            print(f"  podgląd: HTTP {r.status_code}")
+            return
         wanted = r.json().get("wanted", [])
     except requests.RequestException as e:
-        print(f"  podgląd: błąd sieci: {e}"); return
+        print(f"  podgląd: błąd sieci: {e}")
+        return
     if not wanted:
-        print("  podgląd: brak nowych plików do dosłania."); return
+        print("  podgląd: brak nowych plików do dosłania.")
+        return
     print(f"  podgląd: dosyłam {len(wanted)} plik(ów) master…")
     up, miss = 0, 0
     root_abs = os.path.abspath(root)
@@ -100,16 +107,21 @@ def _upload_wanted(session, base_url, token, root):
         full = os.path.normpath(os.path.join(root, rel.replace("/", os.sep)))
         # Ochrona przed path-traversal: nie wychodź poza katalog root (rel z serwera).
         if os.path.commonpath([os.path.abspath(full), root_abs]) != root_abs:
-            print(f"    {rel}: poza katalogiem root — pomijam"); miss += 1; continue
+            print(f"    {rel}: poza katalogiem root — pomijam")
+            miss += 1
+            continue
         if not os.path.isfile(full):
-            miss += 1; continue
+            miss += 1
+            continue
         try:
             with open(full, "rb") as fh:
-                resp = session.post(base_url + "/api/artwork/master-files/upload",
-                                    data={"rel_path": rel},
-                                    files={"file": (os.path.basename(rel), fh,
-                                                    "application/pdf")},
-                                    headers={"X-CSRF-Token": token}, timeout=180)
+                resp = session.post(
+                    base_url + "/api/artwork/master-files/upload",
+                    data={"rel_path": rel},
+                    files={"file": (os.path.basename(rel), fh, "application/pdf")},
+                    headers={"X-CSRF-Token": token},
+                    timeout=180,
+                )
             if resp.status_code == 200:
                 up += 1
             else:
@@ -127,19 +139,32 @@ def main():
     ap.add_argument("--batch", type=int, default=500)
     ap.add_argument("--limit", type=int, default=0, help="0 = bez limitu")
     ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--no-upload", action="store_true",
-                    help="nie dosyłaj plików master do podglądu (tylko metadane)")
-    ap.add_argument("--only-upload", action="store_true",
-                    help="POMIŃ skanowanie indeksu — dosyłaj WYŁĄCZNIE brakujące "
-                         "pliki master do podglądu (szybkie; do częstego uruchamiania, "
-                         "np. co 10 min w Harmonogramie zadań Windows)")
-    ap.add_argument("--watch", action="store_true",
-                    help="TRYB CIĄGŁY: agent działa bez końca i co --interval sekund "
-                         "sam dosyła brakujące podglądy (pobiera pliki z Z:\\ gdy tylko "
-                         "pojawi się nowy master). Uruchom na maszynie zawsze online "
-                         "w sieci wewnętrznej. Ctrl+C kończy.")
-    ap.add_argument("--interval", type=int, default=120,
-                    help="odstęp w sekundach dla --watch (domyślnie 120, min 30)")
+    ap.add_argument(
+        "--no-upload",
+        action="store_true",
+        help="nie dosyłaj plików master do podglądu (tylko metadane)",
+    )
+    ap.add_argument(
+        "--only-upload",
+        action="store_true",
+        help="POMIŃ skanowanie indeksu — dosyłaj WYŁĄCZNIE brakujące "
+        "pliki master do podglądu (szybkie; do częstego uruchamiania, "
+        "np. co 10 min w Harmonogramie zadań Windows)",
+    )
+    ap.add_argument(
+        "--watch",
+        action="store_true",
+        help="TRYB CIĄGŁY: agent działa bez końca i co --interval sekund "
+        "sam dosyła brakujące podglądy (pobiera pliki z Z:\\ gdy tylko "
+        "pojawi się nowy master). Uruchom na maszynie zawsze online "
+        "w sieci wewnętrznej. Ctrl+C kończy.",
+    )
+    ap.add_argument(
+        "--interval",
+        type=int,
+        default=120,
+        help="odstęp w sekundach dla --watch (domyślnie 120, min 30)",
+    )
     args = ap.parse_args()
     base = args.base_url.rstrip("/")
 
@@ -157,8 +182,10 @@ def main():
         if args.dry_run:
             sys.exit("--watch nie współpracuje z --dry-run.")
         interval = max(30, args.interval)
-        print(f"Tryb ciągły: dosyłka podglądów co {interval}s (root: {args.root}). "
-              f"Ctrl+C aby zakończyć.")
+        print(
+            f"Tryb ciągły: dosyłka podglądów co {interval}s (root: {args.root}). "
+            f"Ctrl+C aby zakończyć."
+        )
         try:
             while True:
                 try:
@@ -166,7 +193,7 @@ def main():
                     _upload_wanted(session, base, token, args.root)
                 except (requests.RequestException, SystemExit) as e:
                     print(f"  cykl pominięty (błąd sieci/logowania): {e}")
-                except Exception as e:                       # nie zabijaj pętli na innym błędzie
+                except Exception as e:  # nie zabijaj pętli na innym błędzie
                     print(f"  cykl pominięty (błąd: {type(e).__name__}): {e}")
                 time.sleep(interval)
         except KeyboardInterrupt:
@@ -188,33 +215,42 @@ def main():
         if not batch:
             return
         if args.dry_run:
-            indexed += len(batch); batch = []; return
+            indexed += len(batch)
+            batch = []
+            return
         for attempt in range(4):
             try:
-                resp = session.post(base + "/api/artwork/index/sync",
-                                    json={"entries": batch},
-                                    headers={"X-CSRF-Token": token}, timeout=60)
+                resp = session.post(
+                    base + "/api/artwork/index/sync",
+                    json={"entries": batch},
+                    headers={"X-CSRF-Token": token},
+                    timeout=60,
+                )
                 if resp.status_code == 200:
                     d = resp.json()
-                    indexed += d.get("indexed", 0); skipped += d.get("skipped", 0)
+                    indexed += d.get("indexed", 0)
+                    skipped += d.get("skipped", 0)
                     batch = []
                     return
                 print(f"  HTTP {resp.status_code}: {resp.text[:200]}")
             except requests.RequestException as e:
                 print(f"  błąd sieci: {e}")
-            time.sleep(2 ** attempt)
+            time.sleep(2**attempt)
         sys.exit("Zbyt wiele błędów wysyłki — przerwano.")
 
     for e in _iter_entries(args.root):
-        batch.append(e); sent += 1
+        batch.append(e)
+        sent += 1
         if len(batch) >= args.batch:
             flush()
             print(f"  …wysłano {sent} (zindeksowane {indexed}, pominięte {skipped})")
         if args.limit and sent >= args.limit:
             break
     flush()
-    print(f"\nGotowe. Plików: {sent} | zindeksowane: {indexed} | pominięte: {skipped}"
-          + (" [DRY-RUN]" if args.dry_run else ""))
+    print(
+        f"\nGotowe. Plików: {sent} | zindeksowane: {indexed} | pominięte: {skipped}"
+        + (" [DRY-RUN]" if args.dry_run else "")
+    )
     # Dosyłanie bajtów masterów potrzebnych do podglądu (potwierdzone/grupowe).
     if not args.dry_run and not args.no_upload:
         _upload_wanted(session, base, token, args.root)

@@ -68,7 +68,7 @@ def backup_app():
 
 def inject_endpoints():
     """Wstrzykuje nowe endpointy na koniec app.py."""
-    app_path      = os.path.join(HERE, "app.py")
+    app_path = os.path.join(HERE, "app.py")
     endpoints_path = os.path.join(HERE, ENDPOINTS_FILE)
 
     with open(app_path, encoding="utf-8") as _f:
@@ -99,7 +99,7 @@ def inject_endpoints():
 def patch_api_analyze():
     """Dodaje _trigger_background_learning do api_analyze()."""
     app_path = os.path.join(HERE, "app.py")
-    src      = open(app_path, encoding="utf-8").read()
+    src = open(app_path, encoding="utf-8").read()
 
     # Sprawdź czy już spatchowane
     if "_trigger_background_learning" in src:
@@ -164,8 +164,7 @@ def create_templates():
 def run_migrate():
     """Uruchamia migrate_db.py."""
     result = subprocess.run(
-        [sys.executable, os.path.join(HERE, "migrate_db.py")],
-        capture_output=True, text=True
+        [sys.executable, os.path.join(HERE, "migrate_db.py")], capture_output=True, text=True
     )
     if result.returncode == 0:
         # Wydrukuj tylko kluczowe linie
@@ -181,7 +180,8 @@ def verify_syntax():
     """Sprawdź składnię app.py po patchach."""
     result = subprocess.run(
         [sys.executable, "-m", "py_compile", os.path.join(HERE, "app.py")],
-        capture_output=True, text=True
+        capture_output=True,
+        text=True,
     )
     if result.returncode == 0:
         print("  ✅  app.py — składnia Python OK")

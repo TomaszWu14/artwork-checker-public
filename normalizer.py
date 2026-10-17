@@ -15,12 +15,14 @@ from datetime import date, datetime
 
 _UNICODE_DASH_MAP = str.maketrans({'−': '-', '–': '-', '—': '-', '‒': '-', '―': '-'})
 
+
 def normalize_unicode(s: str) -> str:
     """Replace Unicode minus/dash variants with ASCII hyphen."""
     return s.translate(_UNICODE_DASH_MAP) if s else s
 
 
 # ─── LICZBY ──────────────────────────────────────────────────────────────────
+
 
 def normalize_number(s: str) -> Optional[Decimal]:
     """
@@ -74,8 +76,12 @@ def normalize_number(s: str) -> Optional[Decimal]:
             # Heurystyka: dokładnie 3 cyfry po kropce + niezerowa część całkowita → tysiące
             _int_p, _frac_p = s.split('.', 1)
             _int_digits = _int_p.lstrip('-')
-            if (_int_digits.isdigit() and _int_digits != '0'
-                    and len(_frac_p) == 3 and _frac_p.isdigit()):
+            if (
+                _int_digits.isdigit()
+                and _int_digits != '0'
+                and len(_frac_p) == 3
+                and _frac_p.isdigit()
+            ):
                 return Decimal(s.replace('.', ''))
             return Decimal(s)
         elif dots == 0 and commas == 1:
@@ -84,8 +90,12 @@ def normalize_number(s: str) -> Optional[Decimal]:
             # '0,500' or '13500,00' → decimal comma
             before_comma, after_comma = s.split(',', 1)
             int_part = before_comma.lstrip('-')
-            if (int_part.isdigit() and int_part != '0'
-                    and len(after_comma) == 3 and after_comma.isdigit()):
+            if (
+                int_part.isdigit()
+                and int_part != '0'
+                and len(after_comma) == 3
+                and after_comma.isdigit()
+            ):
                 return Decimal(s.replace(',', ''))
             return Decimal(s.replace(',', '.'))
         elif dots > 1 and commas == 0:
@@ -185,35 +195,70 @@ _DATE_PATTERNS = [
     # • if second group > 12 → must be MM/DD/YYYY (month cannot exceed 12)
     # • if both ≤ 12 → prefer DD/MM/YYYY (European context; ACME documents
     #   are EU-origin trade docs where day-first is the dominant convention)
-    (r'(\d{1,2})/(\d{1,2})/(\d{4})', lambda m: (
-        _try_date(int(m[3]), int(m[2]), int(m[1]))  # DD/MM/YYYY
-        if int(m[1]) > 12
-        else (
-            _try_date(int(m[3]), int(m[1]), int(m[2]))  # MM/DD/YYYY
-            if int(m[2]) > 12
-            else _try_date(int(m[3]), int(m[2]), int(m[1]))  # prefer DD/MM/YYYY
-        )
-    )),
-    (r'(\d{1,2})-(\d{1,2})-(\d{4})', lambda m: (
-        _try_date(int(m[3]), int(m[2]), int(m[1]))  # DD-MM-YYYY
-        if int(m[1]) > 12
-        else (
-            _try_date(int(m[3]), int(m[1]), int(m[2]))  # MM-DD-YYYY
-            if int(m[2]) > 12
-            else _try_date(int(m[3]), int(m[2]), int(m[1]))  # prefer DD-MM-YYYY
-        )
-    )),
+    (
+        r'(\d{1,2})/(\d{1,2})/(\d{4})',
+        lambda m: (
+            _try_date(int(m[3]), int(m[2]), int(m[1]))  # DD/MM/YYYY
+            if int(m[1]) > 12
+            else (
+                _try_date(int(m[3]), int(m[1]), int(m[2]))  # MM/DD/YYYY
+                if int(m[2]) > 12
+                else _try_date(int(m[3]), int(m[2]), int(m[1]))  # prefer DD/MM/YYYY
+            )
+        ),
+    ),
+    (
+        r'(\d{1,2})-(\d{1,2})-(\d{4})',
+        lambda m: (
+            _try_date(int(m[3]), int(m[2]), int(m[1]))  # DD-MM-YYYY
+            if int(m[1]) > 12
+            else (
+                _try_date(int(m[3]), int(m[1]), int(m[2]))  # MM-DD-YYYY
+                if int(m[2]) > 12
+                else _try_date(int(m[3]), int(m[2]), int(m[1]))  # prefer DD-MM-YYYY
+            )
+        ),
+    ),
     # z nazwą miesiąca
-    (r'(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{4})',
-     lambda m: _try_date(int(m[3]), _MONTHS_EN.get(m[2][:3].title(), 1), int(m[1]))),
-    (r'(\d{1,2})\s+(Sty|Lut|Mar|Kwi|Maj|Cze|Lip|Sie|Wrz|Paź|Lis|Gru)[a-z]*\s+(\d{4})',
-     lambda m: _try_date(int(m[3]), _MONTHS_PL.get(m[2][:3].title(), 1), int(m[1]))),
+    (
+        r'(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{4})',
+        lambda m: _try_date(int(m[3]), _MONTHS_EN.get(m[2][:3].title(), 1), int(m[1])),
+    ),
+    (
+        r'(\d{1,2})\s+(Sty|Lut|Mar|Kwi|Maj|Cze|Lip|Sie|Wrz|Paź|Lis|Gru)[a-z]*\s+(\d{4})',
+        lambda m: _try_date(int(m[3]), _MONTHS_PL.get(m[2][:3].title(), 1), int(m[1])),
+    ),
 ]
 
-_MONTHS_EN = {'Jan':1,'Feb':2,'Mar':3,'Apr':4,'May':5,'Jun':6,
-              'Jul':7,'Aug':8,'Sep':9,'Oct':10,'Nov':11,'Dec':12}
-_MONTHS_PL = {'Sty':1,'Lut':2,'Mar':3,'Kwi':4,'Maj':5,'Cze':6,
-              'Lip':7,'Sie':8,'Wrz':9,'Paź':10,'Lis':11,'Gru':12}
+_MONTHS_EN = {
+    'Jan': 1,
+    'Feb': 2,
+    'Mar': 3,
+    'Apr': 4,
+    'May': 5,
+    'Jun': 6,
+    'Jul': 7,
+    'Aug': 8,
+    'Sep': 9,
+    'Oct': 10,
+    'Nov': 11,
+    'Dec': 12,
+}
+_MONTHS_PL = {
+    'Sty': 1,
+    'Lut': 2,
+    'Mar': 3,
+    'Kwi': 4,
+    'Maj': 5,
+    'Cze': 6,
+    'Lip': 7,
+    'Sie': 8,
+    'Wrz': 9,
+    'Paź': 10,
+    'Lis': 11,
+    'Gru': 12,
+}
+
 
 def _try_date(y, m, d):
     try:
@@ -252,9 +297,12 @@ def normalize_date(s: str) -> Optional[date]:
     # Fallback: dateparser (jeśli dostępny)
     try:
         import dateparser
-        result = dateparser.parse(s, languages=['pl', 'en', 'zh'],
-                                   settings={'PREFER_DAY_OF_MONTH': 'first',
-                                             'RETURN_AS_TIMEZONE_AWARE': False})
+
+        result = dateparser.parse(
+            s,
+            languages=['pl', 'en', 'zh'],
+            settings={'PREFER_DAY_OF_MONTH': 'first', 'RETURN_AS_TIMEZONE_AWARE': False},
+        )
         if result:
             d = result.date()
             # FIX 3: Validate dateparser result too
@@ -266,6 +314,7 @@ def normalize_date(s: str) -> Optional[date]:
         if not getattr(normalize_date, "_dp_warned", False):
             normalize_date._dp_warned = True
             import logging
+
             logging.getLogger("normalizer").warning(
                 "Pakiet 'dateparser' niezainstalowany — fallback parsowania "
                 "nietypowych dat wyłączony; zainstaluj 'dateparser' dla pełnej obsługi."
@@ -307,6 +356,7 @@ def dates_possibly_equal(a: str, b: str) -> bool:
 
 
 # ─── TEKST / REF KODY ────────────────────────────────────────────────────────
+
 
 def normalize_ref(s: str) -> str:
     """
@@ -350,13 +400,13 @@ def refs_match(a: str, b: str, fuzzy_threshold: int = 85) -> tuple[bool, float]:
     # (różne rozmiary) — nie wolno ich łączyć fuzzy mimo wysokiego podobieństwa.
     _ma = re.search(r'(\d+)$', na)
     _mb = re.search(r'(\d+)$', nb)
-    if _ma and _mb and _ma.group(1) != _mb.group(1) \
-            and na[:_ma.start()] == nb[:_mb.start()]:
+    if _ma and _mb and _ma.group(1) != _mb.group(1) and na[: _ma.start()] == nb[: _mb.start()]:
         return False, 0.0
 
     # Fuzzy matching
     try:
         from rapidfuzz import fuzz
+
         score = fuzz.token_sort_ratio(na, nb)
         if score >= fuzzy_threshold:
             return True, score / 100.0
@@ -384,7 +434,8 @@ def normalize_company_name(s: str) -> str:
     # Uwaga: interpunkcja jest już usunięta powyżej, więc klucze z kropkami
     # (np. 'SP. Z O.O.') nigdy by nie pasowały — używamy wersji bez kropek.
     replacements = {
-        'SP Z O O': 'SPZOO', 'SP ZO O': 'SPZOO',
+        'SP Z O O': 'SPZOO',
+        'SP ZO O': 'SPZOO',
         'S A': 'SA',
         'LIMITED': 'LTD',
         'CO KG': 'COKG',
@@ -396,9 +447,15 @@ def normalize_company_name(s: str) -> str:
 
 # ─── WALIDACJA SUM KONTROLNYCH ───────────────────────────────────────────────
 
-def validate_checksum(items: list[dict], declared_total: str,
-                       qty_key: str = 'qty', price_key: str = 'price',
-                       total_key: str = 'net', tolerance_pct: float = 0.1) -> dict:
+
+def validate_checksum(
+    items: list[dict],
+    declared_total: str,
+    qty_key: str = 'qty',
+    price_key: str = 'price',
+    total_key: str = 'net',
+    tolerance_pct: float = 0.1,
+) -> dict:
     """
     Waliduje sumę kontrolną: sum(qty × price) == total.
     Zwraca słownik z wynikiem walidacji.
@@ -466,13 +523,21 @@ def validate_checksum(items: list[dict], declared_total: str,
 
 # Mapowanie wewnętrznych kodów SAP na czytelne wartości
 PAYMENT_TERMS_MAP = {
-    'IW04': '30 days', 'IW07': '60 days', 'IW30': '30 days after BL',
-    'IW60': '60 days after BL', 'IW90': '90 days',
-    'NT30': '30 days net', 'NT60': '60 days net', 'NT90': '90 days net',
-    'N030': '30 days', 'N060': '60 days',
+    'IW04': '30 days',
+    'IW07': '60 days',
+    'IW30': '30 days after BL',
+    'IW60': '60 days after BL',
+    'IW90': '90 days',
+    'NT30': '30 days net',
+    'NT60': '60 days net',
+    'NT90': '90 days net',
+    'N030': '30 days',
+    'N060': '60 days',
     '0001': '14 days 2% / 30 days net',
-    'ZB30': '30 days', 'ZB60': '60 days',
+    'ZB30': '30 days',
+    'ZB60': '60 days',
 }
+
 
 def normalize_payment_terms(s: str, extra_map: dict = None) -> str:
     """Normalizuje warunki płatności."""
@@ -524,5 +589,4 @@ def payment_text_to_codes(text: str, extra_map: dict = None) -> list:
         return [str(text).strip().upper()]
     # 3. Fallback po liczbie dni (gdy brak dokładnego dopasowania).
     norm = normalize_payment_terms(text, extra_map).strip().lower()
-    return sorted({code for code, val in combined.items()
-                   if str(val).strip().lower() == norm})
+    return sorted({code for code, val in combined.items() if str(val).strip().lower() == norm})

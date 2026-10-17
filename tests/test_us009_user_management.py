@@ -4,6 +4,7 @@ Kryteria: admin tworzy konto → link do ustawienia hasła (hasło nie w e-mailu
 `user_create`; ostatni aktywny admin nie może zostać zdezaktywowany ani zdegradowany;
 rola user/manager → 403 na każdej trasie; zmiana roli działa od następnego żądania.
 """
+
 import re
 
 import pytest
@@ -23,8 +24,11 @@ def _db():
 def _cleanup(prefix="us009_"):
     db = _db()
     try:
-        db.execute("DELETE FROM password_reset_tokens WHERE user_id IN "
-                   "(SELECT id FROM users WHERE username LIKE ?)", (prefix + "%",))
+        db.execute(
+            "DELETE FROM password_reset_tokens WHERE user_id IN "
+            "(SELECT id FROM users WHERE username LIKE ?)",
+            (prefix + "%",),
+        )
         db.execute("DELETE FROM users WHERE username LIKE ?", (prefix + "%",))
         for u, (_, role) in TEST_USERS.items():
             db.execute("UPDATE users SET role=?, is_active=1 WHERE username=?", (role, u))
@@ -47,13 +51,19 @@ def sent(monkeypatch):
     def fake(to, user, url):
         box.update(to=to, user=user, url=url)
         return True
+
     monkeypatch.setattr(_app_mod, "_send_reset_email", fake)
     return box
 
 
 def _create(client, **kw):
     set_session_csrf(client, CSRF_TOKEN)
-    payload = {"username": "us009_anna", "email": "anna@example.test", "role": "user", "department": "QA"}
+    payload = {
+        "username": "us009_anna",
+        "email": "anna@example.test",
+        "role": "user",
+        "department": "QA",
+    }
     payload.update(kw)
     return client.post("/api/admin/users", json=payload, headers=H)
 
@@ -66,7 +76,9 @@ def test_admin_creates_account_and_link_is_emailed(admin_client, sent):
     assert sent["to"] == "anna@example.test" and "/reset-password?token=" in sent["url"]
     db = _db()
     try:
-        audit = db.execute("SELECT COUNT(*) FROM audit_log WHERE event='user_create' AND detail LIKE 'us009_anna%'").fetchone()[0]
+        audit = db.execute(
+            "SELECT COUNT(*) FROM audit_log WHERE event='user_create' AND detail LIKE 'us009_anna%'"
+        ).fetchone()[0]
     finally:
         db.close()
     assert audit >= 1
@@ -78,11 +90,16 @@ def test_link_sets_password_and_user_can_log_in(admin_client, client, sent):
     pw = "Nowe-Konto-2026-abc"
     with client.session_transaction() as s:
         s["_csrf_token"] = CSRF_TOKEN
-    r = client.post("/reset-password", data={"token": token, "password": pw, "confirm": pw, "_csrf_token": CSRF_TOKEN})
+    r = client.post(
+        "/reset-password",
+        data={"token": token, "password": pw, "confirm": pw, "_csrf_token": CSRF_TOKEN},
+    )
     assert r.status_code == 200
     with client.session_transaction() as s:
         s["_csrf_token"] = CSRF_TOKEN
-    r = client.post("/login", data={"identifier": "us009_anna", "password": pw, "_csrf_token": CSRF_TOKEN})
+    r = client.post(
+        "/login", data={"identifier": "us009_anna", "password": pw, "_csrf_token": CSRF_TOKEN}
+    )
     assert r.status_code in (302, 303)
 
 
@@ -92,13 +109,16 @@ def test_without_email_admin_gets_setup_link(admin_client, monkeypatch):
     assert body["invite_sent"] is False and "/reset-password?token=" in body["setup_url"]
 
 
-@pytest.mark.parametrize("bad,code", [
-    ({"username": "x"}, 400),
-    ({"username": "us009 spacja"}, 400),
-    ({"email": "nie-email"}, 400),
-    ({"role": "god"}, 400),
-    ({"username": "it_user"}, 409),
-])
+@pytest.mark.parametrize(
+    "bad,code",
+    [
+        ({"username": "x"}, 400),
+        ({"username": "us009 spacja"}, 400),
+        ({"email": "nie-email"}, 400),
+        ({"role": "god"}, 400),
+        ({"username": "it_user"}, 409),
+    ],
+)
 def test_create_validation(admin_client, sent, bad, code):
     assert _create(admin_client, **bad).status_code == code
 
@@ -107,18 +127,31 @@ def test_admin_cannot_deactivate_or_demote_self(admin_client):
     set_session_csrf(admin_client, CSRF_TOKEN)
     with admin_client.session_transaction() as s:
         me = s["user_id"]
-    assert admin_client.patch(f"/api/admin/users/{me}", json={"is_active": False}, headers=H).status_code == 400
-    assert admin_client.patch(f"/api/admin/users/{me}", json={"role": "user"}, headers=H).status_code == 400
+    assert (
+        admin_client.patch(
+            f"/api/admin/users/{me}", json={"is_active": False}, headers=H
+        ).status_code
+        == 400
+    )
+    assert (
+        admin_client.patch(f"/api/admin/users/{me}", json={"role": "user"}, headers=H).status_code
+        == 400
+    )
 
 
 def test_last_active_admin_guard():
     """Obrona w głębi: nawet gdyby wywołujący nie był liczony jako aktywny admin,
     ostatniego aktywnego administratora nie da się zdegradować/zdezaktywować."""
     from blueprints.users import _active_admins_except
+
     db = _db()
     try:
-        admins = [r["id"] for r in db.execute(
-            "SELECT id FROM users WHERE role='admin' AND COALESCE(is_active,1)=1").fetchall()]
+        admins = [
+            r["id"]
+            for r in db.execute(
+                "SELECT id FROM users WHERE role='admin' AND COALESCE(is_active,1)=1"
+            ).fetchall()
+        ]
         assert _active_admins_except(db, admins[0]) == len(admins) - 1
         db.execute("UPDATE users SET is_active=0 WHERE role='admin' AND id<>?", (admins[0],))
         assert _active_admins_except(db, admins[0]) == 0
@@ -131,9 +164,20 @@ def test_api_blocks_demoting_last_active_admin(admin_client, monkeypatch):
     set_session_csrf(admin_client, CSRF_TOKEN)
     target = _create(admin_client, username="us009_admin2", role="admin").get_json()["id"]
     import blueprints.users as bu
+
     monkeypatch.setattr(bu, "_active_admins_except", lambda db, uid: 0)
-    assert admin_client.patch(f"/api/admin/users/{target}", json={"role": "user"}, headers=H).status_code == 409
-    assert admin_client.patch(f"/api/admin/users/{target}", json={"is_active": False}, headers=H).status_code == 409
+    assert (
+        admin_client.patch(
+            f"/api/admin/users/{target}", json={"role": "user"}, headers=H
+        ).status_code
+        == 409
+    )
+    assert (
+        admin_client.patch(
+            f"/api/admin/users/{target}", json={"is_active": False}, headers=H
+        ).status_code
+        == 409
+    )
 
 
 def _second_client(username):
@@ -155,7 +199,9 @@ def test_non_admin_roles_get_403(request, fixture):
 
 
 def test_mutations_require_csrf(admin_client):
-    assert admin_client.post("/api/admin/users", json={"username": "us009_nocsrf"}).status_code == 403
+    assert (
+        admin_client.post("/api/admin/users", json={"username": "us009_nocsrf"}).status_code == 403
+    )
 
 
 def test_role_change_takes_effect_on_next_request(admin_client):
@@ -167,8 +213,11 @@ def test_role_change_takes_effect_on_next_request(admin_client):
         db.close()
     assert user_client.get("/api/admin/users").status_code == 403
     set_session_csrf(admin_client, CSRF_TOKEN)
-    assert admin_client.patch(f"/api/admin/users/{uid}", json={"role": "admin"}, headers=H).status_code == 200
-    assert user_client.get("/api/admin/users").status_code == 200   # bez ponownego logowania
+    assert (
+        admin_client.patch(f"/api/admin/users/{uid}", json={"role": "admin"}, headers=H).status_code
+        == 200
+    )
+    assert user_client.get("/api/admin/users").status_code == 200  # bez ponownego logowania
 
 
 def test_deactivation_logs_user_out_and_invalidates_links(admin_client, sent):
@@ -180,12 +229,19 @@ def test_deactivation_logs_user_out_and_invalidates_links(admin_client, sent):
         db.close()
     set_session_csrf(admin_client, CSRF_TOKEN)
     admin_client.post(f"/api/admin/users/{uid}/invite", headers=H)
-    assert admin_client.patch(f"/api/admin/users/{uid}", json={"is_active": False}, headers=H).status_code == 200
+    assert (
+        admin_client.patch(
+            f"/api/admin/users/{uid}", json={"is_active": False}, headers=H
+        ).status_code
+        == 200
+    )
     r = user_client.get("/api/materials")
     assert r.status_code in (302, 303)
     db = _db()
     try:
-        open_links = db.execute("SELECT COUNT(*) FROM password_reset_tokens WHERE user_id=? AND used=0", (uid,)).fetchone()[0]
+        open_links = db.execute(
+            "SELECT COUNT(*) FROM password_reset_tokens WHERE user_id=? AND used=0", (uid,)
+        ).fetchone()[0]
     finally:
         db.close()
     assert open_links == 0

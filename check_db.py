@@ -4,10 +4,12 @@ check_db.py — sprawdza połączenie z bazą danych i wypisuje listę tabel.
 Użycie:
     python check_db.py
 """
+
 import os
 
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except Exception:
     pass
@@ -17,10 +19,11 @@ sqlite_path = os.environ.get("SQLITE_PATH", "instance/doccompare.db")
 
 if url:
     if url.startswith("postgres://"):
-        url = "postgresql://" + url[len("postgres://"):]
+        url = "postgresql://" + url[len("postgres://") :]
     print(f"DATABASE_URL: {url[:60]}...")
     try:
         import psycopg2
+
         conn = psycopg2.connect(url)
         try:
             cur = conn.cursor()
@@ -29,7 +32,7 @@ if url:
             )
             tables = [r[0] for r in cur.fetchall()]
         finally:
-            conn.close()   # zamknij połączenie nawet gdy zapytanie rzuci
+            conn.close()  # zamknij połączenie nawet gdy zapytanie rzuci
         print(f"PostgreSQL OK — {len(tables)} tabel:")
         for t in tables:
             print(f"  {t}")
@@ -39,6 +42,7 @@ else:
     print(f"SQLite: {sqlite_path}")
     try:
         import sqlite3
+
         conn = sqlite3.connect(sqlite_path)
         cur = conn.cursor()
         cur.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")

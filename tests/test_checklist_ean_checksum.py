@@ -1,5 +1,6 @@
 """Regresja: pozycja listy kontrolnej „Suma kontrolna kodów kreskowych (GS1)”
 ocenia wyłącznie sumy kontrolne — nie zgodność EAN A↔B ani kod kreskowy↔tekst."""
+
 import os
 import sys
 

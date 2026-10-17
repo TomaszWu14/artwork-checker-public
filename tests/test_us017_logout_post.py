@@ -1,5 +1,6 @@
 """US-017: wylogowanie tylko przez POST z CSRF; ręczne kontrole sesji w API
 odrzucają konta dezaktywowane (SEC-001, ASVS V3.3 / V4.2.2)."""
+
 import pytest
 
 pytest.importorskip("flask")
@@ -23,7 +24,7 @@ def test_get_logout_does_not_log_out(user_client):
     assert resp.status_code == 200
     body = resp.get_data(as_text=True)
     assert 'method="POST"' in body and 'name="_csrf_token"' in body
-    assert user_client.get("/artwork").status_code == 200   # sesja nadal ważna
+    assert user_client.get("/artwork").status_code == 200  # sesja nadal ważna
 
 
 def test_get_logout_anonymous_redirects_to_login(client):
@@ -46,7 +47,8 @@ def test_post_logout_with_csrf_logs_out_and_audits(user_client):
     db = _app_mod.get_db()
     try:
         row = db.execute(
-            "SELECT COUNT(*) FROM audit_log WHERE event='logout' AND username='it_user'").fetchone()
+            "SELECT COUNT(*) FROM audit_log WHERE event='logout' AND username='it_user'"
+        ).fetchone()
     finally:
         db.close()
     assert row[0] >= 1

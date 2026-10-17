@@ -21,18 +21,21 @@ logger = logging.getLogger(__name__)
 # ── Dostępne biblioteki ───────────────────────────────────────────────────────
 try:
     import fitz  # PyMuPDF
+
     HAS_FITZ = True
 except ImportError:
     HAS_FITZ = False
 
 try:
     import camelot
+
     HAS_CAMELOT = True
 except ImportError:
     HAS_CAMELOT = False
 
 try:
     import pdfplumber
+
     HAS_PDFPLUMBER = True
 except ImportError:
     HAS_PDFPLUMBER = False
@@ -41,24 +44,28 @@ try:
     import pytesseract
     from PIL import Image
     import numpy as np
+
     HAS_OCR = True
 except ImportError:
     HAS_OCR = False
 
 try:
     import cv2
+
     HAS_CV2 = True
 except ImportError:
     HAS_CV2 = False
 
 try:
     import pandas as pd
+
     HAS_PANDAS = True
 except ImportError:
     HAS_PANDAS = False
 
 try:
     import anthropic as _anthropic_module
+
     HAS_ANTHROPIC = True
 except ImportError:
     HAS_ANTHROPIC = False
@@ -68,10 +75,11 @@ except ImportError:
 # EKSTRAKCJA TEKSTU
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def extract_text(pdf_path: str, method: str = 'auto') -> dict:
     """
     Ekstrahuje tekst z PDF używając najlepszej dostępnej metody.
-    
+
     Returns:
         {
             'text': str,          # pełny tekst
@@ -83,8 +91,12 @@ def extract_text(pdf_path: str, method: str = 'auto') -> dict:
         }
     """
     result = {
-        'text': '', 'pages': [], 'method': 'none',
-        'is_scan': False, 'confidence': 0.0, 'page_count': 0
+        'text': '',
+        'pages': [],
+        'method': 'none',
+        'is_scan': False,
+        'confidence': 0.0,
+        'page_count': 0,
     }
 
     if not os.path.exists(pdf_path):
@@ -150,6 +162,7 @@ def _extract_pdfplumber(pdf_path: str) -> Optional[dict]:
     """Ekstrakcja przez pdfplumber."""
     try:
         import pdfplumber
+
         pages = []
         with pdfplumber.open(pdf_path) as pdf:
             for page in pdf.pages:
@@ -177,7 +190,7 @@ def _extract_ocr(pdf_path: str, lang: str = 'pol+eng') -> Optional[dict]:
 
         # Context manager — gwarantuje zamknięcie dokumentu także przy wyjątku.
         with fitz.open(pdf_path) as doc:
-            for page_num in page_indices(len(doc)):   # US-019: limit stron
+            for page_num in page_indices(len(doc)):  # US-019: limit stron
                 page = doc[page_num]
                 # Renderuj w wysokiej rozdzielczości (~180 DPI), z limitem pikseli (US-019)
                 z = capped_zoom(page.rect.width, page.rect.height, 2.5)
@@ -186,6 +199,7 @@ def _extract_ocr(pdf_path: str, lang: str = 'pol+eng') -> Optional[dict]:
                 img_data = pix.tobytes("png")
 
                 from PIL import Image
+
                 img = Image.open(io.BytesIO(img_data))
 
                 # Preprocessing z OpenCV jeśli dostępne
@@ -196,8 +210,7 @@ def _extract_ocr(pdf_path: str, lang: str = 'pol+eng') -> Optional[dict]:
                 try:
                     custom_config = r'--oem 3 --psm 6 -l ' + lang
                     data = pytesseract.image_to_data(
-                        img, config=custom_config,
-                        output_type=pytesseract.Output.DICT
+                        img, config=custom_config, output_type=pytesseract.Output.DICT
                     )
                     # Wyciągnij tekst i pewność
                     words = []
@@ -244,6 +257,7 @@ def _preprocess_for_ocr(img) -> 'Image':
     - Denoising
     """
     import numpy as np
+
     img_array = np.array(img)
 
     # Konwersja do skali szarości
@@ -257,15 +271,14 @@ def _preprocess_for_ocr(img) -> 'Image':
 
     # Adaptacyjny próg (lepszy niż globalny dla skanów)
     thresh = cv2.adaptiveThreshold(
-        gray, 255,
-        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        cv2.THRESH_BINARY, 11, 2
+        gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
     )
 
     # Denoising
     denoised = cv2.fastNlMeansDenoising(thresh, h=10)
 
     from PIL import Image
+
     return Image.fromarray(denoised)
 
 
@@ -287,9 +300,9 @@ def _deskew(image: 'np.ndarray') -> 'np.ndarray':
         h, w = image.shape
         center = (w // 2, h // 2)
         M = cv2.getRotationMatrix2D(center, angle, 1.0)
-        rotated = cv2.warpAffine(image, M, (w, h),
-                                  flags=cv2.INTER_CUBIC,
-                                  borderMode=cv2.BORDER_REPLICATE)
+        rotated = cv2.warpAffine(
+            image, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE
+        )
         return rotated
     except Exception:
         return image
@@ -299,10 +312,11 @@ def _deskew(image: 'np.ndarray') -> 'np.ndarray':
 # EKSTRAKCJA TABEL
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def extract_tables(pdf_path: str) -> list[dict]:
     """
     Ekstrahuje tabele z PDF używając najlepszej metody.
-    
+
     Returns lista tabel, każda jako:
     {
         'dataframe': pd.DataFrame lub list[list],
@@ -348,6 +362,7 @@ def _set_ghostscript_path():
     Szuka w folderze projektu: ghostscript/ lub ghostpcl/
     """
     import os, sys
+
     # Już ustawione
     if os.environ.get('PATH_TO_GHOSTSCRIPT'):
         return
@@ -393,14 +408,16 @@ def _extract_camelot(pdf_path: str, flavor: str = 'lattice') -> list[dict]:
             df = df.reset_index(drop=True)
             if df.shape[0] < 2 or df.shape[1] < 2:
                 continue
-            result.append({
-                'dataframe': df,
-                'page': tbl.page,
-                'method': f'camelot_{flavor}',
-                'accuracy': tbl.accuracy / 100.0,
-                'rows': df.shape[0],
-                'cols': df.shape[1],
-            })
+            result.append(
+                {
+                    'dataframe': df,
+                    'page': tbl.page,
+                    'method': f'camelot_{flavor}',
+                    'accuracy': tbl.accuracy / 100.0,
+                    'rows': df.shape[0],
+                    'cols': df.shape[1],
+                }
+            )
         return result
     except Exception as e:
         logger.warning(f"Camelot {flavor} failed: {e}")
@@ -422,20 +439,23 @@ def _extract_tables_fitz(pdf_path: str) -> list[dict]:
                             continue
                         if HAS_PANDAS:
                             import pandas as pd
+
                             # Header in row 0 (Camelot-compatible): _find_header_row()
                             # in enhanced_comparator scans data rows, not column names.
                             df = pd.DataFrame(df_data)
                             df = df.fillna('')
                         else:
                             df = df_data
-                        results.append({
-                            'dataframe': df,
-                            'page': page_num + 1,
-                            'method': 'fitz_tables',
-                            'accuracy': 0.85,
-                            'rows': len(df_data) - 1,
-                            'cols': len(df_data[0]) if df_data else 0,
-                        })
+                        results.append(
+                            {
+                                'dataframe': df,
+                                'page': page_num + 1,
+                                'method': 'fitz_tables',
+                                'accuracy': 0.85,
+                                'rows': len(df_data) - 1,
+                                'cols': len(df_data[0]) if df_data else 0,
+                            }
+                        )
                 except Exception:
                     pass
         return results
@@ -448,29 +468,33 @@ def _extract_tables_plumber(pdf_path: str) -> list[dict]:
     """Ekstrakcja tabel przez pdfplumber."""
     try:
         import pdfplumber
+
         results = []
         with pdfplumber.open(pdf_path) as pdf:
             for page_num, page in enumerate(pdf.pages):
                 tables = page.extract_tables()
-                for tbl in (tables or []):
+                for tbl in tables or []:
                     if not tbl or len(tbl) < 2:
                         continue
                     if HAS_PANDAS:
                         import pandas as pd
+
                         # Header in row 0 (Camelot-compatible): _find_header_row()
                         # in enhanced_comparator scans data rows, not column names.
                         df = pd.DataFrame(tbl)
                         df = df.fillna('')
                     else:
                         df = tbl
-                    results.append({
-                        'dataframe': df,
-                        'page': page_num + 1,
-                        'method': 'pdfplumber',
-                        'accuracy': 0.75,
-                        'rows': len(tbl) - 1,
-                        'cols': len(tbl[0]) if tbl else 0,
-                    })
+                    results.append(
+                        {
+                            'dataframe': df,
+                            'page': page_num + 1,
+                            'method': 'pdfplumber',
+                            'accuracy': 0.75,
+                            'rows': len(tbl) - 1,
+                            'cols': len(tbl[0]) if tbl else 0,
+                        }
+                    )
         return results
     except Exception as e:
         logger.warning(f"pdfplumber tables failed: {e}")
@@ -480,8 +504,9 @@ def _extract_tables_plumber(pdf_path: str) -> list[dict]:
 def _render_page_to_b64(doc, page_num: int, dpi: int = 200) -> str:
     """Renderuje stronę PDF do obrazu PNG zakodowanego w base64."""
     import base64
+
     page = doc[page_num]
-    zoom = capped_zoom(page.rect.width, page.rect.height, dpi / 72.0)   # US-019
+    zoom = capped_zoom(page.rect.width, page.rect.height, dpi / 72.0)  # US-019
     mat = fitz.Matrix(zoom, zoom)
     pix = page.get_pixmap(matrix=mat, alpha=False)
     return base64.b64encode(pix.tobytes("png")).decode()
@@ -543,17 +568,22 @@ def _extract_tables_claude_vision(pdf_path: str) -> list[dict]:
                     response = client.messages.create(
                         model="claude-haiku-4-5-20251001",
                         max_tokens=4096,
-                        messages=[{"role": "user", "content": [
+                        messages=[
                             {
-                                "type": "image",
-                                "source": {
-                                    "type": "base64",
-                                    "media_type": "image/png",
-                                    "data": img_b64,
-                                },
-                            },
-                            {"type": "text", "text": _VISION_TABLE_PROMPT},
-                        ]}],
+                                "role": "user",
+                                "content": [
+                                    {
+                                        "type": "image",
+                                        "source": {
+                                            "type": "base64",
+                                            "media_type": "image/png",
+                                            "data": img_b64,
+                                        },
+                                    },
+                                    {"type": "text", "text": _VISION_TABLE_PROMPT},
+                                ],
+                            }
+                        ],
                     )
                 except Exception as e:
                     logger.warning(f"Claude Vision API page {page_num}: {e}")
@@ -562,10 +592,15 @@ def _extract_tables_claude_vision(pdf_path: str) -> list[dict]:
                 # Log API usage for cost tracking
                 try:
                     from api_usage_tracker import record_usage as _record
-                    _record("claude-haiku-4-5-20251001", {
-                        "input_tokens":  response.usage.input_tokens,
-                        "output_tokens": response.usage.output_tokens,
-                    }, call_type="table_vision")
+
+                    _record(
+                        "claude-haiku-4-5-20251001",
+                        {
+                            "input_tokens": response.usage.input_tokens,
+                            "output_tokens": response.usage.output_tokens,
+                        },
+                        call_type="table_vision",
+                    )
                 except Exception:
                     pass
 
@@ -613,14 +648,16 @@ def _extract_tables_claude_vision(pdf_path: str) -> list[dict]:
                     else:
                         df = all_rows
 
-                    results.append({
-                        "dataframe": df,
-                        "page": page_num + 1,
-                        "method": "claude_vision",
-                        "accuracy": 0.90,
-                        "rows": len(norm_rows),
-                        "cols": ncols,
-                    })
+                    results.append(
+                        {
+                            "dataframe": df,
+                            "page": page_num + 1,
+                            "method": "claude_vision",
+                            "accuracy": 0.90,
+                            "rows": len(norm_rows),
+                            "cols": ncols,
+                        }
+                    )
 
     except Exception as e:
         logger.warning(f"Claude Vision table extraction failed: {e}")
@@ -645,10 +682,10 @@ DOC_SIGNATURES = {
     'PI': [r'proforma\s+invoice', r'pro.?forma', r'Proforma\s+Invoice'],
     'CI': [r'commercial\s+invoice', r'invoice\s+no', r'faktura\s+handlowa'],
     'SAD': [r'zgłoszenie\s+celne', r'sad\s+\d', r'ZC415', r'WinSAD', r'pole\s+N935'],
-    'BL':  [r'bill\s+of\s+lading', r'B/L\s+No', r'konosament', r'shipper'],
-    'PL':  [r'packing\s+list', r'lista\s+pakowania', r'gross\s+weight', r'net\s+weight.*carton'],
-    'WZ':  [r'wydanie\s+zewnętrzne', r'WZ\s*\d', r'nr\s+WZ'],
-    'FV':  [r'faktura\s+VAT', r'NIP\s*\d{10}', r'podatek\s+VAT', r'faktura\s+nr'],
+    'BL': [r'bill\s+of\s+lading', r'B/L\s+No', r'konosament', r'shipper'],
+    'PL': [r'packing\s+list', r'lista\s+pakowania', r'gross\s+weight', r'net\s+weight.*carton'],
+    'WZ': [r'wydanie\s+zewnętrzne', r'WZ\s*\d', r'nr\s+WZ'],
+    'FV': [r'faktura\s+VAT', r'NIP\s*\d{10}', r'podatek\s+VAT', r'faktura\s+nr'],
     'CMR': [r'CMR', r'list\s+przewozowy', r'nadawca', r'odbiorca.*consignee'],
 }
 
@@ -681,6 +718,7 @@ def detect_doc_type(text: str) -> tuple[str, float]:
 # ─────────────────────────────────────────────────────────────────────────────
 # UNIFIED EXTRACT (zastępuje extract_pdf_text z comparator.py)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def extract_pdf_full(pdf_path: str) -> dict:
     """

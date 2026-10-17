@@ -70,7 +70,8 @@ def enqueue(func, *args, **kwargs) -> str | None:
             job = queue.enqueue(func, *args, **kwargs)
             logger.info(
                 "Zadanie %s w kolejce RQ jako %s",
-                getattr(func, "__name__", func), job.id,
+                getattr(func, "__name__", func),
+                job.id,
             )
             return job.id
         except Exception as exc:

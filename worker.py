@@ -29,8 +29,10 @@ def main() -> int:
         from redis import Redis
         from rq import Queue, Worker
     except ImportError:
-        print("Brak pakietów 'rq'/'redis' — dodaj je do requirements i przebuduj obraz.",
-              file=sys.stderr)
+        print(
+            "Brak pakietów 'rq'/'redis' — dodaj je do requirements i przebuduj obraz.",
+            file=sys.stderr,
+        )
         return 1
 
     # Import aplikacji ładuje logikę biznesową i modele (OCR/CV) w TYM procesie,

@@ -51,17 +51,20 @@ class TestGs1Parsing:
 
 # ── Regresja: niemożliwe daty GS1 muszą być ZGŁOSZONE, nie cicho przepuszczone ──
 def test_gs1_invalid_expiry_is_flagged():
-    r = parse_gs1_128("(17)260230")   # 30 lutego — nie istnieje
+    r = parse_gs1_128("(17)260230")  # 30 lutego — nie istnieje
     assert any("Nieprawid" in e for e in r["errors"]), r
+
 
 def test_gs1_invalid_prod_date_is_flagged():
-    r = parse_gs1_128("(11)260132")   # 32 stycznia
+    r = parse_gs1_128("(11)260132")  # 32 stycznia
     assert any("Nieprawid" in e for e in r["errors"]), r
 
+
 def test_gs1_end_of_month_dd00_still_valid():
-    r = parse_gs1_128("(17)260200")   # DD=00 → ostatni dzień lutego
+    r = parse_gs1_128("(17)260200")  # DD=00 → ostatni dzień lutego
     assert r["exp_date"] == "2026-02-28"
     assert r["errors"] == []
+
 
 def test_gs1_valid_date_no_error():
     r = parse_gs1_128("(17)260101")

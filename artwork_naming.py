@@ -22,12 +22,29 @@ import re
 # Wszystkie warianty sprowadzamy do jednej formy kanonicznej ze spacją
 # ("carton sticker"), żeby nie rozbić grup REF+opakowanie w bibliotece.
 PACKAGING_TYPES = [
-    "carton sticker", "carton_sticker", "carton-sticker",
-    "carton print", "carton_print", "carton-print",
-    "box print", "box_print", "box-print",
-    "pouch", "bag", "box", "carton", "sticker", "print",
-    "label", "etykieta", "tyvek", "blister", "insert", "ulotka",
-    "instrukcja", "ifu",
+    "carton sticker",
+    "carton_sticker",
+    "carton-sticker",
+    "carton print",
+    "carton_print",
+    "carton-print",
+    "box print",
+    "box_print",
+    "box-print",
+    "pouch",
+    "bag",
+    "box",
+    "carton",
+    "sticker",
+    "print",
+    "label",
+    "etykieta",
+    "tyvek",
+    "blister",
+    "insert",
+    "ulotka",
+    "instrukcja",
+    "ifu",
 ]
 
 # Zapis pola EAN dla elementów bez własnego kodu (ulotka, tyvek, insert).
@@ -36,9 +53,19 @@ NO_EAN_TOKEN = "noEAN"
 # Poziomy opakowania dopuszczone w nazwie pliku wg konwencji — forma kanoniczna
 # używana w nazwach to zapis z myślnikiem, bez spacji.
 ALLOWED_LEVELS = (
-    "pouch", "bag", "box", "carton",
-    "carton-sticker", "carton-print", "box-print",
-    "sticker", "label", "ifu", "insert", "tyvek", "blister",
+    "pouch",
+    "bag",
+    "box",
+    "carton",
+    "carton-sticker",
+    "carton-print",
+    "box-print",
+    "sticker",
+    "label",
+    "ifu",
+    "insert",
+    "tyvek",
+    "blister",
 )
 
 # "bag" to zbyt pospolite słowo, żeby ufać mu w środku opisu produktu — w bazie
@@ -68,6 +95,8 @@ def _ean13_ok(code: str) -> bool:
     d = [int(c) for c in code]
     chk = (10 - (sum(d[i] * (1 if i % 2 == 0 else 3) for i in range(12)) % 10)) % 10
     return chk == d[12]
+
+
 # Rewizja: Rev.02 / Rev 2 / v3 / Ed.1 / Wyd.III (rzymskie). Bez końcowego \b,
 # bo po numerze często stoi '_' (np. "Rev.00_5900010800810") i \b by zawiódł.
 # Uwaga: gałąź samego 'v<n>' wymaga POPRZEDZAJĄCEJ SPACJI (?<=\s), a nie tylko
@@ -113,7 +142,7 @@ def parse_master_filename(filename: str) -> dict:
     for m in _EAN_RE.finditer(stem):
         if _ean13_ok(m.group(1)):
             ean = m.group(1)
-            stem = stem[:m.start(1)] + " " + stem[m.end(1):]
+            stem = stem[: m.start(1)] + " " + stem[m.end(1) :]
             break
 
     # Rewizja
@@ -127,7 +156,7 @@ def parse_master_filename(filename: str) -> dict:
             revision_rank = int(num)
         elif mr.group(4):
             revision_rank = _roman_to_int(mr.group(4))
-        stem = stem[:mr.start()] + " " + stem[mr.end():]
+        stem = stem[: mr.start()] + " " + stem[mr.end() :]
 
     # Typ opakowania — REF to wszystko PRZED tokenem typu
     low = stem.lower()
@@ -200,8 +229,11 @@ def pick_current_revisions(files):
         cur = best.get(group)
         if cur is None or key > cur[0]:
             enriched = dict(f)
-            enriched.update(ref=ref, packaging_type=parsed["packaging_type"],
-                            revision_rank=parsed["revision_rank"])
+            enriched.update(
+                ref=ref,
+                packaging_type=parsed["packaging_type"],
+                revision_rank=parsed["revision_rank"],
+            )
             best[group] = (key, enriched)
     return [v[1] for v in best.values()]
 
@@ -231,6 +263,7 @@ CONVENTION_EXAMPLE = "805016_pouch_5900010800810_Rev.02_2026-05-14.pdf"
 def _describe_char(ch: str) -> str:
     """Opis znaku do komunikatu — z kodem, bo część z nich jest niewidoczna."""
     import unicodedata
+
     name = unicodedata.name(ch, "")
     shown = ch if ch.isprintable() and not ch.isspace() else " "
     label = f"{shown!r} U+{ord(ch):04X}"
@@ -264,9 +297,12 @@ def validate_master_filename(filename: str) -> dict:
 
     bad = sorted(set(_ALLOWED_CHARS_RE.findall(stem)))
     if bad:
-        add("chars", "Niedozwolone znaki w nazwie: "
-                     + ", ".join(_describe_char(c) for c in bad)
-                     + ". Dozwolone są tylko litery A-Z, cyfry, _ oraz -")
+        add(
+            "chars",
+            "Niedozwolone znaki w nazwie: "
+            + ", ".join(_describe_char(c) for c in bad)
+            + ". Dozwolone są tylko litery A-Z, cyfry, _ oraz -",
+        )
 
     parts = stem.split("_")
     if len(parts) < 5:
@@ -281,15 +317,20 @@ def validate_master_filename(filename: str) -> dict:
         add("ref", "Pole 1 (REF) jest puste.")
 
     if level not in ALLOWED_LEVELS:
-        add("level", f"Pole 2 (poziom) = {level!r} — poza zamkniętą listą: "
-                     + ", ".join(ALLOWED_LEVELS))
+        add(
+            "level",
+            f"Pole 2 (poziom) = {level!r} — poza zamkniętą listą: " + ", ".join(ALLOWED_LEVELS),
+        )
 
     if ean != NO_EAN_TOKEN:
         if not (len(ean) == 13 and ean.isdigit()):
             add("ean", f"Pole 3 (EAN) = {ean!r} — oczekiwane 13 cyfr albo {NO_EAN_TOKEN}")
         elif not _ean13_ok(ean):
-            add("ean_checksum", f"Pole 3 (EAN) = {ean} — błędna suma kontrolna EAN-13. "
-                                "Kod przepisz z tabelki wewnątrz artworku.")
+            add(
+                "ean_checksum",
+                f"Pole 3 (EAN) = {ean} — błędna suma kontrolna EAN-13. "
+                "Kod przepisz z tabelki wewnątrz artworku.",
+            )
 
     if not _REV_STRICT_RE.match(revision):
         add("revision", f"Pole 4 (rewizja) = {revision!r} — oczekiwane Rev.NN (dwie cyfry)")
@@ -299,6 +340,7 @@ def validate_master_filename(filename: str) -> dict:
         add("date", f"Pole 5 (data) = {date!r} — oczekiwany format RRRR-MM-DD")
     else:
         import datetime as _dt
+
         try:
             _dt.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
         except ValueError:

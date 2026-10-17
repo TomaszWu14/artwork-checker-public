@@ -1,4 +1,5 @@
 """Portal zarządzania artworkami — KPI, pliki bez REF + podpowiedź, luki, duplikaty, status."""
+
 import app as _app_mod
 import artwork_index as _ai
 import material_master as _mm
@@ -17,17 +18,47 @@ def _seed(db):
             pass
     idx = [
         # ref_norm, ref_code, filename, rel_path, packaging, revision, rank, ean
-        ("BT100", "BT-100", "bt100_carton_rev_a.pdf", "z/bt100_a.pdf", "karton", "A", 1, "5900000000017"),
-        ("BT100", "BT-100", "bt100_carton_rev_b.pdf", "z/bt100_b.pdf", "karton", "B", 2, "5900000000017"),
+        (
+            "BT100",
+            "BT-100",
+            "bt100_carton_rev_a.pdf",
+            "z/bt100_a.pdf",
+            "karton",
+            "A",
+            1,
+            "5900000000017",
+        ),
+        (
+            "BT100",
+            "BT-100",
+            "bt100_carton_rev_b.pdf",
+            "z/bt100_b.pdf",
+            "karton",
+            "B",
+            2,
+            "5900000000017",
+        ),
         # dwa pliki tej samej grupy (REF+opak+rank) → duplikat
         ("XY777", "XY-777", "xy777_single_v1.pdf", "z/xy777_1.pdf", "sztuka", "", 0, ""),
         ("XY777", "XY-777", "xy777_single_v1_copy.pdf", "z/xy777_2.pdf", "sztuka", "", 0, ""),
         # plik bez REF, z EAN i opisowa nazwa
-        ("", "", "opatrunek jalowy sterylny 10x10 5901234123457.pdf", "z/unb1.pdf", "", "", 0, "5901234123457"),
+        (
+            "",
+            "",
+            "opatrunek jalowy sterylny 10x10 5901234123457.pdf",
+            "z/unb1.pdf",
+            "",
+            "",
+            0,
+            "5901234123457",
+        ),
     ]
     for r in idx:
-        db.execute("INSERT INTO artwork_index(ref_norm,ref_code,filename,rel_path,"
-                   "packaging_type,revision,revision_rank,ean) VALUES(?,?,?,?,?,?,?,?)", r)
+        db.execute(
+            "INSERT INTO artwork_index(ref_norm,ref_code,filename,rel_path,"
+            "packaging_type,revision,revision_rank,ean) VALUES(?,?,?,?,?,?,?,?)",
+            r,
+        )
     mats = [
         # ref_code, ref_norm, opis_pl, ean, rodzina, active
         ("BT-100", "BT100", "Bandaż elastyczny", "5900000000017", "Opatrunki", 1),
@@ -37,8 +68,11 @@ def _seed(db):
         ("INA-1", "INA1", "Nieaktywny produkt", "", "Luka", 0),
     ]
     for m in mats:
-        db.execute("INSERT INTO material_master(ref_code,ref_norm,opis_pl,ean,rodzina,active) "
-                   "VALUES(?,?,?,?,?,?)", m)
+        db.execute(
+            "INSERT INTO material_master(ref_code,ref_norm,opis_pl,ean,rodzina,active) "
+            "VALUES(?,?,?,?,?,?)",
+            m,
+        )
     db.commit()
 
 
@@ -50,9 +84,9 @@ def test_compute_kpis():
         assert k["total"] == 5
         assert k["with_ref"] == 4
         assert k["unbound"] == 1
-        assert k["distinct_refs"] == 2          # BT100, XY777
-        assert k["obsolete"] == 1               # bt100 rev A przykryty przez B
-        assert k["duplicates"] == 1             # grupa XY777/sztuka/rank0
+        assert k["distinct_refs"] == 2  # BT100, XY777
+        assert k["obsolete"] == 1  # bt100 rev A przykryty przez B
+        assert k["duplicates"] == 1  # grupa XY777/sztuka/rank0
         # EAN-P, GAP-1, OPT-1 nie mają powiązanego pliku (plik bez REF ich nie pokrywa);
         # BT-100 pokryty, INA-1 nieaktywny → 3 luki.
         assert k["gaps"] == 3
@@ -96,7 +130,7 @@ def test_suggest_ref_text_match():
         db.commit()
         sugg = _am.suggest_ref(db, "z/unb1.pdf")
         refs = [s["ref_code"] for s in sugg]
-        assert "OPT-1" in refs                  # opis "Opatrunek jałowy sterylny 10x10"
+        assert "OPT-1" in refs  # opis "Opatrunek jałowy sterylny 10x10"
         assert all(s["source"] == "text" for s in sugg)
     finally:
         db.close()
@@ -110,7 +144,9 @@ def test_bind_ref_creates_alias_and_binds():
         assert res.get("ok") and res.get("matched") >= 1
         # plik nie jest już „bez REF"
         assert _am.list_unbound(db)["total"] == 0
-        row = db.execute("SELECT ref_norm FROM artwork_index WHERE rel_path='z/unb1.pdf'").fetchone()
+        row = db.execute(
+            "SELECT ref_norm FROM artwork_index WHERE rel_path='z/unb1.pdf'"
+        ).fetchone()
         assert row["ref_norm"] == "EANP"
     finally:
         db.close()

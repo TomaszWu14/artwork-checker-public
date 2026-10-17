@@ -19,32 +19,41 @@ from artwork_3d import (
 # Regresja: trimesh≥5 eksportuje tekstury bez samplera → glTF default REPEAT;
 # NPOT+REPEAT nie renderuje się w three.js/model-viewer → biały box. POT to łamie.
 
-@pytest.mark.parametrize("wh,expected", [
-    ((1820, 1040), (1024, 1024)),   # duże panele front/back
-    ((477, 1041), (512, 1024)),     # boki
-    ((1820, 477), (1024, 512)),     # top/bottom
-    ((16, 16), (16, 16)),           # już POT — bez zmian
-    ((3000, 10), (1024, 16)),       # cap 1024 + min sensowny bok
-])
+
+@pytest.mark.parametrize(
+    "wh,expected",
+    [
+        ((1820, 1040), (1024, 1024)),  # duże panele front/back
+        ((477, 1041), (512, 1024)),  # boki
+        ((1820, 477), (1024, 512)),  # top/bottom
+        ((16, 16), (16, 16)),  # już POT — bez zmian
+        ((3000, 10), (1024, 16)),  # cap 1024 + min sensowny bok
+    ],
+)
 def test_to_power_of_two(wh, expected):
     pytest.importorskip("PIL")
     from PIL import Image
+
     out = _to_power_of_two(Image.new("RGB", wh))
     assert out.size == expected
-    assert all((v & (v - 1)) == 0 for v in out.size)   # oba boki = potęga 2
+    assert all((v & (v - 1)) == 0 for v in out.size)  # oba boki = potęga 2
 
 
 # ───────────── parse_dimensions_mm ─────────────
 
-@pytest.mark.parametrize("text,expected", [
-    ("Rozmiar [mm]: 210 x 120 x 55 mm", (210.0, 120.0, 55.0)),
-    ("Rozmiar [mm] szer. wys. 290 x 250 x 222", (290.0, 250.0, 222.0)),
-    ("wymiary 100×80×40 mm", (100.0, 80.0, 40.0)),
-    ("120,5 x 60 x 30", (120.5, 60.0, 30.0)),
-    ("bez wymiarow", None),
-    ("", None),
-    (None, None),
-])
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("Rozmiar [mm]: 210 x 120 x 55 mm", (210.0, 120.0, 55.0)),
+        ("Rozmiar [mm] szer. wys. 290 x 250 x 222", (290.0, 250.0, 222.0)),
+        ("wymiary 100×80×40 mm", (100.0, 80.0, 40.0)),
+        ("120,5 x 60 x 30", (120.5, 60.0, 30.0)),
+        ("bez wymiarow", None),
+        ("", None),
+        (None, None),
+    ],
+)
 def test_parse_dimensions(text, expected):
     assert parse_dimensions_mm(text) == expected
 
@@ -62,6 +71,7 @@ def test_detect_package_type():
 
 # ───────────── kolejność: rotacja PO swapie ─────────────
 
+
 def test_rotation_applied_by_final_position_after_swap(monkeypatch):
     """Regresja: PANEL_ROTATION nakładane wg finalnej POZYCJI, po swapie/uzupełnieniu.
     Odwzorowuje kolejność z generate_artwork_3d: pick_front_by_color → complete →
@@ -72,11 +82,11 @@ def test_rotation_applied_by_final_position_after_swap(monkeypatch):
 
     # front bezpieczne 0°, back sztucznie 90° — czyni swap obserwowalnym w rozmiarze
     monkeypatch.setitem(m.PANEL_ROTATION, "back", 90)
-    colorful = Image.new("RGB", (20, 10), (255, 0, 0))    # barwny, niekwadratowy
-    plain = Image.new("RGB", (10, 10), (200, 200, 200))   # mało barwny
+    colorful = Image.new("RGB", (20, 10), (255, 0, 0))  # barwny, niekwadratowy
+    plain = Image.new("RGB", (10, 10), (200, 200, 200))  # mało barwny
     raw = {"front": plain, "back": colorful}
 
-    raw = m.pick_front_by_color(raw)   # back barwniejszy → front↔back zamienione
+    raw = m.pick_front_by_color(raw)  # back barwniejszy → front↔back zamienione
     panels = {n: m.orient_panel(i, n) for n, i in raw.items()}
 
     # 'colorful' wylądował na froncie (0°) → rozmiar bez obrotu (20×10).
@@ -85,6 +95,7 @@ def test_rotation_applied_by_final_position_after_swap(monkeypatch):
 
 
 # ───────────── cluster_coords ─────────────
+
 
 def test_cluster_coords_merges_close_values():
     vals = [0.0, 0.4, 0.9, 55.1, 54.8, 210.0]
@@ -100,6 +111,7 @@ def test_cluster_coords_empty():
 
 
 # ───────────── match_panels ─────────────
+
 
 def _wrap_grid(w, h, d):
     """Syntetyczna siatka owijkowa: [left D | front W | right D | back W] × wysokość H,
@@ -160,6 +172,7 @@ def test_match_panels_partial_grid_returns_subset():
 
 # ───────────── complete_panels / orient_panel ─────────────
 
+
 def test_complete_panels_mirrors_and_blanks():
     PIL = pytest.importorskip("PIL.Image")
     from artwork_3d import complete_panels
@@ -178,22 +191,26 @@ def test_orient_panel_rotation_and_limit():
     from artwork_3d import MAX_TEXTURE_PX, orient_panel
 
     img = PIL.new("RGB", (100, 50), (1, 2, 3))
-    rotated = orient_panel(img, "bottom")   # PANEL_ROTATION[bottom] == 180
+    rotated = orient_panel(img, "bottom")  # PANEL_ROTATION[bottom] == 180
     assert rotated.size == (100, 50)
     big = PIL.new("RGB", (MAX_TEXTURE_PX * 2, 100), (0, 0, 0))
     small = orient_panel(big, "front")
     assert max(small.size) <= MAX_TEXTURE_PX
 
 
-@pytest.mark.parametrize("d,expected", [
-    ((1.0, 0.0), 0),        # tekst poziomo w prawo — bez obrotu
-    ((-1.0, 0.0), 180),     # do góry nogami
-    ((0.0, -1.0), 270),     # tekst biegnie w górę strony
-    ((0.0, 1.0), 90),       # tekst biegnie w dół strony
-    ((0.99, 0.14), 0),      # lekki skos traktowany jak poziom
-])
+@pytest.mark.parametrize(
+    "d,expected",
+    [
+        ((1.0, 0.0), 0),  # tekst poziomo w prawo — bez obrotu
+        ((-1.0, 0.0), 180),  # do góry nogami
+        ((0.0, -1.0), 270),  # tekst biegnie w górę strony
+        ((0.0, 1.0), 90),  # tekst biegnie w dół strony
+        ((0.99, 0.14), 0),  # lekki skos traktowany jak poziom
+    ],
+)
 def test_rotation_for_dir(d, expected):
     from artwork_3d import _rotation_for_dir
+
     assert _rotation_for_dir(*d) == expected
 
 
@@ -204,7 +221,7 @@ def test_measured_orientation_wins_over_panel_rotation():
 
     img = PIL.new("RGB", (100, 50), (1, 2, 3))
     img.info["text_oriented"] = True
-    assert orient_panel(img, "top") is img          # 180° pominięte — brak nowego obrazu
+    assert orient_panel(img, "top") is img  # 180° pominięte — brak nowego obrazu
     assert orient_panel(PIL.new("RGB", (100, 50)), "top").size == (100, 50)  # fallback dziala
 
 
@@ -220,7 +237,7 @@ def test_blank_panel_warns_only_when_unexpected():
 
     indyw = DielineInfo(w_mm=210, h_mm=120, d_mm=55, package_type="indywidualne")
     complete_panels({"front": front, "left": front.copy()}, indyw)
-    assert len(indyw.warnings) == 2                     # top + bottom
+    assert len(indyw.warnings) == 2  # top + bottom
     assert "top" in indyw.warnings[0]
 
 
@@ -262,8 +279,8 @@ def test_pick_front_by_color_swaps_text_panel():
     PIL = pytest.importorskip("PIL.Image")
     from artwork_3d import pick_front_by_color
 
-    grayish = PIL.new("RGB", (64, 64), (245, 245, 245))     # blok tekstu
-    branded = PIL.new("RGB", (64, 64), (10, 60, 160))       # panel z kolorem
+    grayish = PIL.new("RGB", (64, 64), (245, 245, 245))  # blok tekstu
+    branded = PIL.new("RGB", (64, 64), (10, 60, 160))  # panel z kolorem
     # połowa brandowanego żółta — wysoka barwność
     for x in range(32):
         for y in range(64):
@@ -278,14 +295,16 @@ def test_pick_front_by_color_swaps_text_panel():
 
 # ───────────── build_glb ─────────────
 
+
 def test_build_glb_roundtrip(tmp_path):
     trimesh = pytest.importorskip("trimesh")
     PIL = pytest.importorskip("PIL.Image")
     from artwork_3d import build_glb
 
     info = DielineInfo(w_mm=210, h_mm=120, d_mm=55)
-    panels = {name: PIL.new("RGB", (64, 64), (i * 30, 100, 150))
-              for i, name in enumerate(PANEL_TARGETS)}
+    panels = {
+        name: PIL.new("RGB", (64, 64), (i * 30, 100, 150)) for i, name in enumerate(PANEL_TARGETS)
+    }
     out = str(tmp_path / "box.glb")
     build_glb(panels, info, out)
 

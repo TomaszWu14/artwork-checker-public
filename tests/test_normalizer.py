@@ -5,17 +5,23 @@ Uruchom: pytest tests/
 """
 
 import sys, os
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from decimal import Decimal
 import pytest
 from normalizer import (
-    normalize_number, normalize_date, normalize_unicode as normalize_text,
-    normalize_ref, refs_match, numbers_equal,
+    normalize_number,
+    normalize_date,
+    normalize_unicode as normalize_text,
+    normalize_ref,
+    refs_match,
+    numbers_equal,
 )
 
 
 # ── normalize_number ──────────────────────────────────────────────────────────
+
 
 class TestNormalizeNumber:
     def test_integer(self):
@@ -73,6 +79,7 @@ class TestNormalizeNumber:
 class TestRoundingEquivalence:
     def test_half_up_rounding(self):
         from normalizer import numbers_differ_only_by_rounding as r
+
         # 0.125 ≈ 0.13 wg ROUND_HALF_UP (księgowe), nie bankierskie (→0.12)
         assert r("0.125", "0.13") is True
         assert r("0.0257", "0.03") is True
@@ -80,6 +87,7 @@ class TestRoundingEquivalence:
 
 
 # ── normalize_date ────────────────────────────────────────────────────────────
+
 
 class TestNormalizeDate:
     def test_iso_format(self):
@@ -105,6 +113,7 @@ class TestNormalizeDate:
 
 # ── normalize_text ────────────────────────────────────────────────────────────
 
+
 class TestNormalizeUnicode:
     def test_em_dash_to_hyphen(self):
         result = normalize_text("2025–2026")
@@ -124,6 +133,7 @@ class TestNormalizeUnicode:
 
 
 # ── normalize_ref ─────────────────────────────────────────────────────────────
+
 
 class TestNormalizeRef:
     """Kanonikalizacja kodów REF: separatory usuwane, wielkie litery, CYFRY
@@ -147,6 +157,7 @@ class TestNormalizeRef:
 
 
 # ── refs_match ────────────────────────────────────────────────────────────────
+
 
 class TestRefsMatch:
     """Wszystkie poniższe to ścieżki DETERMINISTYCZNE (zwracają przed fuzzy),
@@ -177,6 +188,7 @@ class TestRefsMatch:
 
 
 # ── numbers_equal (near-zero epsilon) ─────────────────────────────────────────
+
 
 class TestNumbersEqualNearZero:
     def test_both_zero(self):
