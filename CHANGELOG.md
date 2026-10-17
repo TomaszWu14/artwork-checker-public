@@ -5,6 +5,11 @@ Wersja aplikacji: `constants.APP_VERSION`.
 
 ## [Unreleased]
 
+### Fixed
+- Przyciski z argumentem tekstowym z `|tojson` w atrybucie (filtr zdarzeń w Aktywności, usuwanie typu dokumentu
+  i szablonu, szczegóły dostawy w Checklistach, historia dostawcy, szablony stref, podgląd par w raporcie) nie
+  działały — cudzysłów z JSON ucinał atrybut. Teraz `|tojson|forceescape` (wykryte testem e2e US-023).
+
 ### Added
 - US-009: zakładka „Konta” w panelu admina i API `/api/admin/users` — tworzenie konta z linkiem do ustawienia hasła
   (24 h, hasło nigdy w e-mailu; bez skonfigurowanego e-maila link dostaje admin), zmiana roli i działu, dezaktywacja
@@ -22,6 +27,10 @@ Wersja aplikacji: `constants.APP_VERSION`.
 - `.gitleaks.toml` z udokumentowaną allowlistą danych testowych; pre-commit z gitleaks i hookami porządkowymi.
 
 ### Changed
+- US-023 (CSP etapy 3–4, ADR-0004): egzekwowana CSP bez `'unsafe-inline'` dla skryptów — nonce zmieniany przy każdej
+  odpowiedzi na wszystkich 67 skryptach inline; 425 handlerów `on*=` zastąpionych atrybutami `data-on-*`
+  obsługiwanymi przez `static/js/csp_actions.js` (delegacja, parser bez `eval`, biała lista funkcji `CspActions.allow`).
+  `'unsafe-eval'` zostaje do US-024 (Alpine). Report-Only mierzy politykę docelową bez `eval`.
 - Rejestr ryzyk: R-08 zamknięte — obraz bazowy ML z locka z hashami opublikowany jako
   `ghcr.io/tomaszwu14/artwork-ml-base` (`:latest`, `:8900456`; run 39016605034).
 - Obraz bazowy ML publikowany jako `ghcr.io/<owner>/artwork-ml-base` (własny pakiet repo) zamiast współdzielonego

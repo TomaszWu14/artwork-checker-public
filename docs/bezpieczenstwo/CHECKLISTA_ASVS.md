@@ -36,7 +36,7 @@
 | V14.1 Build | pipeline z testami, SAST, SCA, sekretami; obraz non-root | ⚠️ | `ci.yml` (ten PR); `USER` → US-012 |
 | V14.2 Zależności | aktualne, inwentaryzowane, bez niepotrzebnych | ⚠️ | 50+ pakietów ML opcjonalnych; Dependabot (ten PR) |
 | V14.3 Ujawnianie | brak nagłówka `Server`, debug wyłączony w prod | ✅ | `Server` usuwany; `app.run` tylko lokalnie 127.0.0.1 |
-| V14.4 Nagłówki | CSP, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, X-Frame-Options | ⚠️ | wszystkie obecne; CSP z `unsafe-*` → US-008 |
+| V14.4 Nagłówki | CSP, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, X-Frame-Options | ⚠️ | wszystkie obecne; CSP egzekwowana z nonce, bez `'unsafe-inline'` dla skryptów (US-023); `'unsafe-eval'` → US-024 |
 | V14.5 Walidacja żądań | `Content-Type`, `Origin`/`SameSite` | ✅ | `SameSite=Strict`, MIME uploadu |
 
 **Podsumowanie:** 14 ✅ · 15 ⚠️ · 3 ❌ · 0 ➖. Cel: 0 ❌ i ≤ 5 ⚠️ po Sprintach 1–2.

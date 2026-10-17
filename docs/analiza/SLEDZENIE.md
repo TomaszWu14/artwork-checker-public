@@ -38,6 +38,7 @@
 | SEC-001 / SEC-007 — wylogowanie tylko POST+CSRF; ręczne kontrole sesji API odrzucają konta dezaktywowane | US-017 | `test_us017_logout_post.py` | #30 | ✅ |
 | NFR / R-13 — limity renderowania PDF (strony, piksele przed renderem, DPI z env) | US-019 | `test_us019_render_limits.py` | #31 | ✅ |
 | SEC-005 / SEC-008 — CSP etap 2a: bez CDN i Babel w przeglądarce, przypięte biblioteki w repo | US-022 | `test_us022_no_cdn.py`, job CI `frontend` | #33 | ✅ (etap 2a z 4) |
+| SEC-005 — CSP etapy 3–4: brak `on*=`, nonce na skryptach, egzekwowane `script-src` bez `'unsafe-inline'` | US-023 | `test_us023_csp_strict.py` | ten PR | ✅ (zostaje `'unsafe-eval'` → US-024) |
 | SEC-007 403 per rola | US-009 i każda nowa trasa | `test_palviz_auth.py`, `test_artwork_idor.py` (wybrane) | — | ⚠️ |
 | FR-011 / SEC-006 — import mastera ze ścieżki serwera (resolver fail-closed) | US-001 | `test_us001_master_path_resolver.py` | #17 | ✅ |
 | NFR-008 — lint blokujący w CI (0 błędów ruff) | US-002 | `ruff check .` w `ci.yml` (krok blokujący) + `pytest` | #22 | ✅ |

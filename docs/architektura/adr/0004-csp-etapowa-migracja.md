@@ -1,6 +1,6 @@
 # ADR-0004: Etapowa migracja do ścisłej Content-Security-Policy (US-008)
 
-- **Status:** etap 1 zrealizowany (#28); etap 2 podzielony na 2a (US-022, ten PR) i 2b (US-024 — Alpine CSP); etap 2b (US-024) **odłożony decyzją PO 2026-10-16**; etapy 3–4 — decyzja PO
+- **Status:** etap 1 zrealizowany (#28); etap 2a (US-022, #33); etap 2b (US-024 — Alpine CSP) **odłożony decyzją PO 2026-10-16**; etapy 3–4 zrealizowane (US-023, decyzja PO 2026-10-17) — z `'unsafe-eval'` do czasu US-024
 - **Role:** [SEC] + [DEV]
 
 ## Kontekst
@@ -32,6 +32,34 @@ Opcja 2:
 3. **Etap 3 (US-023):** handlery `on*=` → `addEventListener` w plikach `static/js/*.js`; `nonce="{{ csp_nonce() }}"`
    na pozostałych `<script>`; szablon po szablonie, kierując się raportami.
 4. **Etap 4:** zamiana Report-Only na egzekwowanie (`script-src 'self' 'nonce-…'`), zdjęcie `'unsafe-inline'` dla skryptów.
+
+### Realizacja etapów 3–4 (US-023, 2026-10-17)
+Pomiar przed zmianą: **425** handlerów `on*=` w 24 szablonach (w tym ~100 w znacznikach budowanych w JS przez
+`innerHTML`) i **67** skryptów inline bez nonce.
+- **Handlery → `data-on-<zdarzenie>`** obsługiwane przez jeden skrypt `static/js/csp_actions.js`. Nasłuch w fazie
+  capture na `document` przy pierwszym zdarzeniu podpina `addEventListener` na sam element z atrybutem — działa
+  też dla elementów dodanych później przez `innerHTML` i zachowuje semantykę atrybutów `on*=` (`this`, `event`,
+  kolejność względem innych nasłuchów, `stopPropagation`, `return false`). Czysta delegacja na `document`
+  odwróciłaby kolejność względem nasłuchów kontenerów (np. przeciąganie pól w edytorze profili). Przepisanie
+  każdego handlera na osobny `addEventListener` w ~100 miejscach generowanego HTML oznaczałoby przebudowę
+  renderowania list.
+- **Bez `eval`:** wyrażenie w atrybucie jest parsowane ścisłą gramatyką — sekwencja wywołań `nazwa(arg, …)`
+  oraz `event.stopPropagation()/preventDefault()` i `return false`; argumenty to literały JS, `this`, `event`
+  i kilka pól (`this.value`, `this.checked`, `this.dataset.X`…). 50 złożonych handlerów (np. `if(…)`, przypisania,
+  IIFE) zastąpiły wbudowane akcje (`clickById`, `onKeys`, `onSelf`, `togglePassword`…) lub nazwane funkcje.
+- **Biała lista funkcji:** wywołać można tylko funkcje zgłoszone przez `CspActions.allow(…)` w skrypcie z nonce
+  (lub wbudowane). Bez niej wstrzyknięty atrybut `data-on-click="setTimeout('…')"` byłby obejściem CSP przy
+  zachowanym `'unsafe-eval'`. Testy pilnują: brak `on*=`, nonce na każdym `<script>` inline, akcje tylko z białej
+  listy, zgodność z gramatyką, poprawne escapowanie `|tojson` w atrybutach.
+- **Egzekwowana polityka:** `script-src 'self' 'nonce-<na odpowiedź>' 'unsafe-eval'` (bez `'unsafe-inline'`).
+  Report-Only pozostaje polityką docelową **bez** `'unsafe-eval'` — mierzy, co zostało do US-024 (tylko Alpine).
+- **Weryfikacja e2e** (Chromium, polityka egzekwowana, 60 stron jako admin): 0 naruszeń poza
+  `/artwork/design-preview` (eksperyment z `static/design/` ładujący unpkg — zepsuty już od #33, poza zakresem);
+  wszystkie 812 elementów z akcjami parsują się i wskazują istniejące funkcje.
+
+**Ryzyko szczątkowe:** do czasu US-024 Alpine (standardowy build) wykonuje wyrażenia z atrybutów `x-*` przez
+`eval` — wstrzyknięty znacznik z dyrektywą Alpine w obszarze komponentu nadal byłby wykonywalny. Wstrzyknięty
+`<script>` i atrybuty `on*=` są już blokowane przez przeglądarkę.
 
 ## Konsekwencje
 - (+) Brak regresji UI teraz; mierzalny postęp (liczba raportów); ochrona atrybutów przed wstrzyknięciem już dziś.
