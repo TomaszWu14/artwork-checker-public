@@ -41,7 +41,7 @@
 | SEC-005 — CSP etapy 3–4: brak `on*=`, nonce na skryptach, egzekwowane `script-src` bez `'unsafe-inline'` | US-023 | `test_us023_csp_strict.py` | #42 | ✅ |
 | SEC-005 — CSP etap 2b: Alpine w buildzie CSP, egzekwowane `script-src` bez `'unsafe-eval'` | US-024 | `test_us023_csp_strict.py`, `tools/check_alpine_csp.mjs` (job CI `frontend`) | #43 | ✅ |
 | Z-03 — usunięcie reliktów DocCompare (trasy, szablony, blueprinty, stałe, zmienne tracking) | US-010 | `test_us010_relics_removed.py`, `test_template_links.py` | #44 | ✅ |
-| NFR-008 — formatowanie jako bramka CI (`ruff format --check`, ruff przypięty) | US-020 | job CI `lint`, `.git-blame-ignore-revs` | ten PR | ✅ |
+| NFR-008 — formatowanie jako bramka CI (`ruff format --check`, ruff przypięty) | US-020 | job CI `lint`, `.git-blame-ignore-revs` | #45 | ✅ |
 | SEC-007 403 per rola | US-009 i każda nowa trasa | `test_palviz_auth.py`, `test_artwork_idor.py` (wybrane) | — | ⚠️ |
 | FR-011 / SEC-006 — import mastera ze ścieżki serwera (resolver fail-closed) | US-001 | `test_us001_master_path_resolver.py` | #17 | ✅ |
 | NFR-008 — lint blokujący w CI (0 błędów ruff) | US-002 | `ruff check .` w `ci.yml` (krok blokujący) + `pytest` | #22 | ✅ |
