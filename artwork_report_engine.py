@@ -1475,6 +1475,7 @@ def _report_inline_assets() -> dict:
     wbudowujemy w plik (zamiast unpkg.com + Babel w przeglądarce jak dotąd)."""
     static_dir = os.path.join(os.path.dirname(__file__), "static")
     files = {
+        "csp_actions": "js/csp_actions.js",   # US-023: akcje data-on-* (zamiast onclick=)
         "react": "vendor/react/react.production.min.js",
         "react_dom": "vendor/react/react-dom.production.min.js",
         "report_pf": "js/artwork_report_pf.js",
@@ -1498,5 +1499,6 @@ def render_report_html(report: ArtworkReport, template_env=None) -> str:
     from jinja2 import Environment, FileSystemLoader
     template_dir = os.path.join(os.path.dirname(__file__), "templates")
     env = Environment(loader=FileSystemLoader(template_dir), autoescape=True)
+    env.globals["csp_nonce"] = lambda: ""   # plik offline — bez nagłówka CSP
     tpl = env.get_template("artwork_report.html")
     return tpl.render(report=report, inline_assets=inline_assets)
