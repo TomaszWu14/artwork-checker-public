@@ -128,6 +128,10 @@ Jako administrator chcę tworzyć konta, dezaktywować je i zmieniać role w apl
 ### US-019 · Could · ✅ (#31) · Limit stron/DPI dla OCR (ochrona przed wyczerpaniem zasobów)
 ### US-021 · Could · ✅ (#38; obraz z locka zbudowany i przetestowany na `main`; `transformers` 5 poza zakresem — limit <5, decyzja PO) · Lockfile z hashami dla pełnego obrazu ML (`requirements.txt`, torch CPU z osobnego indeksu) i użycie go w `Dockerfile`/`Dockerfile.base`
 ### US-022 · Should · ✅ (#33) · CSP etap 2a: raport bez Babel w przeglądarce, Tailwind zbudowany, biblioteki z `static/vendor` — CSP bez CDN (ADR-0004)
+### US-027 · Could (decyzja PO 2026-10-17: „napraw”) · ✅ (#50) · `/artwork/design-preview` działa pod ścisłą CSP
+- Given zalogowany użytkownik, When otwiera `/artwork/design-preview` w przeglądarce z egzekwowaną CSP, Then makiety
+  renderują się (5 wariantów), 0 naruszeń CSP, 0 błędów JS; brak skryptów z CDN i Babel w przeglądarce.
+- Given zmiana źródeł `frontend/src/design_preview/*.jsx`, When CI „frontend”, Then zbudowany plik musi być aktualny.
 ### US-026 · Should (decyzja PO 2026-10-17) · ✅ (#49) · Dokładne dopasowanie REF i wyłączenie komentarza AI w raporcie
 - Given dwa kody REF różniące się jednym znakiem (np. ABCDEFGH12 / ABCDEFGX12), When `refs_match`, Then „niezgodne”
   (bez dopasowania rozmytego; separatory, spacje i wielkość liter nadal normalizowane).

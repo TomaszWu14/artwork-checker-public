@@ -16,6 +16,8 @@ Wersja aplikacji: `constants.APP_VERSION`.
   zestawu z 64 % do 97 %; test pilnuje, by lista modułów i próg nie zostały po cichu obniżone.
 
 ### Fixed
+- US-027: strona `/artwork/design-preview` (makiety raportu) była pusta — ładowała React i Babel z unpkg, co blokowała
+  ścisła CSP. Źródła JSX w `frontend/src/design_preview/`, kompilowane przez `npm run build`, React z `static/vendor`.
 - US-026 (decyzja PO): `refs_match` porównuje kody REF dokładnie po normalizacji — kody różniące się jednym znakiem
   nie są już uznawane za zgodne.
 - US-025 (błędy wykryte testami US-013):
