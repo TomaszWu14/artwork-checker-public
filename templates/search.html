@@ -44,7 +44,7 @@
     {% if results.suppliers %}
       {% call card('Dostawcy', 'truck', results.suppliers|length) %}
         {% for s in results.suppliers %}
-        <a href="/suppliers" class="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition">
+        <a href="/suppliers/master" class="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition">
           <span class="font-mono font-semibold text-slate-800 text-[14px]">{{ s.code or '—' }}</span>
           <span class="text-[13px] text-slate-700 flex-1 truncate">{{ s.name }}</span>
           {% if s.country %}<span class="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{{ s.country }}</span>{% endif %}
@@ -57,7 +57,12 @@
     {% if results.comparisons %}
       {% call card('Porównania dokumentów', 'files', results.comparisons|length) %}
         {% for c in results.comparisons %}
+        {# US-010: porównania artwork prowadzą do historii artwork (stara /history pokazuje tylko dokumenty handlowe) #}
+        {% if c.doc_type == 'artwork' %}
+        <a href="/artwork/history?q={{ (c.file_a or '')|urlencode }}"
+        {% else %}
         <a href="/history?q={{ (c.po_number or c.supplier_code or c.file_a or '')|urlencode }}"
+        {% endif %}
            class="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition">
           <span class="font-mono font-semibold text-slate-800 text-[13px]">{{ c.po_number or ('#' ~ c.id) }}</span>
           <span class="text-[13px] text-slate-500 flex-1 truncate">

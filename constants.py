@@ -1,8 +1,8 @@
 """
-constants.py — wspólne stałe dla DocCompare v6.
+constants.py — wspólne stałe aplikacji Artwork.
 
 Importuj zamiast używać magic strings:
-    from constants import ComparisonStatus, DocType, Severity
+    from constants import ComparisonStatus, Severity
 """
 
 from enum import Enum
@@ -22,21 +22,6 @@ class ComparisonStatus(str, Enum):
     ONLY_A  = "tylko_w_a"
     ONLY_B  = "tylko_w_b"
     DIFF    = "roznica"
-
-
-class DocType(str, Enum):
-    AUTO  = "auto"
-    PO    = "PO"
-    PI    = "PI"
-    CI    = "CI"
-    PL    = "PL"
-    SAD   = "SAD"
-    BL    = "BL"
-    WZ    = "WZ"
-    FV    = "FV"
-    MULTI = "MULTI"
-    CMR   = "CMR"
-    ARTWORK = "artwork"
 
 
 class Severity(str, Enum):
@@ -123,11 +108,6 @@ ARTWORK_CACHE_MAX = 50
 # FIX 18: Removed "binary/octet-stream" (too permissive); kept application/octet-stream only as fallback
 ALLOWED_PDF_MIMES: frozenset = frozenset({
     "application/pdf", "application/x-pdf", "application/octet-stream"
-})
-
-# Dostawcy śledzenia przesyłek
-TRACKING_PROVIDERS: frozenset = frozenset({
-    "17track", "maersk", "trackcargo", "safecube"
 })
 
 # Dozwolone kolumny w _update_progress
