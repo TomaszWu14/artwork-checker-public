@@ -19,7 +19,7 @@
 - Limity: `MAX_CONTENT_LENGTH` = 200 MB; limit wywołań ciężkich endpointów 30/min/użytkownika
   (tabela `api_rate_events`); logowanie 5 prób / 15 min / IP.
 - Zadania w tle: `/api/artwork/compare-progress/<pid>`, `/api/artwork/3d/status/<jid>`,
-  `/api/artwork/batch/status/<id>` — polling stanu z tabel `async_jobs` / `job_progress`.
+  `/api/artwork/batch/status/<id>` — polling stanu z tabel `async_jobs` / `artwork_batch_jobs`.
 
 ## Podsumowanie
 

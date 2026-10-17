@@ -672,10 +672,6 @@ def delete_supplier(supplier_id: int, db_path="instance/doccompare.db") -> bool:
         db.execute("DELETE FROM suppliers WHERE id=?", (supplier_id,))
         # Usuń też powiązane logi
         db.execute("DELETE FROM supplier_audit_log WHERE supplier_id=?", (supplier_id,))
-        try:
-            db.execute("DELETE FROM supplier_analysis_log WHERE supplier_id=?", (supplier_id,))
-        except Exception:
-            pass  # table may not exist on fresh installs that skipped migrate_db.py
         db.commit()
         return True
     finally:
@@ -1112,27 +1108,3 @@ def get_ignore_fields(supplier: dict) -> list:
         except Exception:
             ig = [s.strip() for s in ig.split(',') if s.strip()]
     return ig if isinstance(ig, list) else []
-
-
-def log_analysis(
-    supplier_id: int, comparison_id: int, had_errors: bool, db_path: str = "instance/doccompare.db"
-):
-    """Zapisuje informację o użyciu profilu dostawcy do logów."""
-    try:
-        from datetime import datetime
-
-        db = get_db()
-        try:
-            db.execute(
-                """
-                INSERT INTO supplier_analysis_log
-                (supplier_id, comparison_id, created_at)
-                VALUES (?, ?, ?)
-            """,
-                (supplier_id, comparison_id, datetime.utcnow().isoformat()),
-            )
-            db.commit()
-        finally:
-            db.close()
-    except Exception:
-        pass
