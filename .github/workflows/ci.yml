@@ -81,6 +81,8 @@ jobs:
         run: npm run build
       - name: "Zbudowane pliki w repo = wynik builda (inaczej: uruchom npm run build i zacommituj)"
         run: git diff --exit-code -- static/
+      - name: "Wyrażenia Alpine zgodne z buildem CSP — bez eval (US-024)"
+        run: node tools/check_alpine_csp.mjs
 
   sast-bandit:
     name: SAST — Bandit (blokuje ≥ średnie)
