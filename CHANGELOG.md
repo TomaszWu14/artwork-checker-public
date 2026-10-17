@@ -5,6 +5,12 @@ Wersja aplikacji: `constants.APP_VERSION`.
 
 ## [Unreleased]
 
+### Added
+- US-013: blokująca bramka pokrycia w CI — łączne pokrycie 9 modułów logiki domenowej (kody kreskowe, normalizacja,
+  JM, nazewnictwo, indeks, raport, dane materiałów i dostawców) musi wynosić ≥ 80 % (decyzja PO 2026-10-17, Z-05);
+  pokrycie całego repo pozostaje informacyjne. Nowe testy (`tests/test_us013_*.py`, ~240) podniosły pokrycie
+  zestawu z 64 % do 97 %; test pilnuje, by lista modułów i próg nie zostały po cichu obniżone.
+
 ### Fixed
 - US-025 (błędy wykryte testami US-013):
   - weryfikacja danych drukowanych: prawidłowe UPC-A i EAN-8 z tekstu OCR nie są już oznaczane jako błąd krytyczny;
@@ -17,14 +23,6 @@ Wersja aplikacji: `constants.APP_VERSION`.
     EAN dostawcy daje ostrzeżenie zamiast „Suma kontrolna GS1 poprawna”;
   - biblioteka: wyszukiwanie samymi symbolami („%”, „---”) nie zwraca całej biblioteki; import MARM liczy duplikat raz;
   - test `test_artwork_search_rank.py` działa samodzielnie (uruchamia migracje).
-
-### Added
-- US-013: blokująca bramka pokrycia w CI — łączne pokrycie 9 modułów logiki domenowej (kody kreskowe, normalizacja,
-  JM, nazewnictwo, indeks, raport, dane materiałów i dostawców) musi wynosić ≥ 80 % (decyzja PO 2026-10-17, Z-05);
-  pokrycie całego repo pozostaje informacyjne. Nowe testy (`tests/test_us013_*.py`, ~240) podniosły pokrycie
-  zestawu z 64 % do 97 %; test pilnuje, by lista modułów i próg nie zostały po cichu obniżone.
-
-### Fixed
 - Przyciski z argumentem tekstowym z `|tojson` w atrybucie (filtr zdarzeń w Aktywności, usuwanie typu dokumentu
   i szablonu, szczegóły dostawy w Checklistach, historia dostawcy, szablony stref, podgląd par w raporcie) nie
   działały — cudzysłów z JSON ucinał atrybut. Teraz `|tojson|forceescape` (wykryte testem e2e US-023).
