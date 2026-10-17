@@ -388,9 +388,9 @@ def test_us013_supplier_import_partial_reimport_keeps_values():
     s = sm.get_supplier(db, "S1")
     assert s["name"] == "Acme Renamed"
     assert (s["lead_time_days"], s["phone"]) == (45, "+48 123")
-    # Uwaga: country/currency/detect_keywords_json celowo NIE asertowane po re-imporcie —
-    # częściowy re-import resetuje je do 'XX'/'USD'/'[]' (błąd w ON CONFLICT
-    # supplier_master.import_workbook, zgłoszony w raporcie US-013).
+    # Naprawione w US-025: częściowy re-import nie resetuje kraju, waluty ani słów kluczowych.
+    assert (s["country"], s["currency"]) == ("CN", "EUR")
+    assert s["detect_keywords_json"] == '["acme", "ACME Co"]'
 
 
 def test_us013_list_suppliers_without_query_skips_inactive():
@@ -465,7 +465,7 @@ def test_us013_marm_import_skips_and_duplicates():
         ["R-2", "", "1", "1", "", "1", "1", "1", "CM", ""],  # brak jednostki
     ]
     res = mu.import_marm_rows(db, rows)
-    assert res["refs"] == 1 and res["skipped"] == 3
+    assert res == {"imported": 1, "refs": 1, "skipped": 3}  # duplikat liczony raz (US-025)
     assert db.execute("SELECT COUNT(*) FROM material_uom_dims").fetchone()[0] == 1
     units = mu.get_ref_units(db, "r1")
     assert units == [

@@ -456,10 +456,16 @@ def browse(
 
         qn = normalize_ref(q)  # tylko [A-Z0-9] → bez wildcardów LIKE
         qe = escape_like(q)  # literalne %/_/\ (ESCAPE '\'); jedno źródło w db.py
-        where.append(
-            "(filename LIKE ? ESCAPE '\\' OR ref_code LIKE ? ESCAPE '\\' OR ref_norm LIKE ?)"
-        )
-        params += [f"%{qe}%", f"%{qe}%", f"%{qn}%"]
+        # ref_norm tylko gdy q zawiera litery/cyfry — dla q z samych symboli („%”, „---”) qn == ""
+        # i `ref_norm LIKE '%%'` zwracało całą bibliotekę (US-025).
+        if qn:
+            where.append(
+                "(filename LIKE ? ESCAPE '\\' OR ref_code LIKE ? ESCAPE '\\' OR ref_norm LIKE ?)"
+            )
+            params += [f"%{qe}%", f"%{qe}%", f"%{qn}%"]
+        else:
+            where.append("(filename LIKE ? ESCAPE '\\' OR ref_code LIKE ? ESCAPE '\\')")
+            params += [f"%{qe}%", f"%{qe}%"]
     if packaging:
         where.append("packaging_type = ?")
         params.append(packaging)

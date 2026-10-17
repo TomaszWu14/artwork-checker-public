@@ -12,6 +12,17 @@ Wersja aplikacji: `constants.APP_VERSION`.
   zestawu z 64 % do 97 %; test pilnuje, by lista modułów i próg nie zostały po cichu obniżone.
 
 ### Fixed
+- US-025 (błędy wykryte testami US-013):
+  - weryfikacja danych drukowanych: prawidłowe UPC-A i EAN-8 z tekstu OCR nie są już oznaczane jako błąd krytyczny;
+    data ważności DD.MM.RRRR jest poprawnie porównywana z (17)RRMMDD; brak EAN w tekście przy kodzie GS1 nie daje
+    fałszywego „EAN ≠ (None)”;
+  - odczyt kodów: nazwy formatów z zxing-cpp 2.x („EAN-13”, „Code 128”, „Data Matrix”) i starszych wersji są
+    rozpoznawane — wcześniej EAN/Code128 z zxing-cpp nie były walidowane ani parsowane;
+  - import dostawców: częściowy re-import nie nadpisuje kraju, waluty i słów kluczowych wartościami domyślnymi;
+  - raport: „Oznaczenie CE” nie jest już zaliczane przez pole „Producent” (dopasowanie po słowach); błąd walidacji
+    EAN dostawcy daje ostrzeżenie zamiast „Suma kontrolna GS1 poprawna”;
+  - biblioteka: wyszukiwanie samymi symbolami („%”, „---”) nie zwraca całej biblioteki; import MARM liczy duplikat raz;
+  - test `test_artwork_search_rank.py` działa samodzielnie (uruchamia migracje).
 - Przyciski z argumentem tekstowym z `|tojson` w atrybucie (filtr zdarzeń w Aktywności, usuwanie typu dokumentu
   i szablonu, szczegóły dostawy w Checklistach, historia dostawcy, szablony stref, podgląd par w raporcie) nie
   działały — cudzysłów z JSON ucinał atrybut. Teraz `|tojson|forceescape` (wykryte testem e2e US-023).

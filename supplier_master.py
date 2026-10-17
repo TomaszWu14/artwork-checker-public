@@ -161,8 +161,10 @@ def import_workbook(db, rows: list) -> dict:
             # ON CONFLICT: zachowaj istniejące niepuste wartości, gdy import podał
             # pustą wartość (COALESCE/NULLIF) — częściowy re-import nie kasuje danych.
             "ON CONFLICT(code) DO UPDATE SET name=excluded.name, "
-            "country=COALESCE(NULLIF(excluded.country,''), NULLIF(excluded.country,'XX'), suppliers.country), "
-            "currency=COALESCE(NULLIF(excluded.currency,''), NULLIF(excluded.currency,'USD'), suppliers.currency), "
+            # INSERT podstawia domyślne 'XX'/'USD'/'[]' przy braku kolumny — przy konflikcie traktuj je
+            # jak „brak wartości” i zachowaj istniejące dane (US-025).
+            "country=COALESCE(NULLIF(NULLIF(excluded.country,''),'XX'), suppliers.country), "
+            "currency=COALESCE(NULLIF(NULLIF(excluded.currency,''),'USD'), suppliers.currency), "
             "producer_code=COALESCE(NULLIF(excluded.producer_code,''), suppliers.producer_code), "
             "incoterms=COALESCE(NULLIF(excluded.incoterms,''), suppliers.incoterms), "
             "lead_time_days=COALESCE(excluded.lead_time_days, suppliers.lead_time_days), "
@@ -171,7 +173,7 @@ def import_workbook(db, rows: list) -> dict:
             "email=COALESCE(NULLIF(excluded.email,''), suppliers.email), "
             "phone=COALESCE(NULLIF(excluded.phone,''), suppliers.phone), "
             "notes=COALESCE(NULLIF(excluded.notes,''), suppliers.notes), "
-            "detect_keywords_json=COALESCE(excluded.detect_keywords_json, suppliers.detect_keywords_json)",
+            "detect_keywords_json=COALESCE(NULLIF(excluded.detect_keywords_json,'[]'), suppliers.detect_keywords_json)",
             (
                 code,
                 r["name"][:200],
