@@ -22,6 +22,8 @@ Wersja aplikacji: `constants.APP_VERSION`.
 - `.gitleaks.toml` z udokumentowaną allowlistą danych testowych; pre-commit z gitleaks i hookami porządkowymi.
 
 ### Changed
+- Rejestr ryzyk: R-08 zamknięte — obraz bazowy ML z locka z hashami opublikowany jako
+  `ghcr.io/tomaszwu14/artwork-ml-base` (`:latest`, `:8900456`; run 39016605034).
 - Obraz bazowy ML publikowany jako `ghcr.io/<owner>/artwork-ml-base` (własny pakiet repo) zamiast współdzielonego
   `doccompare-ml-base` starej aplikacji, do którego to repo nie ma uprawnień; `Dockerfile.slim` i dokumentacja zaktualizowane.
 - Dokumentacja: US-021 ✅ (#38); R-08 obniżone — obraz ML z locka zbudowany i przetestowany na `main`,
