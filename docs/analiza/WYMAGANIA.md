@@ -58,7 +58,7 @@
 | NFR-006 | Obserwowalność: logi rotowane, Sentry opcjonalny, audit log działań | ✅ | `core/audit.py` |
 | NFR-007 | Koszty: AI w budżecie miesięcznym; limit 30 wywołań/min/użytkownika | ✅ | `api_usage_tracker.py` |
 | NFR-008 | Jakość: CI blokuje merge przy błędzie testów, lintu (po US-002), SAST ≥ średnie, CVE ≥ wysokie, sekretach | ⚠️ (ten PR) | `.github/workflows/ci.yml` |
-| NFR-009 | Pokrycie testami logiki domenowej ≥ 80 % **[do potwierdzenia]** | ❌ niemierzone | US-013 |
+| NFR-009 | Pokrycie testami logiki domenowej ≥ 80 % (łącznie, 9 modułów — decyzja PO 2026-10-17) | ✅ bramka blokująca w CI | US-013, `tests/test_us013_*.py` |
 | NFR-010 | RODO: minimalizacja, retencja, prawa osób — patrz `docs/bezpieczenstwo/RODO.md` | ⚠️ | US-014 |
 | NFR-011 | Zasoby: produkcja na 8 GB RAM, 2 workery × 3 wątki; ciężkie modele opcjonalne | ✅ | `gunicorn.conf.py` |
 

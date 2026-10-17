@@ -63,3 +63,8 @@ node_modules/
 *.dump
 *.bak
 .DS_Store
+
+# Pokrycie testów (US-013)
+.coverage
+.coverage.*
+coverage.xml
