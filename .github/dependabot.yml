@@ -17,6 +17,22 @@ updates:
       security-updates:
         applies-to: security-updates
         patterns: ["*"]
+      python-minor-patch:
+        update-types: ["minor", "patch"]
+  - package-ecosystem: "npm"
+    directory: "/"   # package.json / package-lock.json — narzędzia builda frontendu (US-022)
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Warsaw"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "SEC"]
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      npm-minor-patch:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -27,6 +43,9 @@ updates:
     labels: ["dependencies", "ci"]
     commit-message:
       prefix: "ci(deps)"
+    groups:
+      actions-minor-patch:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
@@ -34,3 +53,6 @@ updates:
     labels: ["dependencies", "SEC"]
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      docker-minor-patch:
+        update-types: ["minor", "patch"]

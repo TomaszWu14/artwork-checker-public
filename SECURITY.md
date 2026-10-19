@@ -4,7 +4,8 @@
 
 Jeśli znajdziesz podatność, **nie otwieraj publicznego issue z detalami**. Zgłoś ją prywatnie:
 
-1. GitHub → zakładka **Security** → **Report a vulnerability** (private vulnerability reporting), lub
+1. GitHub → zakładka **Security** → **Report a vulnerability** (private vulnerability reporting):
+   <https://github.com/TomaszWu14/artwork-checker-public/security/advisories/new> — preferowane, lub
 2. e-mail do właściciela repozytorium (adres w profilu GitHub `TomaszWu14`), temat: `[SECURITY] artwork-checker`.
 
 Podaj: opis, wersję/commit, kroki odtworzenia, wpływ, ewentualny PoC. Otrzymasz potwierdzenie w ciągu
@@ -34,7 +35,10 @@ Sentry, PalViz), infrastruktura hostingu, ataki socjotechniczne, DoS wolumetrycz
 - Zapytania SQL parametryzowane przez `db.get_db()`; nazwy kolumn tylko z białych list.
 - Logi bez haseł, tokenów i zbędnych danych osobowych; audyt operacji wrażliwych (`audit_log`).
 - Treść PDF i odpowiedzi API traktowane jako dane, nie instrukcje (ochrona przed prompt injection — w toku, US-007).
-- Zależności skanowane (pip-audit, Trivy), kod skanowany (Bandit, Semgrep) w CI; Dependabot tygodniowo.
+- Zależności skanowane (pip-audit, npm audit, Trivy), kod skanowany (Bandit, Semgrep OWASP) w CI; Dependabot
+  tygodniowo (pip, npm, GitHub Actions, Docker); akcje CI przypięte do SHA.
+- Nagłówki: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`,
+  `Cross-Origin-Opener-Policy`, `Cache-Control: no-store` dla odpowiedzi JSON.
 
 Szczegóły: `docs/bezpieczenstwo/` (klasyfikacja danych, model zagrożeń, rejestr ryzyk, RODO, checklista ASVS).
 

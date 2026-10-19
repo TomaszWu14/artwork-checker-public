@@ -317,6 +317,11 @@ def _set_security_headers(response):
     response.headers.setdefault(
         "Permissions-Policy", "geolocation=(), camera=(), microphone=(), payment=()"
     )
+    # Izolacja okna przed stronami z innego źródła (window.opener) — aplikacja otwiera tylko własne URL-e.
+    response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+    # Odpowiedzi API (JSON) nie trafiają do cache przeglądarki/proxy; setdefault — jawne ustawienia zostają.
+    if response.mimetype == "application/json":
+        response.headers.setdefault("Cache-Control", "no-store")
     # Instruct caches to vary on Accept-Language and Cookie so localised pages
     # aren't served to the wrong user/language.
     if response.content_type and "text/html" in response.content_type:

@@ -158,6 +158,16 @@ def test_security_headers_present(client):
     assert "frame-ancestors" in csp
     # Server header ma być usunięty.
     assert "Server" not in resp.headers or resp.headers.get("Server") in (None, "")
+    assert resp.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
+    assert "camera=()" in resp.headers.get("Permissions-Policy", "")
+    assert resp.headers.get("Cross-Origin-Opener-Policy") == "same-origin"
+
+
+def test_json_responses_are_not_cached(client):
+    resp = client.get("/api/nie-ma-takiego-endpointu")
+    assert resp.is_json
+    assert resp.headers.get("Cache-Control") == "no-store"
+    assert resp.headers.get("Cross-Origin-Opener-Policy") == "same-origin"
 
 
 # ── Handlery błędów: JSON dla /api/*, HTML poza nim ───────────────────────────

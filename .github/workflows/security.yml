@@ -18,36 +18,51 @@ jobs:
     name: Bandit (SAST)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - name: Instalacja Bandit
-        run: pip install "bandit[toml]"
+        run: pip install "bandit[toml]==1.9.4"
       - name: Skan (błąd przy problemach ≥ średnie)
         run: bandit -r . -ll -x ./.venv,./venv,./node_modules,./.git
 
   gitleaks:
     name: gitleaks (sekrety)
     runs-on: ubuntu-latest
+    env:
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0   # pełna historia — skan także starych commitów
-      - uses: gitleaks/gitleaks-action@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Instalacja gitleaks (przypięta wersja + sha256)
+        working-directory: ${{ runner.temp }}
+        run: |
+          curl -sSfL -o gitleaks.tgz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tgz" | sha256sum -c -
+          tar -xzf gitleaks.tgz gitleaks
+      - name: gitleaks — cała historia
+        run: '"$RUNNER_TEMP/gitleaks" git --redact --no-banner .'
 
   trivy:
     name: Trivy (zależności + konfiguracja)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - name: Instalacja Trivy
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Instalacja Trivy (przypięta wersja + sha256)
+        working-directory: ${{ runner.temp }}
+        env:
+          TRIVY_VERSION: 0.74.0
+          TRIVY_SHA256: 2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a
         run: |
-          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
-            | sh -s -- -b "$HOME/.local/bin"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          curl -sSfL -o trivy.tgz \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          echo "${TRIVY_SHA256}  trivy.tgz" | sha256sum -c -
+          tar -xzf trivy.tgz trivy
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
       - name: Skan repozytorium (raport HIGH/CRITICAL w logu)
         run: trivy fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --exit-code 0 .
 
@@ -55,12 +70,12 @@ jobs:
     name: pip-audit (CVE w zależnościach)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - name: Instalacja pip-audit
-        run: pip install pip-audit
+        run: pip install "pip-audit==2.10.1"
       - name: Audyt plików requirements (doradczy)
         run: |
           found=0
@@ -79,7 +94,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Zwolnij miejsce na dysku (obraz ML jest duży)
         run: |
           sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android \
@@ -88,10 +103,16 @@ jobs:
           df -h
       - name: Build obrazu
         run: docker build -t artwork:scan .
-      - name: Instalacja Trivy
+      - name: Instalacja Trivy (przypięta wersja + sha256)
+        working-directory: ${{ runner.temp }}
+        env:
+          TRIVY_VERSION: 0.74.0
+          TRIVY_SHA256: 2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a
         run: |
-          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
-            | sh -s -- -b "$HOME/.local/bin"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          curl -sSfL -o trivy.tgz \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          echo "${TRIVY_SHA256}  trivy.tgz" | sha256sum -c -
+          tar -xzf trivy.tgz trivy
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
       - name: Skan obrazu (HIGH/CRITICAL; doradczy do US-012)
         run: trivy image --severity HIGH,CRITICAL --exit-code 0 artwork:scan

@@ -2,10 +2,12 @@ name: CI
 
 # Bramka jakości na każdy push do main i każdy PR (ADR-0002):
 #   lint → składnia + testy → SAST (Bandit, Semgrep) → SCA (pip-audit) → sekrety (gitleaks) → konfiguracja (Trivy)
-# Blokują: compileall, pytest, Bandit (≥ średnie), pip-audit, gitleaks.
+# Blokują: compileall, pytest, Bandit (≥ średnie), pip-audit (prod lock), npm audit (runtime, HIGH+), gitleaks,
+# Trivy (HIGH/CRITICAL), Semgrep p/owasp-top-ten dla NOWYCH znalezisk w PR (--baseline-commit).
 # Blokuje też ruff check (od US-002) i ruff format --check (od US-020). Doradcze (continue-on-error na KROKU —
-# job zielony z ostrzeżeniem; termin w ADR-0002 / RYZYKA.md W-03): Semgrep (do pierwszego triage),
-# Trivy misconfig (do US-012 — kontener non-root).
+# job zielony z ostrzeżeniem; termin w ADR-0002 / RYZYKA.md W-03): pełny Semgrep (do pierwszego triage),
+# pip-audit obrazu ML (requirements-ml.lock), npm audit narzędzi builda.
+# Akcje przypięte do SHA (komentarz = wersja; aktualizuje Dependabot), gitleaks/Trivy — wersja + sha256.
 # Skan obrazu Docker (ciężki, ~8 min) jest w security.yml (ręcznie / co miesiąc).
 
 on:
@@ -35,8 +37,8 @@ jobs:
     name: Lint (ruff check + ruff format --check — blokują)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Instalacja ruff
@@ -51,8 +53,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint]
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Kompilacja składni całego repo
@@ -65,7 +67,7 @@ jobs:
         run: python -m coverage report -m --include="$DOMAIN_COVERAGE_MODULES" --fail-under="$DOMAIN_COVERAGE_MIN"
       - name: Artefakt — pokrycie
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-xml
           path: coverage.xml
@@ -75,8 +77,8 @@ jobs:
     name: Frontend — build z repo zgodny ze źródłem (US-022)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
           cache: npm
@@ -88,18 +90,26 @@ jobs:
         run: git diff --exit-code -- static/
       - name: "Wyrażenia Alpine zgodne z buildem CSP — bez eval (US-024)"
         run: node tools/check_alpine_csp.mjs
+      # npm audit czyta package-lock.json. Zależności npm to wyłącznie narzędzia builda (devDependencies) —
+      # bramka obejmuje to, co trafiłoby do runtime (--omit=dev); pełny audyt (z Tailwind 3 → braces/micromatch,
+      # poprawka tylko w Tailwind 4 = zmiana major, do decyzji) jest doradczy.
+      - name: "npm audit — zależności runtime (HIGH+) — BLOKUJE"
+        run: npm audit --omit=dev --audit-level=high
+      - name: "npm audit — narzędzia builda (doradczy)"
+        continue-on-error: true
+        run: npm audit --audit-level=high
 
   sast-bandit:
     name: SAST — Bandit (blokuje ≥ średnie)
     runs-on: ubuntu-latest
     needs: [tests]
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Instalacja Bandit
-        run: pip install "bandit[toml]"
+        run: pip install "bandit[toml]==1.9.4"
       - name: "Skan (błąd przy problemach ≥ średnie; fałszywe alarmy oznaczane nosec z powodem)"
         run: bandit -r . -ll -x ./tests,./.git,./static/design
       - name: Raport JSON (wszystkie poziomy, do przeglądu)
@@ -107,28 +117,43 @@ jobs:
         run: bandit -r . -x ./tests,./.git,./static/design -f json -o bandit.json || true
       - name: Artefakt — Bandit
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: bandit-json
           path: bandit.json
           if-no-files-found: ignore
 
   sast-semgrep:
-    name: SAST — Semgrep (doradczy do triage)
+    name: SAST — Semgrep (bramka OWASP dla nowego kodu PR)
     runs-on: ubuntu-latest
     needs: [tests]
-    container:
-      image: semgrep/semgrep
     steps:
-      - uses: actions/checkout@v7
-      - name: Skan regułami OWASP / Flask / Python
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0   # --baseline-commit potrzebuje commita bazowego PR-a
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Instalacja Semgrep (przypięta wersja)
+        run: pip install "semgrep==1.181.0"
+      # Bramka: p/owasp-top-ten, tylko znaleziska NOWE względem bazy PR-a (--baseline-commit) — istniejące
+      # znaleziska czekają na triage (W-03) i nie blokują. Fałszywy alarm: `# nosemgrep: <id>` z powodem obok.
+      - name: "Semgrep p/owasp-top-ten — nowe znaleziska w PR — BLOKUJE"
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: >-
+          semgrep scan --config p/owasp-top-ten --metrics off --error --text
+          --baseline-commit "$BASE" --exclude static/design --exclude static/vendor --exclude tests
+      - name: Skan regułami OWASP / Flask / Python (pełny, doradczy)
+        if: always()
         continue-on-error: true   # doradczy do pierwszego triage (W-03) — ostrzeżenie, nie czerwony check
         run: >
           semgrep scan --config p/python --config p/flask --config p/owasp-top-ten
-          --exclude static/design --exclude tests --error --sarif --output semgrep.sarif
+          --metrics off --exclude static/design --exclude tests --error --sarif --output semgrep.sarif
       - name: Artefakt — Semgrep SARIF
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: semgrep-sarif
           path: semgrep.sarif
@@ -139,12 +164,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: [tests]
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Instalacja pip-audit
-        run: pip install pip-audit
+        run: pip install "pip-audit==2.10.1"
       - name: Audyt zależności produkcyjnych (lockfile z hashami, US-011)
         run: pip-audit -r requirements-prod.lock --require-hashes --disable-pip --progress-spinner off -f json -o pip-audit.json
       - name: Podsumowanie
@@ -160,9 +185,16 @@ jobs:
           print(f"pakiety: {len(deps)}, podatności: {len(vulns)}")
           for v in vulns: print(" -", *v)
           PY
+      # Obraz Docker (Dockerfile / Dockerfile.base) instaluje requirements-ml.lock. Znane CVE z poprawką tylko
+      # w wersjach major poza zakresami requirements.txt (pillow<12, pypdf<5, transformers<5) — decyzja PO;
+      # do tego czasu krok doradczy (ostrzeżenie w logu, nie czerwony check).
+      - name: Audyt obrazu ML (requirements-ml.lock, doradczy)
+        if: always()
+        continue-on-error: true
+        run: pip-audit -r requirements-ml.lock --require-hashes --disable-pip --progress-spinner off
       - name: Artefakt — pip-audit
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: pip-audit-json
           path: pip-audit.json
@@ -172,26 +204,47 @@ jobs:
     name: Sekrety — gitleaks (blokuje)
     runs-on: ubuntu-latest
     needs: [sast-bandit, sast-semgrep, sca-pip-audit]
+    env:
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0   # pełna historia — skan także starych commitów
-      - name: "gitleaks (konfiguracja i allowlista w .gitleaks.toml)"
-        uses: gitleaks/gitleaks-action@v3
+      - name: Instalacja gitleaks (przypięta wersja + sha256)
+        working-directory: ${{ runner.temp }}
+        run: |
+          curl -sSfL -o gitleaks.tgz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tgz" | sha256sum -c -
+          tar -xzf gitleaks.tgz gitleaks
+      - name: "gitleaks (konfiguracja i allowlista w .gitleaks.toml, wyjątki w .gitleaksignore)"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          args=(git --redact --no-banner)
+          # PR: tylko jego commity; push/ręcznie: cała historia.
+          if [ -n "$BASE" ]; then args+=(--log-opts="$BASE..$HEAD"); fi
+          "$RUNNER_TEMP/gitleaks" "${args[@]}" .
 
   config-trivy:
     name: Konfiguracja i zależności — Trivy (blokuje HIGH/CRITICAL)
     runs-on: ubuntu-latest
     needs: [secrets-gitleaks]
+    env:
+      TRIVY_VERSION: 0.74.0
+      TRIVY_SHA256: 2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a
     steps:
-      - uses: actions/checkout@v7
-      - name: Instalacja Trivy
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Instalacja Trivy (przypięta wersja + sha256, bez skryptu z gałęzi main)
+        working-directory: ${{ runner.temp }}
         run: |
-          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
-            | sh -s -- -b "$HOME/.local/bin"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          curl -sSfL -o trivy.tgz \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          echo "${TRIVY_SHA256}  trivy.tgz" | sha256sum -c -
+          tar -xzf trivy.tgz trivy
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
       - name: Skan plików (vuln, secret, misconfig — Dockerfile) — BLOKUJE HIGH/CRITICAL od US-012
         run: trivy fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --exit-code 1 --format table .
       - name: Raport JSON
@@ -199,7 +252,7 @@ jobs:
         run: trivy fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --exit-code 0 --format json --output trivy.json . || true
       - name: Artefakt — Trivy
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: trivy-json
           path: trivy.json
