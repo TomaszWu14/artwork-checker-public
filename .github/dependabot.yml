@@ -4,6 +4,8 @@ version: 2
 updates:
   - package-ecosystem: "pip"
     directory: "/"
+    cooldown:   # nowe wersje dopiero po 7 dniach (ochrona łańcucha dostaw); aktualizacji bezpieczeństwa nie dotyczy
+      default-days: 7
     schedule:
       interval: "weekly"
       day: "monday"
@@ -21,6 +23,8 @@ updates:
         update-types: ["minor", "patch"]
   - package-ecosystem: "npm"
     directory: "/"   # package.json / package-lock.json — narzędzia builda frontendu (US-022)
+    cooldown:   # nowe wersje dopiero po 7 dniach (ochrona łańcucha dostaw); aktualizacji bezpieczeństwa nie dotyczy
+      default-days: 7
     schedule:
       interval: "weekly"
       day: "monday"
@@ -35,6 +39,8 @@ updates:
         update-types: ["minor", "patch"]
   - package-ecosystem: "github-actions"
     directory: "/"
+    cooldown:   # nowe wersje dopiero po 7 dniach (ochrona łańcucha dostaw); aktualizacji bezpieczeństwa nie dotyczy
+      default-days: 7
     schedule:
       interval: "weekly"
       day: "monday"
@@ -48,6 +54,8 @@ updates:
         update-types: ["minor", "patch"]
   - package-ecosystem: "docker"
     directory: "/"
+    cooldown:   # nowe wersje dopiero po 7 dniach (ochrona łańcucha dostaw); aktualizacji bezpieczeństwa nie dotyczy
+      default-days: 7
     schedule:
       interval: "weekly"
     labels: ["dependencies", "SEC"]
