@@ -5,6 +5,14 @@ Wersja aplikacji: `constants.APP_VERSION`.
 
 ## [Unreleased]
 
+### Security
+- Wspólna podstawa bezpieczeństwa CI: gitleaks i Trivy instalowane w przypiętej wersji ze sprawdzeniem sha256
+  (zamiast `gitleaks-action` i skryptu z gałęzi `main`), akcje GitHub przypięte do SHA, Bandit/pip-audit/Semgrep
+  w przypiętych wersjach; Semgrep `p/owasp-top-ten` blokuje nowe znaleziska w PR; `npm audit` (runtime) blokuje,
+  audyt narzędzi builda i `requirements-ml.lock` — doradczo; Dependabot także dla npm, grupy minor+patch, `cooldown` 7 dni (Semgrep `dependabot-missing-cooldown`).
+- Nagłówki: `Cross-Origin-Opener-Policy: same-origin` na każdej odpowiedzi, `Cache-Control: no-store` na
+  odpowiedziach JSON (bez nadpisywania jawnych ustawień).
+
 ### Removed
 - US-029: API `/api/products` (lista, dodawanie, edycja, usuwanie, import) — bez UI, dublowało master data materiałów.
   Tabela `products` i migracja do `material_master` (`POST /api/materials/migrate-from-products`) zostają.

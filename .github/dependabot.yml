@@ -4,6 +4,8 @@ version: 2
 updates:
   - package-ecosystem: "pip"
     directory: "/"
+    cooldown:   # nowe wersje dopiero po 7 dniach (ochrona łańcucha dostaw); aktualizacji bezpieczeństwa nie dotyczy
+      default-days: 7
     schedule:
       interval: "weekly"
       day: "monday"
@@ -17,8 +19,28 @@ updates:
       security-updates:
         applies-to: security-updates
         patterns: ["*"]
+      python-minor-patch:
+        update-types: ["minor", "patch"]
+  - package-ecosystem: "npm"
+    directory: "/"   # package.json / package-lock.json — narzędzia builda frontendu (US-022)
+    cooldown:   # nowe wersje dopiero po 7 dniach (ochrona łańcucha dostaw); aktualizacji bezpieczeństwa nie dotyczy
+      default-days: 7
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Warsaw"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "SEC"]
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      npm-minor-patch:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "github-actions"
     directory: "/"
+    cooldown:   # nowe wersje dopiero po 7 dniach (ochrona łańcucha dostaw); aktualizacji bezpieczeństwa nie dotyczy
+      default-days: 7
     schedule:
       interval: "weekly"
       day: "monday"
@@ -27,10 +49,18 @@ updates:
     labels: ["dependencies", "ci"]
     commit-message:
       prefix: "ci(deps)"
+    groups:
+      actions-minor-patch:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "docker"
     directory: "/"
+    cooldown:   # nowe wersje dopiero po 7 dniach (ochrona łańcucha dostaw); aktualizacji bezpieczeństwa nie dotyczy
+      default-days: 7
     schedule:
       interval: "weekly"
     labels: ["dependencies", "SEC"]
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      docker-minor-patch:
+        update-types: ["minor", "patch"]

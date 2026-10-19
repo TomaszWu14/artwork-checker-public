@@ -111,6 +111,22 @@ Wkrótce (YouTube) — porównanie pary artworków, lista kontrolna i podgląd 3
 python -m pytest tests/ -q      # zależności jak w CI — patrz „Uruchomienie (szybki start)”
 ```
 
+## Bezpieczeństwo
+
+Zgłaszanie podatności: [`SECURITY.md`](SECURITY.md) (prywatnie, przez GitHub „Report a vulnerability”).
+CI (`ci.yml`) pilnuje na każdym PR:
+
+- **sekrety** — gitleaks (przypięta wersja + sha256; allowlista `.gitleaks.toml`) — blokuje;
+- **SAST** — Bandit (≥ średnie) — blokuje; Semgrep `p/owasp-top-ten` — blokuje nowe znaleziska w PR
+  (pełny skan Python/Flask/OWASP doradczy do triage);
+- **zależności** — pip-audit (`requirements-prod.lock`) i `npm audit` (runtime) — blokują; Trivy `fs`
+  HIGH/CRITICAL — blokuje; audyt obrazu ML i narzędzi builda — doradczy; Dependabot co tydzień
+  (pip, npm, GitHub Actions, Docker);
+- **nagłówki HTTP** — CSP z nonce, `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`,
+  `Cross-Origin-Opener-Policy`, HSTS za HTTPS, `Cache-Control: no-store` dla JSON (test w `tests/test_integration.py`).
+
+Akcje GitHub są przypięte do SHA commitów (z komentarzem wersji).
+
 ## Proces i dokumentacja
 
 Repozytorium jest prowadzone jak przez zespół **analityk ([BA]) + developer ([DEV]) + bezpieczeństwo ([SEC])**
