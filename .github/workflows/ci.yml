@@ -145,6 +145,24 @@ jobs:
         run: >-
           semgrep scan --config p/owasp-top-ten --metrics off --error --text
           --baseline-commit "$BASE" --exclude static/design --exclude static/vendor --exclude tests
+          --sarif-output semgrep-gate.sarif
+      - name: Znaleziska bramki Semgrep jako adnotacje PR
+        if: failure() && github.event_name == 'pull_request'
+        run: |
+          python - <<'PY'
+          import json, os
+          if not os.path.exists("semgrep-gate.sarif"):
+              print("brak semgrep-gate.sarif"); raise SystemExit(0)
+          for run in json.load(open("semgrep-gate.sarif")).get("runs", []):
+              for r in run.get("results", []):
+                  loc = r["locations"][0]["physicalLocation"]
+                  path, line = loc["artifactLocation"]["uri"], loc.get("region", {}).get("startLine", 1)
+                  rule = r.get("ruleId", "").rsplit(".", 1)[-1]
+                  print(f"::error file={path},line={line}::Semgrep {rule}")
+              for inv in run.get("invocations", []):
+                  for n in inv.get("toolExecutionNotifications", [])[:10]:
+                      print("::warning::Semgrep: " + n.get("message", {}).get("text", "")[:300].replace("\n", " "))
+          PY
       - name: Skan regułami OWASP / Flask / Python (pełny, doradczy)
         if: always()
         continue-on-error: true   # doradczy do pierwszego triage (W-03) — ostrzeżenie, nie czerwony check
