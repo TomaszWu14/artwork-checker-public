@@ -54,7 +54,7 @@
 | NFR-002 | Pojemność: indeks ≥ 31 000 plików; wyszukiwanie ≤ 1 s | ⚠️ | `tools/bench_artwork_browse.py` |
 | NFR-003 | Dostępność: narzędzie wewnętrzne w godzinach pracy; `/health` dla sondy | ✅ | — |
 | NFR-004 | Przenośność: SQLite (dev) i PostgreSQL (prod) z jednego kodu | ✅ | `db.py` |
-| NFR-005 | Użyteczność: desktop Chrome, język PL, komunikaty błędów po polsku bez tracebacków | ⚠️ | `UX_AUDIT.md` |
+| NFR-005 | Użyteczność: desktop Chrome, język PL, komunikaty błędów po polsku bez tracebacków | ⚠️ | `docs/UX_AUDIT.md` |
 | NFR-006 | Obserwowalność: logi rotowane, Sentry opcjonalny, audit log działań | ✅ | `core/audit.py` |
 | NFR-007 | Koszty: AI w budżecie miesięcznym; limit 30 wywołań/min/użytkownika | ✅ | `api_usage_tracker.py` |
 | NFR-008 | Jakość: CI blokuje merge przy błędzie testów, lintu (po US-002), SAST ≥ średnie, CVE ≥ wysokie, sekretach | ⚠️ (ten PR) | `.github/workflows/ci.yml` |
