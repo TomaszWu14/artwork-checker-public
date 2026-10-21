@@ -11,7 +11,7 @@ zanim trafią na towar.
 > Kod udostępniony do wglądu (portfolio), wszelkie prawa zastrzeżone — patrz [`LICENSE`](LICENSE).
 > Historia commitów została zgnieciona przy anonimizacji wersji portfolio.
 
-[![ci](https://github.com/TomaszWu14/artwork-checker/actions/workflows/ci.yml/badge.svg)](https://github.com/TomaszWu14/artwork-checker/actions/workflows/ci.yml)
+[![ci](https://github.com/TomaszWu14/artwork-checker-public/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/TomaszWu14/artwork-checker-public/actions/workflows/ci.yml)
 
 Porównuje artworki z masterami, waliduje kody kreskowe (EAN/GS1), prowadzi indeks masterów
 z wersjonowaniem i renderuje opakowania w 3D. Wydzielona z większego systemu porównywania
@@ -24,7 +24,7 @@ dokumentów (PO/PI/CI).
 | **Problem** | Ręczne porównywanie projektów opakowań od dostawców z wzorcami — błędy w kodach kreskowych, datach, nazwach i wersjach wychodziły dopiero na towarze. |
 | **Rozwiązanie** | Porównanie strefowe PDF (tekst + obraz), walidacja GS1/EAN, indeks masterów z historią wersji, raport różnic (PDF/Excel), podgląd 3D opakowania. |
 | **Stack** | Python, Flask, pdfplumber + PyMuPDF + camelot (PDF), RapidOCR/Tesseract (OCR), PostgreSQL/SQLite, gunicorn, Docker; frontend: szablony Jinja + JS (pdf.js, three.js). |
-| **Jakość** | ~450 testów (`pytest tests/`), CI w GitHub Actions, skany bezpieczeństwa. |
+| **Jakość** | ~1200 testów (`pytest tests/`), CI w GitHub Actions, skany bezpieczeństwa. |
 
 ## Uruchomienie (szybki start)
 
@@ -34,7 +34,7 @@ Lekki zestaw — te same zależności co w CI, wystarczy do testów:
 python -m venv .venv
 .venv\Scripts\activate          # Linux/macOS: source .venv/bin/activate
 pip install pytest python-dateutil dateparser babel flask werkzeug "rapidfuzz>=3.0,<4.0"
-python -m pytest tests/ -q      # ~410 testów, część pomijana bez bibliotek PDF/OCR
+python -m pytest tests/ -q      # ~1200 testów, część pomijana bez bibliotek PDF/OCR
 ```
 
 Pełna aplikacja (parsowanie PDF, OCR, eksport) — zestaw bez ciężkich pakietów ML:
@@ -72,7 +72,7 @@ są opcjonalne i ładowane leniwie. SQLite wystarcza lokalnie, PostgreSQL na pro
 
 ## Ograniczenia i co dalej
 
-- `app.py` ma ~12,8 tys. linii, a `artwork_comparator.py` ~7,5 tys. — do podziału na blueprinty
+- `app.py` ma ~13,4 tys. linii, a `artwork_comparator.py` ~8,9 tys. — do podziału na blueprinty
   i mniejsze moduły.
 - Jakość porównania zależy od PDF: skany i tekst na krzywych przechodzą przez OCR, który myli
   znaki (0/O, 1/I) — wynik wymaga potwierdzenia przez człowieka.
@@ -84,8 +84,8 @@ są opcjonalne i ładowane leniwie. SQLite wystarcza lokalnie, PostgreSQL na pro
 
 ## Gdzie zacząć czytać kod
 
-1. [`artwork_comparator.py` — `compare_artworks`](artwork_comparator.py#L7068) — wejście do porównania pary PDF.
-2. [`barcode_validator.py` — `validate_artwork_barcodes`](barcode_validator.py#L576) — sumy kontrolne i zgodność kodów.
+1. [`artwork_comparator.py` — `compare_artworks`](artwork_comparator.py#L8332) — wejście do porównania pary PDF.
+2. [`barcode_validator.py` — `validate_artwork_barcodes`](barcode_validator.py#L643) — sumy kontrolne i zgodność kodów.
 3. [`artwork_report_engine.py`](artwork_report_engine.py) — raport różnic i lista kontrolna.
 
 ## Wideo
