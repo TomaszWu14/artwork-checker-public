@@ -76,7 +76,7 @@ writeFileSync(out("design/design_preview.js"),
 
 execFileSync(
   process.execPath,
-  [nm("tailwindcss/lib/cli.js"), "-c", join(root, "tailwind.config.js"),
+  [nm("@tailwindcss/cli/dist/index.mjs"),
    "-i", join(root, "frontend/tailwind.css"), "-o", out("css/tailwind.css"), "--minify"],
   { stdio: ["ignore", "inherit", "inherit"], cwd: root },
 );

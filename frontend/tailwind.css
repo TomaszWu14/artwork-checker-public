@@ -1,4 +1,28 @@
 /* US-022: wejście builda Tailwind (npm run build → static/css/tailwind.css). */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Skanujemy tylko miejsca z nazwami klas (szablony, skrypty, HTML generowany w Pythonie) —
+   source(none) wyłącza automatyczne skanowanie całego repo. Ścieżki względem tego pliku. */
+@import 'tailwindcss' source(none);
+
+@source "../templates/**/*.html";
+@source "../static/js/**/*.js";
+@source not "../static/js/vendor/**";
+@source "./src/**/*.{js,jsx}";
+@source not "./src/design_preview/**"; /* US-027: makiety ze stylami inline, bez klas Tailwind */
+@source "../*.py";
+@source "../blueprints/**/*.py";
+
+/* Zgodność z v3: domyślny kolor ramki (v4: currentcolor) i kursor na przyciskach (v4: default). */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
