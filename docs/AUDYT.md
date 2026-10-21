@@ -3,8 +3,8 @@
 **Zakres:** gałąź `main` (commit `4796e4c`), cały kod aplikacji, testy, CI, dokumentacja.
 **Metoda:** przegląd kodu z trzech perspektyw ([BA] analityk, [DEV] developer, [SEC] bezpieczeństwo)
 + uruchomienie narzędzi (wyniki poniżej). Kodu **nie zmieniano** — to wyłącznie analiza.
-**Poprzednie audyty w repo:** `AUDIT_2026-06-08.md` (system-matka DocCompare, przed forkiem — duża część
-ustaleń dotyczy usuniętych modułów) i `UX_AUDIT.md` (2026-09-04, heurystyki Nielsena). Niniejszy dokument
+**Poprzednie audyty w repo:** [`archiwum/AUDIT_2026-06-08.md`](archiwum/AUDIT_2026-06-08.md) (system-matka DocCompare, przed forkiem — duża część
+ustaleń dotyczy usuniętych modułów) i [`UX_AUDIT.md`](UX_AUDIT.md) (2026-09-04, heurystyki Nielsena). Niniejszy dokument
 odnosi się do nich tam, gdzie ustalenia nadal obowiązują.
 
 ## Wyniki narzędzi (2026-10-15, lekkie środowisko bez pakietów ML)
@@ -160,7 +160,7 @@ tokenów (`hmac.compare_digest`), audit log, strony błędów bez tracebacku (Pa
 | 2 | 🟠 Wysokie | **Prompt injection** — surowy tekst OCR z PDF dostawcy trafia do promptu Claude bez ramki „dane, nie instrukcje"; spreparowany artwork może zasugerować werdykt „zgodny" | `artwork_comparator.py:3504–3530` (`ocr_a[:3000]`, `ocr_b[:3000]`), `:6684–6701` (vision) | system prompt z regułą danych, tagowanie bloków, walidacja JSON odpowiedzi, wynik AI oznaczony jako doradczy, test z „złośliwym" PDF; `ai_validator.py:437–459` ma już wzorzec sanitizacji |
 | 3 | 🟡 Średnie | **Klucz Anthropic API w bazie (jawnie) i w `os.environ` z poziomu requestu** — zrzut/backup bazy ujawnia płatny sekret; brak rotacji | `app.py:6647–6665`, `app.py:1225`, `ai_validator.py:125`, `ai_learning.py:41`, `artwork_comparator.py:6568` | sekret tylko z env (usunąć zapis w UI) lub szyfrowanie w bazie; brak mutacji `os.environ` |
 | 4 | 🟡 Średnie | **Tokeny resetu hasła jawnie w DB, ważne 24 h**, przekazywane do szablonu `/admin` (obecnie nierenderowane) — odczyt bazy = przejęcie konta | `app.py:1631–1640`, `app.py:2221–2231` | przechowywać hash tokenu, ważność 1 h, nie przekazywać wartości do widoku |
-| 5 | 🟡 Średnie | **CSP z `unsafe-inline` i `unsafe-eval`** + 199 `innerHTML` + niespójne `esc()` — każdy XSS w szablonie jest bezpośrednio wykonywalny | `app.py:181–195`, `UX_AUDIT.md`, `AUDIT_2026-06-08.md` #85–87 | nonce dla skryptów inline, usunąć `unsafe-eval` (Alpine CSP build), jeden helper `esc`, lint szablonów |
+| 5 | 🟡 Średnie | **CSP z `unsafe-inline` i `unsafe-eval`** + 199 `innerHTML` + niespójne `esc()` — każdy XSS w szablonie jest bezpośrednio wykonywalny | `app.py:181–195`, `UX_AUDIT.md`, `archiwum/AUDIT_2026-06-08.md` #85–87 | nonce dla skryptów inline, usunąć `unsafe-eval` (Alpine CSP build), jeden helper `esc`, lint szablonów |
 | 6 | 🟡 Średnie | **Zapis plików do dowolnego katalogu serwera** (`save-copy`): gdy `ARTWORK_COPY_ROOTS` puste (domyślnie), manager może zapisać GLB/PNG w dowolnym istniejącym katalogu i sondować istnienie ścieżek | `app.py:5242–5268`, `_a3d_copy_to_dir` `app.py:5213–5240` | fail-closed: w produkcji wymagać `ARTWORK_COPY_ROOTS`; lista dozwolonych katalogów w UI |
 | 7 | 🟡 Średnie | **Brak zarządzania kontami** — konta i role zmieniane w bazie ręcznie (bez audytu, bez wymuszenia polityki haseł, bez dezaktywacji); `superuser` bez przeglądu uprawnień | brak tras `users` w `app.py`; `templates/admin.html` tylko lista | US-009: CRUD kont dla admina z audytem, ochrona „ostatniego admina" |
 | 8 | 🟡 Średnie | **Łańcuch dostaw i kontener** — zakresy `>=` bez locka/hashy, brak Dependabota, skany CVE raz w miesiącu i doradcze, obraz uruchamia gunicorn jako **root**, brak `HEALTHCHECK` | `requirements*.txt`, `Dockerfile:75–90`, `.github/workflows/security.yml` | lock (pip-compile/uv) + pip-audit blokujący w CI, Dependabot, `USER app`, skan obrazu Trivy |
