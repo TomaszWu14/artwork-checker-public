@@ -1,5 +1,7 @@
 # Artwork — porównywanie projektów opakowań
 
+🇬🇧 [English version](README.en.md)
+
 ![Wynik porównania pary artworków: ocena i lista różnic](docs/img/porownanie.jpg)
 
 Aplikacja Flask dla działów zakupów i jakości, która porównuje projekty opakowań (PDF)
