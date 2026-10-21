@@ -81,8 +81,10 @@ barcode/GS1 validation, UOM conversion, material/supplier master, plus an app-bo
 runs in seconds; heavy modules are lazy-imported.
 
 GitHub Actions workflows in `.github/workflows/`:
-- **`ci.yml`** — runs `compileall` (syntax check of *every* module) + `pytest tests/` on push/PR.
-- **`security.yml`** — scheduled/manual security scans (Bandit, gitleaks, Trivy, pip-audit).
+- **`ci.yml`** — on push/PR: ruff lint + format check → `compileall` (syntax check of *every* module) +
+  `pytest tests/` with a ≥ 80 % domain-logic coverage gate; frontend build reproducibility + Alpine CSP check;
+  Bandit, Semgrep (OWASP gate on new code), pip-audit, npm audit, gitleaks, Trivy.
+- **`security.yml`** — monthly/manual full security scans (Bandit, gitleaks, Trivy, pip-audit).
   When adding code, keep `python -m compileall` clean and tests passing.
 
 Linting (ruff, configured in `pyproject.toml` + `.pre-commit-config.yaml`) is intentionally lenient
@@ -120,14 +122,17 @@ runtime. System packages assumed present: `tesseract-ocr` (+ `tesseract-ocr-pol`
 
 ### Entry Point & Routing
 
-`app.py` is the monolithic entry point (~12,000 lines after the Artwork fork). `app = Flask(__name__)` is
-created at module top; there is no `create_app()` factory. Routes are grouped by area (auth, core
-comparison, artwork, AI learning, suppliers, transport/kolejka, spedycja, agencja, admin, export).
+`app.py` is the monolithic entry point (~13,400 lines). `app = Flask(__name__)` is
+created at module top; there is no `create_app()` factory. Routes are grouped by area (auth,
+artwork, AI learning, materials/suppliers, admin, export). The DocCompare transport/kolejka,
+spedycja and agencja routes no longer exist.
 
 Some logic has been extracted into packages to break `app.py` apart incrementally:
 - **`core/`** — shared infrastructure imported by everything (no cycles): `security.py`
-  (`login_required`, `require_role`, CSRF, session validation) and `audit.py` (`log_audit` →
-  `audit_log` table).
+  (`login_required`, `require_role`, CSRF, session validation), `audit.py` (`log_audit` →
+  `audit_log` table), `accounts.py` (hashed password set/reset tokens), `privacy.py` (RODO export,
+  anonymization, retention), `ai_safety.py` (prompt-injection guards for LLM calls) and
+  `render_limits.py` (PDF page/size render limits).
 - **`blueprints/`** — real Flask blueprints registered in `app.py` (`palviz`, `users`). The DocCompare
   dictionaries (`incoterms`, `translation_dict`, `transit_countries`) were removed in US-010. Dependency direction is strictly
   `blueprint → core/db`, never back into `app`.
@@ -141,7 +146,7 @@ The app supports both SQLite (dev) and PostgreSQL (production) through a unified
 `db.py`. It transparently translates SQL dialects (`?` → `%s`, `datetime('now')` → `NOW()`, etc.),
 provides a compatible row factory, and manages a connection pool (`DB_POOL_SIZE`). **Always** use
 `db.get_db()` — never call `sqlite3.connect()` or `psycopg2.connect()` directly. Schema lives in
-`migrate_db.py` (~33 tables, `CREATE TABLE IF NOT EXISTS` + idempotent `add_column` migrations);
+`migrate_db.py` (~22 tables, `CREATE TABLE IF NOT EXISTS` + idempotent `add_column` migrations);
 `check_db.py` is a quick inspection helper.
 
 ### Shared Extraction / Normalization Helpers
@@ -167,7 +172,7 @@ neural OCR for artwork is off by default (`ARTWORK_OCR_LOCAL`); Qwen is gated by
 
 ### Artwork Comparison Pipeline
 
-`artwork_comparator.py` (the largest module, ~7,500 lines) handles visual/packaging PDF comparison:
+`artwork_comparator.py` (the largest module, ~8,900 lines) handles visual/packaging PDF comparison:
 - Renders PDFs to images (150 DPI preview, 220 DPI OCR) via PyMuPDF.
 - Computes pixel/SSIM diffs with region-based intensity mapping (red/yellow/blue zones); uses
   imagehash for fast "identical?" pre-filtering and optional CV models (DINOv2, LightGlue,
@@ -231,7 +236,7 @@ map; `translation_en.py` post-processes rendered HTML to swap Polish phrases for
 
 ### Frontend
 
-Jinja2 templates (60+ in `templates/`) with Alpine.js for reactivity, Chart.js for KPI charts,
+Jinja2 templates (~50 in `templates/`) with Alpine.js for reactivity, Chart.js for KPI charts,
 Dropzone.js for uploads, and Tailwind CSS. `base.html` is the master layout. Design mockups of the report
 (`/artwork/design-preview`) live in `frontend/src/design_preview/*.jsx`, compiled by `npm run build` into
 `static/design/design_preview.js` (excluded from lint).
@@ -249,14 +254,11 @@ expressions to component members (`npm run check:alpine`). See CONTRIBUTING.md.
 - **Number parsing**: use `normalizer.normalize_number()` — raw `float()` fails on European numbers.
 - **Date parsing**: use `normalizer.normalize_date()` — documents arrive in mixed locales.
 - **UOM**: use `uom.py` to convert between packaging units; don't hard-code factors.
-- **Product matching**: use `semantic_matcher.match_items_semantic()`, not exact string compares.
 - **PDF reading**: prefer the `table_extractor.py` / `pdf_extractor.py` cascade over calling
   pdfplumber/camelot/OCR engines directly.
 - **Auth/roles**: gate routes with `core.security` decorators. Internal hierarchy is
-  `user(1) < manager(2) < superuser(3) < admin(4)`. `forwarder` and `customs_agent` are **external**
-  roles (level 0 — blocked from internal pages); they are confined to their portals via
-  `FORWARDER_ALLOWED_PREFIXES` / `CUSTOMS_AGENT_ALLOWED_PREFIXES` and redirected by
-  `EXTERNAL_ROLE_HOME`.
+  `user(1) < manager(2) < superuser(3) < admin(4)` (`constants.UserRole`). The DocCompare external
+  roles (`forwarder`, `customs_agent`) and their portals were removed in the Artwork fork.
 - **Audit**: record significant actions with `core.audit.log_audit(...)`.
 - **Heavy/ML imports**: keep them lazy (function-local) so CI and app boot stay fast and the syntax
   gate (`compileall`) passes without ML deps installed.
