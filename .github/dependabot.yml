@@ -21,6 +21,25 @@ updates:
         patterns: ["*"]
       python-minor-patch:
         update-types: ["minor", "patch"]
+    ignore:
+      # Ciężkie biblioteki ML: zmiana major = osobna weryfikacja API i obrazu bazowego (requirements-ml.lock),
+      # decyzja PO. Minor/patch dalej przychodzą w grupie python-minor-patch.
+      - dependency-name: "torch"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "torchvision"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "transformers"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "sentence-transformers"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "accelerate"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "timm"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "ultralytics"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "faiss-cpu"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "npm"
     directory: "/"   # package.json / package-lock.json — narzędzia builda frontendu (US-022)
     cooldown:   # nowe wersje dopiero po 7 dniach (ochrona łańcucha dostaw); aktualizacji bezpieczeństwa nie dotyczy
@@ -37,6 +56,17 @@ updates:
     groups:
       npm-minor-patch:
         update-types: ["minor", "patch"]
+    ignore:
+      # Zmiana major React / Tailwind wymaga migracji (JSX raportu, konfiguracja CSS) — robimy ją ręcznie
+      # osobnym PR-em (jak Tailwind 4 w #73), nie z PR-a Dependabota.
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@tailwindcss/*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "github-actions"
     directory: "/"
     cooldown:   # nowe wersje dopiero po 7 dniach (ochrona łańcucha dostaw); aktualizacji bezpieczeństwa nie dotyczy
