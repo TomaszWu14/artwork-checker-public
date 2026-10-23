@@ -11673,6 +11673,16 @@ def api_artwork_master_files_wanted():
         db.close()
 
 
+_MASTER_FILE_CTYPES = {
+    ".pdf": "application/pdf",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".tif": "image/tiff",
+    ".tiff": "image/tiff",
+}
+
+
 @app.route("/api/artwork/master-files/upload", methods=["POST"])
 @require_role("manager")
 @csrf_protect
@@ -11710,7 +11720,9 @@ def api_artwork_master_file_upload():
     except OSError:
         pass
     size = len(blob)
-    ctype = f.mimetype or ("application/pdf" if ext == ".pdf" else "image/" + ext.lstrip("."))
+    # Content-Type z rozszerzenia (biała lista) — NIE z nagłówka klienta: inaczej
+    # `text/html` zostałby zapisany i serwowany inline z /master-file/view (stored XSS).
+    ctype = _MASTER_FILE_CTYPES.get(ext, "application/pdf")
     db = get_db()
     try:
         _ai.record_master_file(db, rel_path, stored, ctype, size, data=blob)
@@ -11722,6 +11734,11 @@ def api_artwork_master_file_upload():
     finally:
         db.close()
     return jsonify({"ok": True, "size": size})
+
+
+def _safe_master_ctype(ctype) -> str:
+    """Zapisany Content-Type tylko z białej listy (starsze wiersze mogły mieć dowolny)."""
+    return ctype if ctype in set(_MASTER_FILE_CTYPES.values()) else "application/pdf"
 
 
 @app.route("/api/artwork/master-file/view", methods=["GET"])
@@ -11743,7 +11760,7 @@ def api_artwork_master_file_view():
         if os.path.isfile(path):
             return send_file(
                 path,
-                mimetype=rec.get("content_type") or "application/pdf",
+                mimetype=_safe_master_ctype(rec.get("content_type")),
                 as_attachment=False,
                 download_name=os.path.basename(rel_path),
             )
@@ -11764,7 +11781,7 @@ def api_artwork_master_file_view():
 
     return send_file(
         _io.BytesIO(data),
-        mimetype=ctype or "application/pdf",
+        mimetype=_safe_master_ctype(ctype),
         as_attachment=False,
         download_name=os.path.basename(rel_path),
     )
