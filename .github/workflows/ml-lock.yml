@@ -35,6 +35,7 @@ jobs:
   lock:
     name: Regeneracja i weryfikacja requirements-ml.lock
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write   # wyłącznie commit locka na gałąź feature przy zdarzeniu push
     steps:
