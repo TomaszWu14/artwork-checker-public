@@ -13252,7 +13252,16 @@ def intake_artwork():
         )
         db.commit()
     except Exception:
-        db.rollback()
+        logger.exception("Intake artwork: zapis do intake_queue nieudany (%s)", dest_name)
+        try:
+            db.rollback()
+        except Exception:
+            logger.exception("Intake artwork: rollback nieudany")
+        try:
+            os.remove(dest_path)
+        except OSError:
+            logger.warning("Intake artwork: nie udało się usunąć pliku %s", dest_name)
+        return jsonify({"error": "Nie udało się zapisać zgłoszenia"}), 500
     finally:
         db.close()
 
