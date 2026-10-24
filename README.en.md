@@ -4,6 +4,8 @@
 
 ![Comparison result for an artwork pair: score and list of differences](docs/img/porownanie.jpg)
 
+No public demo — runs locally in ~5 minutes (see [Quick start](#quick-start)).
+
 A Flask web app for purchasing and quality teams that compares packaging artwork PDFs from
 suppliers against approved masters and catches differences in barcodes, dates, names and
 revisions before they end up printed on the product.

@@ -4,6 +4,8 @@
 
 ![Wynik porównania pary artworków: ocena i lista różnic](docs/img/porownanie.jpg)
 
+Bez publicznego demo — uruchomisz lokalnie w ok. 5 minut (patrz [Szybki start](#uruchomienie-szybki-start)).
+
 Aplikacja Flask dla działów zakupów i jakości, która porównuje projekty opakowań (PDF)
 od dostawców z wzorcami i wyłapuje różnice w kodach kreskowych, datach, nazwach i wersjach,
 zanim trafią na towar.
