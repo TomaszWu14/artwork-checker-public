@@ -73,6 +73,24 @@ jobs:
           path: coverage.xml
           if-no-files-found: ignore
 
+  # Zgodność z kolejną wersją Pythona. Osobny job (nie matrix w `tests`), żeby nie zmieniać nazwy
+  # wymaganego checka „Składnia + testy (pytest)”; bramka pokrycia i artefakt zostają w `tests` (3.11).
+  tests-next-python:
+    name: Składnia + testy — Python 3.14
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+      - name: Kompilacja składni całego repo
+        run: python -m compileall -q . -x 'static/design|\.git'
+      - name: Instalacja zależności testowych (lekki zestaw, bez pakietów ML)
+        run: pip install pytest python-dateutil dateparser babel flask werkzeug "rapidfuzz>=3.0,<4.0"
+      - name: pytest
+        run: python -m pytest tests/ -q
+
   frontend:
     name: Frontend — build z repo zgodny ze źródłem (US-022)
     runs-on: ubuntu-latest
