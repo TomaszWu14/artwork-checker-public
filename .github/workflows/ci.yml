@@ -36,6 +36,7 @@ jobs:
   lint:
     name: Lint (ruff check + ruff format --check — blokują)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -51,6 +52,7 @@ jobs:
   tests:
     name: Składnia + testy (pytest)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [lint]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -78,6 +80,7 @@ jobs:
   tests-next-python:
     name: Składnia + testy — Python 3.14
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [lint]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -94,6 +97,7 @@ jobs:
   frontend:
     name: Frontend — build z repo zgodny ze źródłem (US-022)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -120,6 +124,7 @@ jobs:
   sast-bandit:
     name: SAST — Bandit (blokuje ≥ średnie)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [tests]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -144,6 +149,7 @@ jobs:
   sast-semgrep:
     name: SAST — Semgrep (bramka OWASP dla nowego kodu PR)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: [tests]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -198,6 +204,7 @@ jobs:
   sca-pip-audit:
     name: SCA — pip-audit (blokuje)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [tests]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -239,6 +246,7 @@ jobs:
   secrets-gitleaks:
     name: Sekrety — gitleaks (blokuje)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [sast-bandit, sast-semgrep, sca-pip-audit]
     env:
       GITLEAKS_VERSION: 8.30.1
@@ -267,6 +275,7 @@ jobs:
   config-trivy:
     name: Konfiguracja i zależności — Trivy (blokuje HIGH/CRITICAL)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: [secrets-gitleaks]
     env:
       TRIVY_VERSION: 0.74.0

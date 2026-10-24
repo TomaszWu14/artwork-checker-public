@@ -17,6 +17,7 @@ jobs:
   bandit:
     name: Bandit (SAST)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -30,6 +31,7 @@ jobs:
   gitleaks:
     name: gitleaks (sekrety)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       GITLEAKS_VERSION: 8.30.1
       GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
@@ -50,6 +52,7 @@ jobs:
   trivy:
     name: Trivy (zależności + konfiguracja)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Instalacja Trivy (przypięta wersja + sha256)
@@ -69,6 +72,7 @@ jobs:
   pip-audit:
     name: pip-audit (CVE w zależnościach)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -93,6 +97,7 @@ jobs:
     name: Trivy (obraz Docker) — tylko ręcznie
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Zwolnij miejsce na dysku (obraz ML jest duży)
