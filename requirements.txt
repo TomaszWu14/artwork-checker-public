@@ -84,7 +84,7 @@ faiss-cpu>=1.8                # Fast approximate NN search for SBERT index
 # surya-ocr>=0.6,<0.7         # OPCJONALNE, ciężkie: reading-order + OCR — wyłączone (jak wyżej)
 
 # ── Structured table extraction from images ──────────────
-img2table>=1.2                # Cell-level table parsing (supplements Table Transformer)
+img2table>=2.0.0                # Cell-level table parsing (supplements Table Transformer)
 
 # ── Grounding DINO (open-vocabulary object detection) ────
 # Wykrywa obiekty na podstawie opisu słownego ("znajdź numer LOT", "znajdź EAN")
